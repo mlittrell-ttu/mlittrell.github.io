@@ -1,0 +1,46 @@
+word,category,difficulty,hint
+teacher,person,easy,This person helps you learn at school
+mom,person,easy,A parent who is female
+dad,person,easy,A parent who is male
+doctor,person,easy,This person helps you when you are sick
+friend,person,easy,Someone you like to play with
+school,place,easy,You go here to learn
+park,place,easy,A place with swings and slides
+home,place,easy,Where you live with your family
+store,place,easy,Where you buy things
+beach,place,easy,A sandy place by the water
+book,thing,easy,You read this
+ball,thing,easy,You can throw or kick this
+chair,thing,easy,You sit on this
+apple,thing,easy,A red or green fruit
+pencil,thing,easy,You write with this
+athlete,person,medium,Someone who plays sports
+musician,person,medium,This person plays music
+scientist,person,medium,This person studies and experiments
+neighbor,person,medium,Someone who lives near you
+artist,person,medium,This person creates art
+museum,place,medium,A place to see art and history
+restaurant,place,medium,Where people eat meals
+airport,place,medium,Where airplanes take off
+theater,place,medium,Where you watch movies or plays
+stadium,place,medium,A big place for sports games
+computer,thing,medium,An electronic device for work and games
+bicycle,thing,medium,A vehicle with two wheels you pedal
+umbrella,thing,medium,Keeps you dry in the rain
+backpack,thing,medium,You carry books in this
+television,thing,medium,You watch shows on this
+veterinarian,person,hard,A doctor for animals
+architect,person,hard,This person designs buildings
+astronaut,person,hard,This person travels to space
+photographer,person,hard,This person takes pictures
+librarian,person,hard,This person works with books
+laboratory,place,hard,Where scientists do experiments
+observatory,place,hard,Where people study stars
+gymnasium,place,hard,A big room for exercise and sports
+planetarium,place,hard,Shows about space and stars
+cafeteria,place,hard,Where students eat lunch at school
+microscope,thing,hard,Makes tiny things look bigger
+telescope,thing,hard,Helps you see things far away
+thermometer,thing,hard,Measures temperature
+calculator,thing,hard,Helps you do math
+encyclopedia,thing,hard,A book with lots of information
