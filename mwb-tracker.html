@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<!--
+  CLASSROOM MENTAL WELL-BEING OBSERVATION TRACKER
+
+  DATA MODEL:
+  All observations live in one flat array — allRecords[].
+  Each record: { rid, name, date, period, state, note }
+  The Enter table and Analyze charts both read from allRecords.
+  No separate "session" concept — records accumulate freely.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Mental Well-Being Observation Tracker</title>
+
+  <style>
+    /* ── VARIABLES ─────────────────────────────────────────── */
+    :root {
+      --bg:        #f7f8f8;
+      --card:      #ffffff;
+      --accent:    #4a9e8f;
+      --accent-lt: #e6f4f2;
+      --accent-dk: #357a6e;
+      --text:      #2c3333;
+      --muted:     #6b7676;
+      --border:    #e4e9e8;
+      --danger:    #d96060;
+      --radius:    8px;
+      --s1: #4a9e8f;
+      --s2: #6aaecc;
+      --s3: #e8c44a;
+      --s4: #e8904a;
+      --s5: #d96060;
+      /* System font stacks — no external requests */
+      --font-serif: Georgia, 'Times New Roman', serif;
+      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    /* ── RESET ─────────────────────────────────────────────── */
+    /* This is a CSS reset — removes browser default spacing and 
+   standardizes the box model across all elements */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    /* A CSS rule — selector + declaration block */
+    body {
+      font-family: var(--font-sans); /* declaration: property + value */
+      font-size: 15px;
+      background: var(--bg);
+      color: var(--text); /* same as writing color: #2c3333 */
+      display: flex;
+      min-height: 100vh;
+      line-height: 1.65;
+    }
+
+    /* ── SIDEBAR ───────────────────────────────────────────── */
+    #sidebar { /* # targets a unique id, not a class like .*/
+  width: 230px;          /* fixed sidebar width */
+  min-height: 100vh;     /* stretch full viewport height */
+  background: var(--card);
+  border-right: 1px solid var(--border); /* dividing line between sidebar and main */
+  display: flex;
+  flex-direction: column; /* stack nav items vertically */
+  position: fixed;        /* stays in place when page scrolls */
+  top: 0; left: 0;        /* pinned to top-left corner */
+  z-index: 100;           /* float above other page content */
+    }
+    .brand { padding: 1.5rem 1.3rem 1.1rem; border-bottom: 1px solid var(--border); } /* .brand = . is class selector. anything with class brand targetted */
+    .brand-icon {
+      width: 34px; height: 34px; background: var(--accent-lt);
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 1rem; margin-bottom: 0.6rem;
+    }
+    .brand h1 { font-family: var(--font-serif); font-size: 0.92rem; line-height: 1.3; }
+    .brand p  { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+    .nav-label {
+      font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); padding: 1rem 1.3rem 0.25rem; font-weight: 600;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.3rem; cursor: pointer; font-size: 0.855rem;
+      color: var(--muted); border-left: 2px solid transparent; transition: all 0.12s;
+    }
+    .nav-item:hover { color: var(--text); background: var(--bg); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-lt); font-weight: 600; }
+    .nav-icon { font-size: 0.9rem; }
+    /* record count badge next to nav items */
+    .nav-count {
+      margin-left: auto; background: var(--accent-lt); color: var(--accent-dk);
+      font-size: 0.68rem; font-weight: 600; padding: 0.1rem 0.45rem;
+      border-radius: 20px; display: none;
+    }
+    .nav-count.show { display: inline-block; }
+    .state-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .sidebar-footer { margin-top: auto; padding: 0.9rem 1.3rem; border-top: 1px solid var(--border); }
+    /* sidebar states reference */
+    .states-ref { padding: 0 1.3rem 0.5rem; }
+    .states-ref-row { display: flex; align-items: center; gap: 0.45rem; font-size: 0.73rem; color: var(--muted); margin-bottom: 0.22rem; }
+
+    /* ── MAIN ──────────────────────────────────────────────── */
+    #main { margin-left: 230px; flex: 1; padding: 2rem 2.6rem; max-width: 1020px; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .page-title { font-family: var(--font-serif); font-size: 1.65rem; margin-bottom: 0.2rem; }
+    .page-sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 1.8rem; }
+
+    /* ── CARDS ─────────────────────────────────────────────── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+    .card h2 { font-family: var(--font-serif); font-size: 1.1rem; margin-bottom: 0.45rem; }
+    .card h3 { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .card p  { font-size: 0.86rem; color: var(--muted); margin-bottom: 0.65rem; line-height: 1.65; }
+    .card p:last-child { margin-bottom: 0; }
+
+    /* ── BUTTONS ───────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.5rem 1rem; border-radius: 6px;
+      font-family: var(--font-sans); font-size: 0.84rem;
+      font-weight: 500; cursor: pointer; border: none; transition: all 0.12s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dk); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger  { background: transparent; border: 1px solid #f0c8c8; color: var(--danger); }
+    .btn-danger:hover { background: #fff0f0; }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+    .btn-ghost { background: transparent; border: none; color: var(--muted); font-size: 0.8rem; cursor: pointer; font-family: var(--font-sans); padding: 0; }
+    .btn-ghost:hover { color: var(--danger); }
+
+    /* ── TOOLTIPS ──────────────────────────────────────────── */
+    .tip-wrap { position: relative; display: inline-flex; align-items: center; }
+    .tip-icon {
+      width: 15px; height: 15px; border-radius: 50%; background: var(--border);
+      color: var(--muted); font-size: 0.6rem; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: help; flex-shrink: 0; transition: background 0.12s; margin-left: 0.3rem;
+    }
+    .tip-icon:hover { background: var(--accent); color: #fff; }
+    .tip-box {
+      display: none; position: absolute; bottom: calc(100% + 7px); left: 50%;
+      transform: translateX(-50%); background: var(--text); color: #f0f4f3;
+      font-size: 0.77rem; padding: 0.5rem 0.7rem; border-radius: 6px;
+      width: 210px; line-height: 1.5; z-index: 400;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15); pointer-events: none;
+    }
+    .tip-wrap:hover .tip-box { display: block; }
+
+    /* ── ALERTS ────────────────────────────────────────────── */
+    .alert { padding: 0.7rem 0.95rem; border-radius: 6px; font-size: 0.84rem; margin-bottom: 1rem; line-height: 1.55; }
+    .alert-info { background: var(--accent-lt); border: 1px solid #c0ddd9; color: #2a6b62; }
+    .alert-warn { background: #fef9ec; border: 1px solid #f0d88a; color: #7a5c10; }
+
+    /* ── FLEX HELPERS ──────────────────────────────────────── */
+    .flex-between { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.7rem; }
+    .flex-gap     { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* ── THE DATA TABLE ────────────────────────────────────── */
+    /*
+      This is the core of the Enter Observations view.
+      A scrollable table where every cell is editable.
+      Each row = one observation record.
+    */
+    .data-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      margin-bottom: 1rem;
+    }
+
+    table.data-tbl { width: 100%; border-collapse: collapse; min-width: 700px; } /* table.data-tbl — compound selector. 
+    targets element w. both <table> tag and class data-tbl
+     No . means its a element selector. 
+     An element in html is a single building block (open tag, its content, closing tag) */
+
+
+
+
+    /* Descendant selector - Read left to right — each part drills deeper into the nesting:
+   
+   table.data-tbl   → a <table> with class="data-tbl"
+   thead            → inside that, a <thead> element
+   th               → inside that, a <th> element (table header cell)
+
+   Only <th> cells that live inside a <thead> that lives inside
+   that specific table get these styles. A <th> anywhere else
+   on the page is unaffected. 
+   thead = built in html table element; table head
+   th = is the header cell
+   td = the editable data cell*/
+
+    table.data-tbl thead th {
+      text-align: left; font-size: 0.72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--muted); padding: 0.6rem 0.8rem;
+      border-bottom: 2px solid var(--border);
+      background: var(--bg); white-space: nowrap;
+    }
+
+    table.data-tbl tbody tr { transition: background 0.08s; }
+    table.data-tbl tbody tr:hover { background: #f9fbfb; }
+    table.data-tbl tbody tr:last-child td { border-bottom: none; }
+
+    table.data-tbl td {
+      padding: 0.35rem 0.55rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    /* Inline inputs inside the table cells */
+    .tbl-input {
+      width: 100%; border: 1px solid transparent; border-radius: 4px;
+      padding: 0.3rem 0.45rem; font-family: var(--font-sans);
+      font-size: 0.84rem; color: var(--text); background: transparent;
+      outline: none; transition: border-color 0.12s, background 0.12s;
+    }
+    .tbl-input:hover  { border-color: var(--border); background: var(--bg); }
+    .tbl-input:focus  { border-color: var(--accent); background: #fff; }
+
+    /* The state dropdown — color coded */
+    .state-select {
+      width: 100%; border: 1px solid transparent; border-radius: 4px;
+      padding: 0.28rem 0.4rem; font-family: var(--font-sans);
+      font-size: 0.84rem; background: transparent; outline: none;
+      cursor: pointer; transition: border-color 0.12s, background 0.12s;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7676'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 0.5rem center;
+      padding-right: 1.4rem;
+    }
+    .state-select:hover { border-color: var(--border); background-color: var(--bg); }
+    .state-select:focus { border-color: var(--accent); background-color: #fff; }
+
+    /* Color the dropdown by selected value using JS-applied classes */
+    .state-select.s0 { color: var(--muted); }
+    .state-select.s1 { color: var(--s1); font-weight: 600; }
+    .state-select.s2 { color: var(--s2); font-weight: 600; }
+    .state-select.s3 { color: var(--s3); font-weight: 600; }
+    .state-select.s4 { color: var(--s4); font-weight: 600; }
+    .state-select.s5 { color: var(--s5); font-weight: 600; }
+
+    /* Delete button in each row */
+    .del-btn {
+      width: 24px; height: 24px; border-radius: 4px; border: none;
+      background: transparent; color: var(--border); cursor: pointer;
+      font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+      transition: all 0.12s;
+    }
+    .del-btn:hover { background: #fff0f0; color: var(--danger); }
+
+    /* Empty state message when no records */
+    .empty-state {
+      text-align: center; padding: 2.5rem; color: var(--muted); font-size: 0.88rem;
+    }
+    .empty-state .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ── SUMMARY STRIP ─────────────────────────────────────── */
+    .summary-strip {
+      display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .s-chip {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.3rem 0.65rem; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+      border: 1px solid currentColor;
+    }
+
+    /* ── UPLOAD ZONE ───────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 1.5rem; text-align: center; cursor: pointer;
+      transition: all 0.15s; background: var(--bg);
+    }
+    .upload-zone:hover, .upload-zone.over { border-color: var(--accent); background: var(--accent-lt); }
+    .upload-zone p { font-size: 0.84rem; color: var(--muted); margin: 0; }
+
+    /* ── CHARTS ────────────────────────────────────────────── */
+    .chart-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.3rem; margin-bottom: 1rem; }
+    .chart-title { font-size: 0.86rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.2rem; }
+    .chart-sub   { font-size: 0.77rem; color: var(--muted); margin-bottom: 0.9rem; }
+    canvas { width: 100% !important; display: block; }
+    .legend { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.6rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: var(--muted); }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── TABS ──────────────────────────────────────────────── */
+    .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.3rem; }
+    .tab { padding: 0.5rem 1rem; font-size: 0.84rem; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+    /* ── ABOUT PAGE ────────────────────────────────────────── */
+    .concept-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem; }
+    .concept-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; }
+    .concept-card .c-icon { font-size: 1.3rem; margin-bottom: 0.4rem; }
+    .concept-card h3 { font-size: 0.88rem; margin-bottom: 0.25rem; }
+    .concept-card p  { font-size: 0.81rem; color: var(--muted); margin: 0; line-height: 1.55; }
+    .state-explain { display: flex; align-items: flex-start; gap: 0.9rem; padding: 0.8rem 1rem; border-radius: 6px; margin-bottom: 0.45rem; border: 1px solid var(--border); background: var(--card); }
+    .state-explain .s-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; margin-top: 0.2rem; }
+    .state-explain h4 { font-size: 0.86rem; margin-bottom: 0.12rem; }
+    .state-explain p  { font-size: 0.81rem; color: var(--muted); margin: 0; }
+
+    /* ── BADGE ─────────────────────────────────────────────── */
+    .badge { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 20px; font-size: 0.68rem; font-weight: 600; }
+    .badge-teal { background: var(--accent-lt); color: var(--accent-dk); }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 1.1rem 0; }
+
+    /* ── FEEDBACK MODAL ────────────────────────────────────── */
+    #feedbackModal { display: none; position: fixed; inset: 0; background: rgba(44,51,51,0.45); z-index: 500; align-items: center; justify-content: center; }
+    #feedbackModal.open { display: flex; }
+    .modal-box { background: var(--card); border-radius: var(--radius); padding: 1.7rem; max-width: 450px; width: 92%; box-shadow: 0 8px 28px rgba(0,0,0,0.14); }
+    .modal-box h2 { font-family: var(--font-serif); font-size: 1.1rem; margin-bottom: 0.3rem; }
+    .modal-box > p { font-size: 0.83rem; color: var(--muted); margin-bottom: 1rem; }
+    .q-label { font-size: 0.83rem; font-weight: 600; display: block; margin-bottom: 0.3rem; }
+    .likert { display: flex; gap: 0.3rem; margin-bottom: 0.9rem; }
+    .likert button { flex: 1; padding: 0.38rem 0; border: 1px solid var(--border); border-radius: 5px; background: transparent; font-size: 0.78rem; cursor: pointer; font-family: var(--font-sans); color: var(--muted); transition: all 0.12s; }
+    .likert button:hover, .likert button.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+    textarea.oe { width: 100%; border: 1px solid var(--border); border-radius: 5px; padding: 0.45rem 0.65rem; font-family: var(--font-sans); font-size: 0.83rem; min-height: 60px; resize: vertical; color: var(--text); outline: none; }
+    textarea.oe:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<!-- FEEDBACK MODAL ─────────────────────────────────────────── -->
+<div id="feedbackModal">
+  <div class="modal-box">
+    <h2>👋 A quick note </h2>
+    <p>This tool was developed as part of an educational research project. Your feedback helps improve it.</p>
+    <label class="q-label">1. How useful is this tool to in your classroom?</label>
+    <div class="likert" id="fq1">
+      <button onclick="lk('fq1',1,this)">1<br><small>Not useful</small></button>
+      <button onclick="lk('fq1',2,this)">2</button>
+      <button onclick="lk('fq1',3,this)">3<br><small>Neutral</small></button>
+      <button onclick="lk('fq1',4,this)">4</button>
+      <button onclick="lk('fq1',5,this)">5<br><small>Very useful</small></button>
+    </div>
+    <label class="q-label">2. How clear is the mental well-being content and guidance in this tool?</label>
+    <div class="likert" id="fq2">
+      <button onclick="lk('fq2',1,this)">1<br><small>Not clear</small></button>
+      <button onclick="lk('fq2',2,this)">2</button>
+      <button onclick="lk('fq2',3,this)">3<br><small>Neutral</small></button>
+      <button onclick="lk('fq2',4,this)">4</button>
+      <button onclick="lk('fq2',5,this)">5<br><small>Very clear</small></button>
+    </div>
+    <label class="q-label">3. How do rate the benefits of this tool?</label>
+    <div class="likert" id="fq3">
+      <button onclick="lk('fq3',1,this)">1<br><small>Not beneficial</small></button>
+      <button onclick="lk('fq3',2,this)">2</button>
+      <button onclick="lk('fq3',3,this)">3<br><small>Neutral</small></button>
+      <button onclick="lk('fq3',4,this)">4</button>
+      <button onclick="lk('fq3',5,this)">5<br><small>Very beneficial</small></button>
+    </div>
+    <label class="q-label">4. Any thoughts or suggestions? (Optional)</label>
+    <textarea class="oe" id="fq4" placeholder="Your response here..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeFeedback()">Skip</button>
+      <button class="btn btn-primary" onclick="sendFeedback()">📧 Send Feedback</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- SIDEBAR ─────────────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="brand">
+    <div class="brand-icon">🌱</div>
+    <h1>Mental Well-Being Tracker</h1>
+    <p>Classroom Tool for Student Well-Being</p>
+  </div>
+
+  <div class="nav-label">Learn</div>
+  <div class="nav-item active" onclick="show('aboutView',this)"><span class="nav-icon">📖</span> About Well-Being</div>
+  <div class="nav-item" onclick="show('howView',this)"><span class="nav-icon">🧭</span> How to Use</div>
+
+  <div class="nav-label">Tool</div>
+  <div class="nav-item" onclick="show('enterView',this)">
+    <span class="nav-icon">✏️</span> Enter Observations
+    <span class="nav-count" id="recCount">0</span>
+  </div>
+  <div class="nav-item" onclick="show('analyzeView',this); refreshAnalysis()">
+    <span class="nav-icon">📊</span> Analyze Data
+  </div>
+
+  <div class="nav-label" style="margin-top:0.3rem">States</div>
+  <div class="states-ref">
+    <div class="states-ref-row"><span class="state-dot" style="background:var(--s1)"></span> 1 — Ready</div>
+    <div class="states-ref-row"><span class="state-dot" style="background:var(--s2)"></span> 2 — Mostly Ready</div>
+    <div class="states-ref-row"><span class="state-dot" style="background:var(--s3)"></span> 3 — Unsettled</div>
+    <div class="states-ref-row"><span class="state-dot" style="background:var(--s4)"></span> 4 — Struggling</div>
+    <div class="states-ref-row"><span class="state-dot" style="background:var(--s5)"></span> 5 — Distressed</div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button class="btn btn-outline" style="width:100%; font-size:0.78rem; color:var(--muted)" onclick="openFeedback()">💬 Share Feedback</button>
+  </div>
+</nav>
+
+
+<!-- MAIN ────────────────────────────────────────────────────── -->
+<main id="main">
+
+
+  <!-- ── VIEW: ABOUT ──────────────────────────────────────── -->
+  <div class="view active" id="aboutView">
+    <div class="page-title">About Student Mental Well-Being</div>
+    <div class="page-sub">Understanding student mental health and how teacher observation supports it in the classroom</div>
+
+    <div class="card">
+      <h2>What is Student Mental Well-Being?</h2>
+      <p>The World Health Organization defines mental health as a... [Insert informative content here.]</p>
+      <p> ...and here.</p>
+    </div>
+
+    <div class="card">
+      <h2>Why Does Teacher Observation Matter?</h2>
+      <p>Teachers occupy a unique position for observing the daily mental well-being of their students...</p>
+      <p>When observations are recorded consistently...</p>
+      <div class="alert alert-warn">⚠️ <strong>Important:</strong> Teacher observation of student mental states is a valuable professional data source but is not a clinical or diagnostic instrument.</div>
+    </div>
+
+    <div class="card">
+      <h2>The Five Observable States</h2>
+      <p>These states describe what a teacher <em>observes</em> about a student's apparent readiness and well-being in the classroom...</p>
+      <div style="margin-top:0.7rem">
+        <div class="state-explain"><span class="s-dot" style="background:var(--s1)"></span><div><h4>1 — Engaged and Ready</h4><p>The student appears calm, focused, and ready to learn. </p></div></div>
+        <div class="state-explain"><span class="s-dot" style="background:var(--s2)"></span><div><h4>2 — Mostly Ready</h4><p>The student is present and compliant but may appear tired or quietly disengaged. </p></div></div>
+        <div class="state-explain"><span class="s-dot" style="background:var(--s3)"></span><div><h4>3 — Mildly Unsettled</h4><p>The student shows mild signs of distraction, restlessness, or low-level friction.</p></div></div>
+        <div class="state-explain"><span class="s-dot" style="background:var(--s4)"></span><div><h4>4 — Struggling</h4><p>The student is visibly dysregulated — withdrawn, upset, acting out, or unavailable for learning.</p></div></div>
+        <div class="state-explain"><span class="s-dot" style="background:var(--s5)"></span><div><h4>5 — Distressed</h4><p>The student is in significant distress.</p></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Research Foundation</h2>
+      <div class="concept-row">
+        <div class="concept-card"><div class="c-icon">🧠</div><h3>Mental Health &amp; Learning</h3><p>Psychological distress — including anxiety, social stress, and low self-efficacy...</p></div>
+        <div class="concept-card"><div class="c-icon">📊</div><h3>Teacher Observation as Data</h3><p>Structured observational records by classroom teachers constitute a recognized...</p></div>
+        <div class="concept-card"><div class="c-icon">📅</div><h3>Temporal Patterns</h3><p>Student mental well-being shows meaningful variation across days, weeks,...</p></div>
+        <div class="concept-card"><div class="c-icon">🔗</div><h3>Well-Being &amp; Achievement</h3><p>Higher levels of student well-being are prospectively associated with improved academic outcomes...</p></div>
+      </div>
+      <div style="margin-top:0.8rem">
+        <p style="font-size:0.78rem; color:var(--muted); line-height:1.7">
+          References:...
+        </p>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="show('enterView', document.querySelectorAll('.nav-item')[3])">→ Start Entering Observations</button>
+  </div>
+
+
+  <!-- ── VIEW: HOW TO USE ──────────────────────────────────── -->
+  <div class="view" id="howView">
+    <div class="page-title">How to Use This Tool</div>
+    <div class="page-sub">A practical guide from first entry to analysis</div>
+
+    <div class="card"><h2>Overview</h2><p>This tool works as a running observational log.. [Insert Instructional Content] </p><div class="alert alert-info">💡 <strong>Privacy first:</strong> Everything runs entirely in your browser. No data is sent anywhere. When you close the tab, all data is cleared. Remember to export your data before closing.</div></div>
+
+    <div class="card"><h3>Step 1 — Go to Enter Observations</h3><p>Click...[Insert Instructional Content] </p></div>
+
+    <div class="card"><h3>Step 2 — Add a Row for Each Observation</h3><p>Click...[Insert Instructional Content]</p></div>
+
+    <div class="card"><h3>Step 3 — Export &amp; Save Your Data</h3><p>Click...[Insert Instructional Content]</p></div>
+
+    <div class="card"><h3>Step 4 — Analyze</h3><p>Click...[Insert Instructional Content]</p></div>
+
+    <div class="card"><h3>What to Look For</h3><p><strong>Class level:</strong> Are certain days consistently showing states...</p></div>
+
+    <button class="btn btn-primary" onclick="show('enterView', document.querySelectorAll('.nav-item')[3])">→ Go to Enter Observations</button>
+  </div>
+
+
+  <!-- ── VIEW: ENTER OBSERVATIONS ─────────────────────────── -->
+  <div class="view" id="enterView">
+    <div class="page-title">Enter Observations</div>
+    <div class="page-sub">Add, edit, or delete observation records. Each row is one student on one date.</div>
+
+    <!-- toolbar -->
+    <div class="flex-between" style="margin-bottom:0.8rem">
+      <div class="flex-gap">
+        <button class="btn btn-primary" onclick="addRow()">+ Add Row</button>
+        <button class="btn btn-outline" onclick="downloadTemplate()">⬇ CSV Template</button>
+        <div class="tip-wrap">
+          <span class="tip-icon">i</span>
+          <div class="tip-box">Click + Add Row to enter observations one at a time. Or download the CSV template, fill it in, and import it to load many records at once.</div>
+        </div>
+      </div>
+      <div class="flex-gap">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">⬆ Import CSV</button>
+        <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(this.files[0])"/>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">✕ Clear All</button>
+      </div>
+    </div>
+
+    <!-- live summary strip — updates as data changes -->
+    <div id="summaryStrip" style="display:none; margin-bottom:0.8rem">
+      <div class="summary-strip" id="summaryChips"></div>
+    </div>
+
+    <!-- the data table -->
+    <div class="data-table-wrap">
+      <table class="data-tbl">
+        <thead>
+          <tr>
+            <th style="width:160px">Student Name
+              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Type the student's first name, last name, or an ID. The same name across multiple rows will be treated as the same student in analysis.</div></div>
+            </th>
+            <th style="width:140px">Date
+              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Defaults to today. Click to change using the date picker. You can enter multiple rows for the same student on different dates.</div></div>
+            </th>
+            <th style="width:120px">Period / Class
+              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">e.g. "Period 2" or "Block B". Used to compare classes against each other in analysis.</div></div>
+            </th>
+            <th style="width:160px">Observed State
+              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Select the state that best describes your observation of this student today. See the sidebar for the 5-state reference guide.</div></div>
+            </th>
+            <th>Note <span style="font-weight:400; color:var(--muted); font-size:0.78rem">(optional)</span></th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="recBody">
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>No observations yet. Click <strong>+ Add Row</strong> to get started,<br>or import a CSV file.</p>
+      </div>
+    </div>
+
+  </div><!-- end enterView -->
+
+
+  <!-- ── VIEW: ANALYZE ─────────────────────────────────────── -->
+  <div class="view" id="analyzeView">
+    <div class="page-title">Analyze Data</div>
+    <div class="page-sub">Charts update automatically from your entered observations</div>
+
+    <!-- record count or empty prompt -->
+    <div id="analyzeHeader"></div>
+
+    <!-- optional CSV upload to merge in historical data -->
+    <div class="card" style="padding:1.1rem 1.5rem">
+      <div class="flex-between">
+        <div class="flex-gap">
+          <span style="font-size:0.84rem; font-weight:600">Add historical data from a CSV</span>
+          <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Upload a previously exported CSV to merge it with your current data. Useful for bringing in records from a past session. Duplicate rows are added — clear first if you want a clean slate.</div></div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('analyzeImport').click()">⬆ Upload CSV</button>
+          <input type="file" id="analyzeImport" accept=".csv" style="display:none" onchange="importAnalyzeCSV(this.files[0])"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- charts section -->
+    <div id="chartsSection" style="display:none">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('overview',this)">Class Overview</div>
+        <div class="tab" onclick="switchTab('trends',this)">Trends Over Time</div>
+        <div class="tab" onclick="switchTab('students',this)">By Student</div>
+      </div>
+
+      <!-- TAB: Overview -->
+      <div id="tabOverview">
+        <div class="chart-wrap">
+          <div class="chart-title">State Distribution — All Records<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Total count of observations by state across all records. A healthy class shows most observations at 1–2.</div></div></div>
+          <div class="chart-sub">How often each state was observed overall</div>
+          <canvas id="cOverviewBar" height="220"></canvas>
+          <div class="legend" id="cOverviewLegend"></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Average State by Session Date<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Class mean state per unique date. Lower = better regulated. Spikes may coincide with tests, events, or curriculum changes.</div></div></div>
+          <div class="chart-sub">Mean observed state across all students per date</div>
+          <canvas id="cOverviewLine" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- TAB: Trends -->
+      <div id="tabTrends" style="display:none">
+        <div class="chart-wrap">
+          <div class="chart-title">Average State by Day of Week<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Are Mondays consistently more dysregulated than Thursdays? This aggregates by weekday to surface weekly patterns.</div></div></div>
+          <div class="chart-sub">Mean observed state grouped by weekday</div>
+          <canvas id="cDowBar" height="220"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">% Elevated States Over Time<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Percentage of students observed at state 3 or above per date. A rising trend may indicate increasing classroom stress.</div></div></div>
+          <div class="chart-sub">% of observations at state 3, 4, or 5 per date</div>
+          <canvas id="cElevatedLine" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- TAB: By Student -->
+      <div id="tabStudents" style="display:none">
+        <div class="card" style="margin-bottom:1rem">
+          <div class="flex-gap">
+            <label style="font-size:0.84rem; font-weight:600">Select a student:</label>
+            <select id="studentSelect" onchange="drawStudentCharts()"
+              style="border:1px solid var(--border); border-radius:5px; padding:0.3rem 0.7rem; font-family:var(--font-sans); font-size:0.84rem; color:var(--text); outline:none">
+              <option value="">— Choose student —</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">State Over Time<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">This student's observed state across all dates. A consistently elevated score (3+) across multiple sessions may warrant a check-in.</div></div></div>
+          <div class="chart-sub">Observed state per date for selected student</div>
+          <canvas id="cStudentLine" height="200"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">State Distribution</div>
+          <div class="chart-sub">How often this student was observed in each state</div>
+          <canvas id="cStudentBar" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- empty prompt when no data -->
+    <div id="analyzeEmpty" style="display:none" class="card" style="text-align:center">
+      <p>No observation data yet. Go to <strong>Enter Observations</strong> to add records, or upload a CSV above.</p>
+      <button class="btn btn-primary" style="margin-top:0.5rem" onclick="show('enterView', document.querySelectorAll('.nav-item')[3])">→ Enter Observations</button>
+    </div>
+
+  </div><!-- end analyzeView -->
+
+
+</main>
+
+
+<!-- JAVASCRIPT ──────────────────────────────────────────────── -->
+<script>
+// ============================================================
+// DATA MODEL
+// allRecords is the single source of truth for the whole app.
+// Every observation lives here as a flat record object.
+// Both the table and the charts read from this array.
+// ============================================================
+
+let allRecords = [];
+// An empty array — this is the app's entire data store.
+// Every observation row lives here as an object.
+// The comment shows the shape of each object inside it:
+// { rid: 1, name: 'Jim Smith', date: '2026-03-09', period: 'Period 1', state: 2, note: '' }
+// When you add a row, an object gets pushed in. Delete a row, it gets removed.
+// The table and charts both just read from this array.
+
+let ridSeq = 0;
+// A simple counter that increments by 1 each time a row is added.
+// Used to give each record a unique ID (rid = record ID).
+// So first row gets rid:1, second rid:2, etc.
+// This lets the app find and delete a specific row without confusion
+// even if rows get reordered or deleted.
+
+let feedbackVals = { fq1: null, fq2: null, fq3: null };
+// An object storing the three Likert responses from the feedback modal.
+// Starts as null (unanswered). When the teacher clicks a rating button,
+// the corresponding value gets set — e.g. feedbackVals.fq1 = 4
+// Then when they hit Send, these get packaged into the mailto body.
+
+const STATES = [
+  { num: 1, label: 'Ready',  color: '#4a9e8f', emoji: '🟢' },
+  { num: 2, label: 'Mostly Ready',   color: '#6aaecc', emoji: '🔵' },
+  { num: 3, label: 'Unsettled',  color: '#e8c44a', emoji: '🟡' },
+  { num: 4, label: 'Struggling', color: '#e8904a', emoji: '🟠' },
+  { num: 5, label: 'Distressed', color: '#d96060', emoji: '🔴' },
+];
+
+// Build a <select> options reusable HTML string for the state dropdown containing all 5 states.
+// 
+const STATE_OPTIONS = `<option value="">— State —</option>` +
+  STATES.map(s => `<option value="${s.num}">${s.emoji} ${s.num} — ${s.label}</option>`).join(''); //.map is built in JS method that loops over every array and transforms
+
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+// nav function that shows one view and hides all others; highlights the clicked one
+function show(viewId, navEl) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+}
+
+
+// ============================================================
+// FEEDBACK MODAL
+// ============================================================
+
+function openFeedback()  { document.getElementById('feedbackModal').classList.add('open'); }
+function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }
+
+function lk(gid, val, btn) {
+  document.querySelectorAll(`#${gid} button`).forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  feedbackVals[gid] = val;
+}
+
+function sendFeedback() {
+  const oe = document.getElementById('fq4').value || '(no response)';
+  const body = [
+    'Mental Well-Being Tracker — User Feedback',
+    '=========================================',
+    `Q1 Usefulness: ${feedbackVals.fq1 ?? 'No response'} / 5`,
+    `Q2 Clarity: ${feedbackVals.fq2 ?? 'No response'} / 5`,
+    `Q3 Beneficial: ${feedbackVals.fq3 ?? 'No response'} / 5`,
+    '', 'Q4 Open-ended:', oe
+  ].join('\n');
+  // REPLACE with your email address
+  const email = 'researcher@yourinstitution.edu';
+  window.location.href = `mailto:${email}?subject=${encodeURIComponent('Mental Well-Being Tracker Feedback')}&body=${encodeURIComponent(body)}`;
+  closeFeedback();
+}
+
+window.addEventListener('load', () => {
+  document.getElementById('feedbackModal').classList.add('open');
+});
+
+
+// ============================================================
+// TABLE RENDERING
+// Rebuilds the entire tbody from allRecords.
+// Called after any data change.
+// ============================================================
+
+function renderTable() {
+  const tbody = document.getElementById('recBody');
+  const empty = document.getElementById('emptyState');
+
+  if (!allRecords.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    updateSummary();
+    updateNavCount();
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  tbody.innerHTML = allRecords.map(r => `
+    <tr id="row_${r.rid}">
+      <td>
+        <input class="tbl-input" type="text" value="${escHtml(r.name)}" placeholder="Student name..."
+          onchange="updateRec(${r.rid},'name',this.value)"
+          onkeydown="if(event.key==='Tab'){ event.preventDefault(); focusNext(${r.rid},'date'); }"/>
+      </td>
+      <td>
+        <input class="tbl-input" type="date" value="${r.date}"
+          onchange="updateRec(${r.rid},'date',this.value)"
+          onkeydown="if(event.key==='Tab'){ event.preventDefault(); focusNext(${r.rid},'period'); }"/>
+      </td>
+      <td>
+        <input class="tbl-input" type="text" value="${escHtml(r.period)}" placeholder="Period..."
+          onchange="updateRec(${r.rid},'period',this.value)"
+          onkeydown="if(event.key==='Tab'){ event.preventDefault(); focusNext(${r.rid},'state'); }"/>
+      </td>
+      <td>
+        <select class="state-select s${r.state || 0}" id="sel_${r.rid}"
+          onchange="updateRec(${r.rid},'state', this.value ? parseInt(this.value) : null); colorSelect(${r.rid})">
+          ${STATE_OPTIONS.replace(`value="${r.state}"`, `value="${r.state}" selected`)}
+        </select>
+      </td>
+      <td>
+        <input class="tbl-input" type="text" value="${escHtml(r.note)}" placeholder="Optional note..."
+          onchange="updateRec(${r.rid},'note',this.value)"
+          onkeydown="if(event.key==='Enter'){ addRow(); }"/>
+      </td>
+      <td>
+        <button class="del-btn" onclick="deleteRow(${r.rid})" title="Delete this row">✕</button>
+      </td>
+    </tr>
+  `).join('');
+
+  updateSummary();
+  updateNavCount();
+}
+
+// Escape HTML to avoid XSS in name/note fields
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Update a single field on a record without re-rendering the whole table
+function updateRec(rid, field, value) {
+  const rec = allRecords.find(r => r.rid === rid);
+  if (rec) { rec[field] = value; updateSummary(); updateNavCount(); }
+}
+
+// Color the state dropdown after selection
+function colorSelect(rid) {
+  const sel = document.getElementById(`sel_${rid}`);
+  if (!sel) return;
+  sel.className = 'state-select s' + (sel.value || '0');
+}
+
+// Tab navigation between cells in a row
+function focusNext(rid, field) {
+  const row = document.getElementById(`row_${rid}`);
+  if (!row) return;
+  const inputs = { name: 0, date: 1, period: 2, state: 3, note: 4 };
+  const cells = row.querySelectorAll('input, select');
+  const target = cells[inputs[field]];
+  if (target) target.focus();
+}
+
+
+// ============================================================
+// ADD / DELETE ROWS
+// ============================================================
+
+function addRow() {
+  // Default date = today; default period = last used period
+  const today = new Date().toISOString().split('T')[0];
+  const lastPeriod = allRecords.length ? allRecords[allRecords.length - 1].period : '';
+  ridSeq++;
+  allRecords.push({ rid: ridSeq, name: '', date: today, period: lastPeriod, state: null, note: '' });
+  renderTable();
+  // Focus the name input of the new row
+  setTimeout(() => {
+    const newRow = document.getElementById(`row_${ridSeq}`);
+    if (newRow) newRow.querySelector('input').focus();
+  }, 30);
+}
+
+function deleteRow(rid) {
+  allRecords = allRecords.filter(r => r.rid !== rid);
+  renderTable();
+}
+
+function clearAll() {
+  if (allRecords.length && !confirm('Clear all observation records? This cannot be undone.')) return;
+  allRecords = [];
+  ridSeq = 0;
+  renderTable();
+}
+
+
+// ============================================================
+// SUMMARY STRIP — counts per state above the table
+// ============================================================
+
+function updateSummary() {
+  const strip = document.getElementById('summaryStrip');
+  const chips = document.getElementById('summaryChips');
+  const rated = allRecords.filter(r => r.state);
+
+  if (!rated.length) { strip.style.display = 'none'; return; }
+  strip.style.display = 'block';
+
+  const counts = [0,0,0,0,0];
+  rated.forEach(r => counts[r.state - 1]++);
+
+  chips.innerHTML = `<span style="font-size:0.78rem; color:var(--muted); align-self:center">${rated.length} rated of ${allRecords.length}</span>` +
+    STATES.map((s,i) => counts[i] ? `
+      <span class="s-chip" style="color:${s.color}; border-color:${s.color}40; background:${s.color}10">
+        <span class="state-dot" style="background:${s.color}"></span>${counts[i]}
+      </span>` : '').join('');
+}
+
+function updateNavCount() {
+  const el = document.getElementById('recCount');
+  el.textContent = allRecords.length;
+  el.classList.toggle('show', allRecords.length > 0);
+}
+
+
+// ============================================================
+// CSV TEMPLATE DOWNLOAD
+// ============================================================
+
+function downloadTemplate() {
+  const csv = [
+    'name,date,period,state,note',
+    // Jim Su — starts regulated, dips mid-week, recovers Friday
+    'Jim S,2026-03-09,Period 1,1,Engaged and on task',
+    'Jim S,2026-03-10,Period 1,2,',
+    'Jim S,2026-03-11,Period 1,3,Seemed distracted',
+    'Jim S,2026-03-12,Period 1,3,Restless again',
+    'Jim S,2026-03-13,Period 1,1,Back on track by Friday',
+    // Sara Lynn — consistently baseline with one good day
+    'Sara L,2026-03-09,Period 1,2,',
+    'Sara L,2026-03-10,Period 1,2,',
+    'Sara L,2026-03-11,Period 1,1,Great participation today',
+    'Sara L,2026-03-12,Period 1,2,',
+    'Sara L,2026-03-13,Period 1,2,',
+    // Marcus T — escalating trend across the week worth monitoring
+    'Marcus T,2026-03-09,Period 1,2,',
+    'Marcus T,2026-03-10,Period 1,2,',
+    'Marcus T,2026-03-11,Period 1,3,Quieter than usual',
+    'Marcus T,2026-03-12,Period 1,4,Withdrawn would not participate',
+    'Marcus T,2026-03-13,Period 1,4,Still struggling check in recommended',
+    // Priya K — regulated all week model student
+    'Priya K,2026-03-09,Period 1,1,',
+    'Priya K,2026-03-10,Period 1,1,',
+    'Priya K,2026-03-11,Period 1,1,',
+    'Priya K,2026-03-12,Period 1,2,Bit quieter today',
+    'Priya K,2026-03-13,Period 1,1,',
+    // DeShawn W — volatile pattern high and low throughout week
+    'DeShawn W,2026-03-09,Period 1,1,Energetic and engaged',
+    'DeShawn W,2026-03-10,Period 1,4,Conflict at lunch affecting focus',
+    'DeShawn W,2026-03-11,Period 1,2,',
+    'DeShawn W,2026-03-12,Period 1,1,Good day',
+    'DeShawn W,2026-03-13,Period 1,3,Tired end of week',
+    // Aaliyah R — gradual improvement across the week
+    'Aaliyah R,2026-03-09,Period 1,4,Seemed upset at start of class',
+    'Aaliyah R,2026-03-10,Period 1,3,Still unsettled',
+    'Aaliyah R,2026-03-11,Period 1,3,',
+    'Aaliyah R,2026-03-12,Period 1,2,Noticeably better',
+    'Aaliyah R,2026-03-13,Period 1,1,Strong finish to the week',
+    // Connor B — mostly baseline one distressed day
+    'Connor B,2026-03-09,Period 1,2,',
+    'Connor B,2026-03-10,Period 1,2,',
+    'Connor B,2026-03-11,Period 1,5,Very upset would not say why referral made',
+    'Connor B,2026-03-12,Period 1,3,Better but still off',
+    'Connor B,2026-03-13,Period 1,2,',
+    // Fatima H — regulated and engaged all week
+    'Fatima H,2026-03-09,Period 1,1,',
+    'Fatima H,2026-03-10,Period 1,1,Led group discussion well',
+    'Fatima H,2026-03-11,Period 1,1,',
+    'Fatima H,2026-03-12,Period 1,2,',
+    'Fatima H,2026-03-13,Period 1,1,',
+    // Tyler M — worsening trend ends week distressed
+    'Tyler M,2026-03-09,Period 1,2,',
+    'Tyler M,2026-03-10,Period 1,2,',
+    'Tyler M,2026-03-11,Period 1,3,Distracted',
+    'Tyler M,2026-03-12,Period 1,4,Agitated difficult to redirect',
+    'Tyler M,2026-03-13,Period 1,5,Crying in class parent contacted',
+    // Mei L — mid-week dip recovers
+    'Mei L,2026-03-09,Period 1,1,',
+    'Mei L,2026-03-10,Period 1,2,',
+    'Mei L,2026-03-11,Period 1,4,Mentioned argument with friend',
+    'Mei L,2026-03-12,Period 1,3,Still a bit off',
+    'Mei L,2026-03-13,Period 1,1,Resolved back to herself',
+  ].join('\n');
+  downloadBlob(csv, 'mwb_template.csv');
+}
+
+
+// ============================================================
+// IMPORT CSV — into Enter Observations table
+// Parses a CSV and appends records to allRecords.
+// ============================================================
+
+function importCSV(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const added = parseCSVIntoRecords(e.target.result);
+    renderTable();
+    document.getElementById('importFile').value = '';
+    if (added > 0) alert(`${added} records imported successfully.`);
+  };
+  reader.readAsText(file);
+}
+
+function parseCSVIntoRecords(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return 0;
+
+  const parseRow = line => line.split(',').map(v => v.replace(/^"|"$/g,'').trim());
+  const headers = parseRow(lines[0]).map(h => h.toLowerCase());
+
+  const nameIdx   = headers.indexOf('name');
+  const dateIdx   = headers.indexOf('date');
+  const periodIdx = headers.indexOf('period');
+  const stateIdx  = headers.indexOf('state');
+  const noteIdx   = headers.indexOf('note');
+
+  if (nameIdx < 0 || stateIdx < 0) {
+    alert('CSV must have at least "name" and "state" columns.');
+    return 0;
+  }
+
+  let added = 0;
+  lines.slice(1).forEach(line => {
+    const cols = parseRow(line);
+    const stateVal = parseInt(cols[stateIdx]);
+    ridSeq++;
+    allRecords.push({
+      rid:    ridSeq,
+      name:   nameIdx   >= 0 ? cols[nameIdx]   : '',
+      date:   dateIdx   >= 0 ? cols[dateIdx]   : new Date().toISOString().split('T')[0],
+      period: periodIdx >= 0 ? cols[periodIdx] : '',
+      state:  (stateVal >= 1 && stateVal <= 5) ? stateVal : null,
+      note:   noteIdx   >= 0 ? cols[noteIdx]   : ''
+    });
+    added++;
+  });
+  return added;
+}
+
+
+// ============================================================
+// EXPORT CSV — from Enter Observations table
+// ============================================================
+
+function exportCSV() {
+  if (!allRecords.length) { alert('No records to export.'); return; }
+  const rows = [
+    ['name','date','period','state','state_label','note'],
+    ...allRecords.map(r => {
+      const s = r.state ? STATES[r.state-1] : null;
+      return [r.name, r.date, r.period, r.state||'', s ? s.label : '', r.note];
+    })
+  ];
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const date = new Date().toISOString().split('T')[0];
+  downloadBlob(csv, `mwb_observations_${date}.csv`);
+}
+
+function downloadBlob(content, filename) {
+  const blob = new Blob([content], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+// ============================================================
+// ANALYZE VIEW
+// Reads from allRecords — no separate data store needed.
+// Also accepts an optional CSV upload to merge historical data.
+// ============================================================
+
+function refreshAnalysis() {
+  const header  = document.getElementById('analyzeHeader');
+  const charts  = document.getElementById('chartsSection');
+  const empty   = document.getElementById('analyzeEmpty');
+
+  const rated = allRecords.filter(r => r.state);
+
+  if (!rated.length) {
+    header.innerHTML = '';
+    charts.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  charts.style.display = 'block';
+
+  // Count students and dates
+  const students = new Set(rated.map(r => r.name.trim()).filter(Boolean));
+  const dates    = new Set(rated.map(r => r.date).filter(Boolean));
+
+  header.innerHTML = `
+    <div class="card" style="padding:0.9rem 1.3rem; margin-bottom:1rem">
+      <div class="flex-gap">
+        <span class="badge badge-teal">${rated.length} observations</span>
+        <span class="badge badge-teal">${students.size} students</span>
+        <span class="badge badge-teal">${dates.size} dates</span>
+        <span style="font-size:0.8rem; color:var(--muted)">from current session data</span>
+      </div>
+    </div>`;
+
+  populateStudentSelect(rated);
+  // Defer drawing until after chartsSection is visible in the DOM
+  requestAnimationFrame(() => drawAllCharts(rated));
+}
+
+// Called when a CSV is uploaded from within the Analyze view
+function importAnalyzeCSV(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const added = parseCSVIntoRecords(e.target.result);
+    renderTable(); // keep Enter view in sync
+    document.getElementById('analyzeImport').value = '';
+    refreshAnalysis();
+    if (added > 0) alert(`${added} records merged from CSV.`);
+  };
+  reader.readAsText(file);
+}
+
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+
+function switchTab(tab, el) {
+  ['Overview','Trends','Students'].forEach(t =>
+    document.getElementById('tab'+t).style.display = 'none'
+  );
+  // Make the tab visible FIRST so canvas clientWidth is readable
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  // Now redraw charts for the newly visible tab
+  const rated = allRecords.filter(r => r.state);
+  if (!rated.length) return;
+
+  requestAnimationFrame(() => {
+    if (tab === 'overview') { drawOverviewBar(rated); drawOverviewLine(rated); }
+    if (tab === 'trends')   { drawDowBar(rated); drawElevatedLine(rated); }
+    if (tab === 'students') {
+      const name = document.getElementById('studentSelect').value;
+      if (name) drawStudentCharts();
+    }
+  });
+}
+
+
+// ============================================================
+// STUDENT SELECT
+// ============================================================
+
+function populateStudentSelect(rated) {
+  const seen = new Set();
+  const students = [];
+  rated.forEach(r => {
+    const n = r.name.trim();
+    if (n && !seen.has(n)) { seen.add(n); students.push(n); }
+  });
+  students.sort();
+  const sel = document.getElementById('studentSelect');
+  sel.innerHTML = '<option value="">— Choose student —</option>' +
+    students.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+}
+
+
+// ============================================================
+// DRAW ALL CHARTS
+// ============================================================
+
+function drawAllCharts(rated) {
+  drawOverviewBar(rated);
+  drawOverviewLine(rated);
+  drawDowBar(rated);
+  drawElevatedLine(rated);
+}
+
+function drawStudentCharts() {
+  const name = document.getElementById('studentSelect').value;
+  if (!name) return;
+  const rated = allRecords.filter(r => r.state && r.name.trim() === name);
+  drawStudentLine(rated);
+  drawStudentBar(rated);
+}
+
+
+// ============================================================
+// CANVAS CHART HELPERS
+// Simple bar and line charts drawn directly on <canvas>.
+// No external charting library needed.
+// ============================================================
+
+function prepCanvas(id, h) {
+  const c = document.getElementById(id);
+  if (!c) return null;
+
+  // Use devicePixelRatio so canvas is crisp on retina/HiDPI screens.
+  // We set the CSS size explicitly, then scale the drawing surface up.
+  const dpr = window.devicePixelRatio || 1;
+  const parent = c.parentElement;
+
+  // Must read CSS width from parent — the canvas itself may report 0
+  // if it was recently hidden (e.g. inside an inactive tab).
+  const cssW = parent.clientWidth - 28 || 600;
+  const cssH = h || 220;
+
+  c.style.width  = cssW + 'px';
+  c.style.height = cssH + 'px';
+  c.width  = Math.round(cssW  * dpr);
+  c.height = Math.round(cssH * dpr);
+
+  const ctx = c.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any previous transform
+  ctx.scale(dpr, dpr);                 // scale all drawing ops to match DPI
+
+  return { ctx, W: cssW, H: cssH };
+}
+
+function drawBarChart(id, data, yMax) {
+  const cv = prepCanvas(id);
+  if (!cv) return;
+  const { ctx, W, H } = cv;
+  const pad = { t:20, r:20, b:42, l:46 };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+  const max = yMax || Math.max(...data.map(d => d.value), 1);
+  const bW = (cW / data.length) * 0.55;
+  const bGap = cW / data.length;
+
+  // grid lines
+  ctx.strokeStyle = '#e8eeed'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + cH - (i/4)*cH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#9aabaa'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(((i/4)*max).toFixed(max < 10 ? 1 : 0), pad.l-5, y+4);
+  }
+
+  data.forEach((d, i) => {
+    const x = pad.l + i*bGap + (bGap-bW)/2;
+    const bH = Math.max((d.value/max)*cH, d.value>0?2:0);
+    const y  = pad.t + cH - bH;
+    ctx.fillStyle = d.color || '#4a9e8f';
+    ctx.beginPath(); ctx.roundRect(x, y, bW, bH, [3,3,0,0]); ctx.fill();
+    if (d.value > 0) {
+      ctx.fillStyle = '#3a5555'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(typeof d.value === 'number' && d.value % 1 !== 0 ? d.value.toFixed(2) : d.value, x+bW/2, y-4);
+    }
+    // x label — may be long, wrap or truncate
+    ctx.fillStyle = '#6b7676'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center';
+    const lbl = String(d.label).length > 10 ? String(d.label).slice(0,9)+'…' : d.label;
+    ctx.fillText(lbl, x+bW/2, pad.t+cH+16);
+    if (d.sub) {
+      ctx.font = '10px system-ui,sans-serif'; ctx.fillStyle = '#9aabaa';
+      ctx.fillText(d.sub, x+bW/2, pad.t+cH+28);
+    }
+  });
+}
+
+function drawLineChart(id, series, yDomain) {
+  const cv = prepCanvas(id);
+  if (!cv || !series.length || !series[0].data.length) return;
+  const { ctx, W, H } = cv;
+  const pad = { t:20, r:20, b:42, l:46 };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+
+  const allX  = [...new Set(series.flatMap(s => s.data.map(d => d.x)))].sort();
+  const yMin  = yDomain ? yDomain[0] : 0;
+  const yMax  = yDomain ? yDomain[1] : Math.max(...series.flatMap(s => s.data.map(d => d.y)), 1);
+
+  // grid
+  ctx.strokeStyle = '#e8eeed'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + cH - (i/4)*cH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#9aabaa'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText((yMin+(i/4)*(yMax-yMin)).toFixed(1), pad.l-5, y+4);
+  }
+
+  // x labels
+  const step = allX.length > 10 ? Math.ceil(allX.length/8) : 1;
+  allX.forEach((x, i) => {
+    if (i % step !== 0) return;
+    const px = pad.l + (i/(allX.length-1||1))*cW;
+    ctx.fillStyle = '#6b7676'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(x.length>8 ? x.slice(5) : x, px, pad.t+cH+16);
+  });
+
+  series.forEach(s => {
+    const pts = allX.map(x => { const f = s.data.find(d => d.x===x); return f ? f.y : null; });
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    ctx.beginPath(); let started = false;
+    pts.forEach((y, i) => {
+      if (y===null) { started=false; return; }
+      const px = pad.l+(i/(allX.length-1||1))*cW;
+      const py = pad.t+cH-((y-yMin)/(yMax-yMin))*cH;
+      if (!started) { ctx.moveTo(px,py); started=true; } else ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+    // dots
+    pts.forEach((y,i) => {
+      if (y===null) return;
+      const px = pad.l+(i/(allX.length-1||1))*cW;
+      const py = pad.t+cH-((y-yMin)/(yMax-yMin))*cH;
+      ctx.fillStyle=s.color; ctx.beginPath(); ctx.arc(px,py,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2); ctx.fill();
+    });
+  });
+}
+
+
+// ============================================================
+// INDIVIDUAL CHART FUNCTIONS
+// ============================================================
+
+function drawOverviewBar(rated) {
+  const counts = [0,0,0,0,0];
+  rated.forEach(r => counts[r.state-1]++);
+  drawBarChart('cOverviewBar', STATES.map((s,i)=>({ label: `${s.emoji} ${s.label}`, value: counts[i], color: s.color })));
+  document.getElementById('cOverviewLegend').innerHTML =
+    STATES.map(s=>`<div class="legend-item"><span class="legend-dot" style="background:${s.color}"></span>${s.label}</div>`).join('');
+}
+
+function drawOverviewLine(rated) {
+  const byDate = {};
+  rated.forEach(r => { if(!byDate[r.date]) byDate[r.date]=[]; byDate[r.date].push(r.state); });
+  const data = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b))
+    .map(([date,states]) => ({ x:date, y:parseFloat((states.reduce((a,b)=>a+b,0)/states.length).toFixed(2)) }));
+  drawLineChart('cOverviewLine', [{label:'Class Average', data, color:'#4a9e8f'}], [1,5]);
+}
+
+function drawDowBar(rated) {
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const sums=[0,0,0,0,0,0,0], cnts=[0,0,0,0,0,0,0];
+  rated.forEach(r => {
+    if (!r.date) return;
+    const dow = new Date(r.date+'T12:00:00').getDay();
+    sums[dow]+=r.state; cnts[dow]++;
+  });
+  const data = days.map((d,i)=>({ label:d.slice(0,3), value: cnts[i]?parseFloat((sums[i]/cnts[i]).toFixed(2)):0, color:'#6aaecc', hasData: cnts[i]>0 }))
+    .filter(d=>d.hasData);
+  drawBarChart('cDowBar', data, 5);
+}
+
+function drawElevatedLine(rated) {
+  const byDate = {};
+  rated.forEach(r => {
+    if(!byDate[r.date]) byDate[r.date]={total:0,elevated:0};
+    byDate[r.date].total++;
+    if(r.state>=3) byDate[r.date].elevated++;
+  });
+  const data = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b))
+    .map(([date,d])=>({ x:date, y:parseFloat(((d.elevated/d.total)*100).toFixed(1)) }));
+  drawLineChart('cElevatedLine', [{label:'% Elevated', data, color:'#e8904a'}], [0,100]);
+}
+
+function drawStudentLine(recs) {
+  const data = recs.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>({ x:r.date, y:r.state }));
+  drawLineChart('cStudentLine', [{label:'State', data, color:'#4a9e8f'}], [1,5]);
+}
+
+function drawStudentBar(recs) {
+  const counts=[0,0,0,0,0];
+  recs.forEach(r=>counts[r.state-1]++);
+  drawBarChart('cStudentBar', STATES.map((s,i)=>({ label:s.label, value:counts[i], color:s.color })));
+}
+
+// Redraw charts on resize
+window.addEventListener('resize', () => {
+  const rated = allRecords.filter(r=>r.state);
+  if (rated.length && document.getElementById('chartsSection').style.display !== 'none') {
+    drawAllCharts(rated);
+    const n = document.getElementById('studentSelect').value;
+    if (n) drawStudentCharts();
+  }
+});
+
+// Initialize empty table on load
+renderTable();
+
+</script>
+</body>
+</html>
