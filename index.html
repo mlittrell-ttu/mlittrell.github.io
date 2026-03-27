@@ -1,0 +1,364 @@
+<!DOCTYPE html>                        <!-- Tells the browser this is an HTML5 document -->
+<html lang="en">                       <!-- Root element wrapping everything; lang="en" helps screen readers -->
+<head>                                 <!-- Head section: invisible setup instructions for the browser -->
+  <meta charset="UTF-8" />             <!-- Use UTF-8 encoding so all characters and emoji display correctly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Makes the page scale properly on phones -->
+  <title>Simple Ed Tools</title>        <!-- Text shown in the browser tab -->
+  <style>  /* Opens the CSS block — everything here controls visual appearance */
+
+    /* CSS custom properties (variables) defined on :root so they are available everywhere on the page.
+       These match the flashcard app exactly so both files share the same visual language. */
+    :root {
+      --bg:        #f7f2e8;   /* warm parchment cream — the page background */
+      --surface:   #fffdf8;   /* near-white — card and panel backgrounds */
+      --border:    #d8cebc;   /* tan — borders and dividing lines */
+      --ink:       #2e2416;   /* dark brown-black — primary text */
+      --ink-light: #9e9080;   /* muted brown — secondary text and labels */
+      --accent:    #e0d5c2;   /* medium cream — hover states and active fills */
+      --accent2:   #c8bfb0;   /* slightly darker cream — borders on accented elements */
+      --shadow:    0 2px 12px rgba(0,0,0,0.08); /* subtle drop shadow used on cards */
+      --radius:    10px;      /* standard corner rounding shared across all elements */
+      --sidebar:   240px;     /* fixed width of the sidebar — used in layout calculations */
+    }
+
+    /* CSS reset — strips all browser default spacing and switches to border-box sizing.
+       * = wildcard targeting every element; ::before/::after = generated content too.
+       border-box means padding and border are included in an element's stated width/height. */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Body — the full visible page.
+       flex + row direction creates the two-column layout: sidebar on left, main on right.
+       min-height: 100vh ensures the sidebar stretches to fill the full screen height even
+       when there is very little content on the page. */
+    body {
+      font-family: 'Georgia', serif;  /* Georgia serif — matches the flashcard app */
+      background: var(--bg);          /* warm parchment page background */
+      color: var(--ink);              /* dark brown-black default text color */
+      min-height: 100vh;              /* at least full viewport height so sidebar fills the screen */
+      display: flex;                  /* flex container — sidebar and main sit side by side */
+      flex-direction: row;            /* children flow left to right */
+    }
+
+    /* =====================================================================
+       SIDEBAR
+       ===================================================================== */
+
+    /* The fixed left sidebar — holds the site name, tagline, and navigation links.
+       position: fixed means it stays in place when the page scrolls.
+       height: 100vh pins it to the full viewport height.
+       The sidebar width is stored in --sidebar so main can use it for its left margin. */
+    .sidebar {
+      position: fixed;              /* stays put when page scrolls */
+      top: 0;                       /* flush with the top of the viewport */
+      left: 0;                      /* flush with the left edge */
+      width: var(--sidebar);        /* fixed width from our CSS variable */
+      height: 100vh;                /* full viewport height */
+      background: var(--surface);   /* near-white background — slightly lighter than the page */
+      border-right: 1px solid var(--border); /* thin tan line separating sidebar from main content */
+      display: flex;                /* flex container so we can stack children vertically */
+      flex-direction: column;       /* children stack top to bottom */
+      padding: 36px 24px;           /* 36px top/bottom, 24px left/right breathing room */
+    }
+
+    /* The "Simple Ed Tools" site name at the top of the sidebar */
+    .sidebar-title {
+      font-size: 1.15rem;           /* slightly larger than body text */
+      font-weight: normal;          /* override browser bold default — lighter feels more refined */
+      letter-spacing: 0.06em;       /* subtle letter spacing — makes it feel like a quiet logo */
+      color: var(--ink);            /* dark brown-black */
+      line-height: 1.3;             /* tighten line height for the two-word stacked title */
+      margin-bottom: 10px;          /* space between title and tagline below */
+    }
+
+    /* The "Privacy focused offline tools..." tagline sitting below the site name */
+    .sidebar-tagline {
+      font-size: 0.78rem;           /* small — secondary information, not the primary focus */
+      color: var(--ink-light);      /* muted brown — de-emphasised */
+      line-height: 1.6;             /* generous line height since this may wrap to two lines */
+      margin-bottom: 32px;          /* larger gap before the navigation links below */
+      padding-bottom: 24px;         /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line visually separates branding from nav */
+    }
+
+    /* The navigation list — holds all sidebar link items.
+       list-style: none removes the default browser bullet points. */
+    .sidebar-nav {
+      list-style: none;   /* remove default bullet points from the list */
+      display: flex;      /* flex container */
+      flex-direction: column; /* stack links vertically */
+      gap: 4px;           /* small gap between each nav item */
+    }
+
+    /* Each navigation link in the sidebar.
+       display: block makes the link fill the full row width so the whole area is clickable.
+       The padding, radius, and transition set up the hover highlight effect. */
+    .sidebar-nav a {
+      display: block;                   /* fill the full row width — makes whole row clickable */
+      padding: 8px 12px;                /* comfortable click target */
+      border-radius: var(--radius);     /* rounded corners matching the rest of the app */
+      color: var(--ink-light);          /* muted by default — highlights on hover */
+      text-decoration: none;            /* remove browser default underline */
+      font-size: 0.88rem;               /* slightly smaller than body text */
+      letter-spacing: 0.03em;           /* subtle letter spacing */
+      transition: background 0.15s, color 0.15s; /* smooth background and color change on hover */
+    }
+
+    /* Navigation link on hover — fills with accent cream and darkens the text */
+    .sidebar-nav a:hover {
+      background: var(--accent);  /* medium cream fill on hover */
+      color: var(--ink);          /* darken text on hover for contrast */
+    }
+
+    /* The active/current page link — always highlighted so user knows where they are */
+    .sidebar-nav a.active {
+      background: var(--accent);    /* same cream fill as hover */
+      color: var(--ink);            /* dark text */
+      border: 1px solid var(--accent2); /* slightly darker border defines the active pill */
+    }
+
+    /* Small footer text at the very bottom of the sidebar.
+       margin-top: auto pushes it to the bottom regardless of how much nav content is above it —
+       auto margin in flex consumes all available free space in the flex direction. */
+    .sidebar-footer {
+      margin-top: auto;           /* push to bottom of the sidebar */
+      font-size: 0.72rem;         /* very small — quiet footnote */
+      color: var(--ink-light);    /* muted */
+      line-height: 1.6;           /* generous spacing for readability at small size */
+    }
+
+    /* =====================================================================
+       MAIN CONTENT
+       ===================================================================== */
+
+    /* The main content area to the right of the sidebar.
+       margin-left: var(--sidebar) offsets it exactly by the sidebar width so content
+       doesn't slide under the fixed sidebar.
+       flex: 1 makes it grow to fill all remaining horizontal space. */
+    .main {
+      margin-left: var(--sidebar);  /* push right by exactly the sidebar width */
+      flex: 1;                      /* fill all remaining horizontal space */
+      padding: 48px 48px;           /* generous breathing room on all sides */
+      max-width: 860px;             /* cap width so cards don't stretch too wide on large screens */
+    }
+
+    /* The page heading row — "Tools" label and eventually a count or filter */
+    .main-header {
+      margin-bottom: 32px;              /* space between heading and the card grid below */
+      padding-bottom: 20px;             /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line separates heading from card grid */
+    }
+
+    /* The "Tools" heading on the main content area */
+    .main-header h2 {
+      font-size: 1.1rem;          /* modest size — this is a label not a hero headline */
+      font-weight: normal;        /* override browser bold */
+      color: var(--ink-light);    /* muted — the cards themselves are the focus */
+      letter-spacing: 0.08em;     /* wider spacing gives it a quiet section-label feel */
+      text-transform: uppercase;  /* all caps reinforces it as a label */
+    }
+
+    /* The grid that holds all the tool cards.
+       auto-fill + minmax means cards are as wide as possible but never narrower than 260px —
+       the grid automatically decides how many columns fit on the current screen width. */
+    .tool-grid {
+      display: grid;                                    /* CSS grid layout */
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* responsive columns */
+      gap: 20px;                                        /* 20px between every card */
+    }
+
+    /* Each individual tool card — a flat raised panel summarising one tool.
+       display: flex + column stacks the card content vertically with space-between
+       pushing the bottom action row to the bottom of the card regardless of content height. */
+    .tool-card {
+      background: var(--surface);          /* near-white card surface */
+      border: 1px solid var(--border);     /* thin tan border */
+      border-radius: var(--radius);        /* rounded corners */
+      box-shadow: var(--shadow);           /* subtle drop shadow lifts card off the page */
+      padding: 24px;                       /* breathing room inside the card */
+      display: flex;                       /* flex container */
+      flex-direction: column;              /* stack children vertically */
+      gap: 10px;                           /* space between each child inside the card */
+      transition: box-shadow 0.2s, border-color 0.2s; /* animate shadow and border on hover */
+    }
+
+    /* Tool card on hover — slightly more prominent shadow and darker border */
+    .tool-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12); /* deeper shadow on hover */
+      border-color: var(--accent2);             /* slightly darker border on hover */
+    }
+  
+
+    /* The tool name at the top of each card — e.g. "FlashCards" */
+    .tool-name {
+      font-size: 1.1rem;      /* larger than body text — primary label on the card */
+      font-weight: normal;    /* override browser bold */
+      color: var(--ink);      /* dark text */
+      letter-spacing: 0.04em; /* subtle spacing */
+    }
+
+    /* The one-sentence description below the tool name */
+    .tool-desc {
+      font-size: 0.85rem;     /* smaller than body text — supporting information */
+      color: var(--ink-light); /* muted — de-emphasised */
+      line-height: 1.6;        /* generous line height for readability across two lines */
+      flex: 1;                 /* flex: 1 makes this grow to fill available space,
+                                  pushing the action row to the bottom of the card */
+    }
+
+    /* The row of action buttons at the bottom of each card — "Open" and "Download" */
+    .tool-actions {
+  display: flex;
+  justify-content: flex-end;  /* push buttons to the right edge of the card */
+  gap: 8px;
+  margin-top: 6px;
+    }
+
+    /* The "Open" button — takes the user to the live tool */
+    .btn-open {
+      background: var(--accent);        /* medium cream — primary action */
+      color: var(--ink);                /* dark text — high contrast on cream */
+      border: 1px solid var(--accent2); /* slightly darker cream border */
+      padding: 8px 20px;                /* comfortable click target */
+      border-radius: 20px;              /* pill shape */
+      font-size: 0.82rem;               /* small — secondary to the card content */
+      cursor: pointer;                  /* hand cursor on hover */
+      font-family: inherit;             /* copy Georgia from parent */
+      text-decoration: none;            /* remove underline — this is a link styled as a button */
+      letter-spacing: 0.03em;           /* subtle spacing */
+      transition: background 0.15s;     /* smooth background change on hover */
+    }
+
+    /* "Open" button on hover */
+    .btn-open:hover {
+      background: var(--border);  /* slightly darker cream on hover */
+    }
+
+    /* The "Download" button — downloads the raw HTML file */
+    .btn-download {
+      background: var(--surface);        /* lightest cream — secondary action */
+      color: var(--ink-light);           /* muted text — less prominent than Open */
+      border: 1px solid var(--border);   /* standard tan border */
+      padding: 8px 20px;                 /* same sizing as Open for visual alignment */
+      border-radius: 20px;               /* pill shape */
+      font-size: 0.82rem;                /* small */
+      cursor: pointer;                   /* hand cursor */
+      font-family: inherit;              /* copy Georgia from parent */
+      text-decoration: none;             /* remove underline */
+      letter-spacing: 0.03em;            /* subtle spacing */
+      transition: background 0.15s;      /* smooth background change on hover */
+    }
+
+    /* "Download" button on hover */
+    .btn-download:hover {
+      background: var(--accent);  /* fills with accent cream on hover */
+      color: var(--ink);          /* darken text on hover */
+    }
+
+    /* A small badge on each card showing what kind of tool it is — e.g. "Study" */
+    .tool-tag {
+      display: inline-block;
+      align-self: flex-start;  /* prevents the flex column from stretching it to full width */
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+    }
+
+
+    /* The footer sitting below the tool grid in the main content area */
+    .main-footer {
+      margin-top: 48px;                       /* push it well below the last card */
+      padding-top: 20px;                      /* inner space above the text */
+       border-top: 1px solid var(--border);    /* thin tan line separates footer from cards above */
+      font-size: 0.78rem;                     /* small — quiet, not competing with the cards */
+      color: var(--ink-light);                /* muted brown */
+      letter-spacing: 0.04em;                 /* subtle spacing */
+    }
+
+  </style>  <!-- closes the CSS block -->
+</head>
+
+<body>  <!-- everything from here is visible on screen -->
+
+  <!-- =====================================================================
+       SIDEBAR
+       The fixed left panel containing the site identity and navigation.
+       CSS: .sidebar ruleset — fixed positioning, full height, flex column
+       ===================================================================== -->
+  <aside class="sidebar">  <!-- aside = semantic HTML for supplementary/navigation content -->
+
+    <!-- Site identity — name and tagline -->
+    <div class="sidebar-brand">  <!-- generic wrapper grouping the title and tagline -->
+      <h1 class="sidebar-title">Simple<br>Ed Tools</h1>  <!-- <br> forces "Ed Tools" onto a second line -->
+      <p class="sidebar-tagline">Privacy focused offline tools for teaching and learning.</p>
+    </div>
+
+    <!-- Navigation links -->
+    <!-- nav = semantic HTML element meaning "this is a group of navigation controls"
+         The ul/li pattern is the standard HTML structure for navigation lists:
+         ul = unordered list (the container), li = list item (each link) -->
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="index.html" class="active">Tools</a></li>  <!-- current page — has active class -->
+        <li><a href="about.html">About</a></li>
+        <li><a href="downloads.html">Downloads</a></li>
+      </ul>
+    </nav>
+
+    <!-- Footer — sits at the bottom of the sidebar via margin-top: auto -->
+    <div class="sidebar-footer">
+      All tools run entirely in your browser.<br>No data leaves your device.
+    </div>
+
+  </aside>  <!-- closes the sidebar -->
+
+
+  <!-- =====================================================================
+       MAIN CONTENT
+       The scrollable right panel containing the tool cards.
+       CSS: .main ruleset — margin-left offsets it by the sidebar width
+       ===================================================================== -->
+  <main class="main">
+
+    <!-- Page heading row -->
+    <div class="main-header">
+      <h2>Tools</h2>
+    </div>
+
+    <!-- The grid of tool cards — one card per app.
+         CSS: .tool-grid uses auto-fill minmax so cards are responsive.
+         Add new cards here as new tools are built. -->
+    <div class="tool-grid">
+
+      <!-- FlashCards tool card -->
+      <div class="tool-card">
+        <span class="tool-tag">Study</span>   <!-- category label -->
+        <h3 class="tool-name">FlashCards</h3>  <!-- tool name -->
+        <p class="tool-desc">
+          Create and study flashcards quickly. Export and import your cards as a single file.
+        </p>
+        <!-- Action buttons — href values point to the actual HTML files in the same repo.
+             Update the href on btn-download to point to the raw file download URL on GitHub. -->
+        <div class="tool-actions">
+          <a class="btn-download" href="flashcards.html" download>Download</a>
+          <a class="btn-open"     href="flashcards.html">Open</a>
+        </div>
+      </div>
+
+      <!-- Add more tool cards here as new tools are created -->
+
+    </div>  <!-- closes .tool-grid -->
+
+    <!-- Footer — sits at the bottom of the main content area -->
+<footer class="main-footer">  <!-- footer = semantic HTML element for page footer content -->
+  <p>&copy; 2026 Simple Ed Tools &mdash; <a href="https://opensource.org/licenses/MIT">MIT License</a>. Free to use and share.</p>
+</footer>
+
+  </main>  <!-- closes .main -->
+
+</body>
+</html>
