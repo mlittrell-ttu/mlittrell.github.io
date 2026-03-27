@@ -1,0 +1,409 @@
+<!DOCTYPE html>                        <!-- Tells the browser this is an HTML5 document -->
+<html lang="en">                       <!-- Root element wrapping everything; lang="en" helps screen readers -->
+<head>                                 <!-- Head section: invisible setup instructions for the browser -->
+  <meta charset="UTF-8" />             <!-- Use UTF-8 encoding so all characters and emoji display correctly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Makes the page scale properly on phones -->
+  <title>Downloads — Simple Ed Tools</title>  <!-- Text shown in the browser tab -->
+  <style>  /* Opens the CSS block — everything here controls visual appearance */
+
+    /* CSS custom properties (variables) — identical to index.html so all pages share the same visual language */
+    :root {
+      --bg:        #f7f2e8;   /* warm parchment cream — the page background */
+      --surface:   #fffdf8;   /* near-white — card and panel backgrounds */
+      --border:    #d8cebc;   /* tan — borders and dividing lines */
+      --ink:       #2e2416;   /* dark brown-black — primary text */
+      --ink-light: #9e9080;   /* muted brown — secondary text and labels */
+      --accent:    #e0d5c2;   /* medium cream — hover states and active fills */
+      --accent2:   #c8bfb0;   /* slightly darker cream — borders on accented elements */
+      --shadow:    0 2px 12px rgba(0,0,0,0.08); /* subtle drop shadow used on cards */
+      --radius:    10px;      /* standard corner rounding shared across all elements */
+      --sidebar:   240px;     /* fixed width of the sidebar — used in layout calculations */
+    }
+
+    /* CSS reset — strips all browser default spacing and switches to border-box sizing */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Body — flex row creates the sidebar + main two-column layout */
+    body {
+      font-family: 'Georgia', serif;  /* Georgia serif — matches the rest of the site */
+      background: var(--bg);          /* warm parchment page background */
+      color: var(--ink);              /* dark brown-black default text color */
+      min-height: 100vh;              /* at least full viewport height so sidebar fills the screen */
+      display: flex;                  /* flex container — sidebar and main sit side by side */
+      flex-direction: row;            /* children flow left to right */
+    }
+
+    /* =====================================================================
+       SIDEBAR — identical to index.html
+       ===================================================================== */
+
+    /* The fixed left sidebar — stays in place when the page scrolls */
+    .sidebar {
+      position: fixed;              /* stays put when page scrolls */
+      top: 0;                       /* flush with the top of the viewport */
+      left: 0;                      /* flush with the left edge */
+      width: var(--sidebar);        /* fixed width from our CSS variable */
+      height: 100vh;                /* full viewport height */
+      background: var(--surface);   /* near-white background */
+      border-right: 1px solid var(--border); /* thin tan line separating sidebar from main */
+      display: flex;                /* flex container */
+      flex-direction: column;       /* children stack top to bottom */
+      padding: 36px 24px;           /* 36px top/bottom, 24px left/right */
+    }
+
+    /* Site name at the top of the sidebar */
+    .sidebar-title {
+      font-size: 1.15rem;           /* slightly larger than body text */
+      font-weight: normal;          /* override browser bold default */
+      letter-spacing: 0.06em;       /* subtle letter spacing */
+      color: var(--ink);            /* dark brown-black */
+      line-height: 1.3;             /* tight line height for two-line title */
+      margin-bottom: 10px;          /* space between title and tagline */
+    }
+
+    /* Tagline below the site name */
+    .sidebar-tagline {
+      font-size: 0.78rem;           /* small — secondary information */
+      color: var(--ink-light);      /* muted brown */
+      line-height: 1.6;             /* generous line height */
+      margin-bottom: 32px;          /* gap before navigation links */
+      padding-bottom: 24px;         /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line separates branding from nav */
+    }
+
+    /* Navigation list — removes default bullet points */
+    .sidebar-nav {
+      list-style: none;             /* remove default bullet points */
+      display: flex;                /* flex container */
+      flex-direction: column;       /* stack links vertically */
+      gap: 4px;                     /* small gap between each nav item */
+    }
+
+    /* Each navigation link */
+    .sidebar-nav a {
+      display: block;                   /* fill the full row width — whole area is clickable */
+      padding: 8px 12px;                /* comfortable click target */
+      border-radius: var(--radius);     /* rounded corners */
+      color: var(--ink-light);          /* muted by default */
+      text-decoration: none;            /* remove browser default underline */
+      font-size: 0.88rem;               /* slightly smaller than body text */
+      letter-spacing: 0.03em;           /* subtle letter spacing */
+      transition: background 0.15s, color 0.15s; /* smooth change on hover */
+    }
+
+    /* Navigation link on hover */
+    .sidebar-nav a:hover {
+      background: var(--accent);  /* medium cream fill on hover */
+      color: var(--ink);          /* darken text on hover */
+    }
+
+    /* Active/current page link */
+    .sidebar-nav a.active {
+      background: var(--accent);        /* cream fill shows current page */
+      color: var(--ink);                /* dark text */
+      border: 1px solid var(--accent2); /* slightly darker border defines the active pill */
+    }
+
+    /* Sidebar footer — pushed to the bottom via margin-top: auto */
+    .sidebar-footer {
+      margin-top: auto;           /* push to bottom of the sidebar */
+      font-size: 0.72rem;         /* very small — quiet footnote */
+      color: var(--ink-light);    /* muted */
+      line-height: 1.6;           /* generous spacing */
+    }
+
+    /* =====================================================================
+       MAIN CONTENT
+       ===================================================================== */
+
+    /* Main content area — offset by sidebar width so it doesn't slide underneath */
+    .main {
+      margin-left: var(--sidebar);  /* push right by exactly the sidebar width */
+      flex: 1;                      /* fill all remaining horizontal space */
+      padding: 48px 48px;           /* generous breathing room on all sides */
+      max-width: 860px;             /* cap width for readability */
+    }
+
+    /* Page heading row */
+    .main-header {
+      margin-bottom: 32px;              /* space between heading and content below */
+      padding-bottom: 20px;             /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line separates heading from content */
+    }
+
+    /* Page heading */
+    .main-header h2 {
+      font-size: 1.1rem;          /* modest size — label not hero headline */
+      font-weight: normal;        /* override browser bold */
+      color: var(--ink-light);    /* muted — content below is the focus */
+      letter-spacing: 0.08em;     /* wider spacing gives it a section-label feel */
+      text-transform: uppercase;  /* all caps reinforces it as a label */
+    }
+
+    /* Explanatory text block above the table — plain prose, no box */
+    .intro-text {
+      margin-bottom: 32px;      /* space between intro and table */
+      max-width: 600px;         /* narrower than the full main width — prose reads better constrained */
+    }
+
+    /* Each paragraph in the intro text */
+    .intro-text p {
+      font-size: 0.9rem;        /* slightly smaller than body text */
+      color: var(--ink-light);  /* muted — supporting information, not primary content */
+      line-height: 1.8;         /* generous line height for readability */
+      margin-bottom: 12px;      /* space between paragraphs */
+    }
+
+    /* The last paragraph in the intro block — removes its bottom margin */
+    .intro-text p:last-child {
+      margin-bottom: 0;         /* no extra space after the final paragraph */
+    }
+
+    /* Format type labels used in the intro explanation — e.g. "HTML file", "Windows app" */
+    .intro-text strong {
+      color: var(--ink-light);        /* full dark ink — slightly more prominent than surrounding muted text */
+      font-weight: bold;      /* override browser bold — just a color shift, not weight */
+    }
+
+    /* =====================================================================
+       DOWNLOADS TABLE
+       ===================================================================== */
+
+    /* Wrapper around the table — handles overflow on narrow screens */
+    .table-wrap {
+      overflow-x: auto;   /* allow horizontal scroll on narrow screens rather than breaking layout */
+    }
+
+    .downloads-table thead tr {
+      border-top: 1px solid var(--border);    /* thin line above the header row */
+      border-bottom: 1px solid var(--border); /* thin line under the header row */
+    }
+
+    /* The downloads table itself */
+    .downloads-table {
+      width: 100%;                      /* fill the available main content width */
+      border-collapse: collapse;        /* collapse double borders between cells into single lines */
+      font-size: 0.88rem;               /* slightly smaller than body text — table content is dense */
+    }
+
+    /* Table header row */
+    .downloads-table thead tr {
+      border-bottom: 1px solid var(--border); /* thin line under the header row */
+    }
+
+    /* Each header cell — Tool, Details, Size, Download */
+    .downloads-table th {
+      text-align: left;             /* left-align header text — reads more naturally than centered */
+      padding: 10px 16px;           /* comfortable spacing inside each header cell */
+      font-size: 0.72rem;           /* smaller than body — label feel */
+      font-weight: normal;          /* override browser bold */
+      letter-spacing: 0.08em;       /* wider spacing — same label treatment as page heading */
+      text-transform: uppercase;    /* all caps — consistent with heading label style */
+      color: var(--ink-light);      /* muted — the data rows below are the focus */
+    }
+
+    /* Each body row */
+    .downloads-table tbody tr {
+      border-bottom: 1px solid var(--border); /* thin line between each tool row */
+    }
+
+    /* Remove the border from the last row — no line at the very bottom of the table */
+    .downloads-table tbody tr:last-child {
+      border-bottom: none;  /* clean table bottom — no trailing line after the last row */
+    }
+
+    /* Body row on hover — subtle highlight so user knows which row they are on */
+    .downloads-table tbody tr:hover {
+      background: var(--surface);  /* medium cream fill on hover */
+    }
+
+    /* Each body cell */
+    .downloads-table td {
+      padding: 16px 16px;       /* comfortable vertical padding — rows feel open not cramped */
+      vertical-align: top;      /* align cell content to the top when cells have different heights */
+      color: var(--ink);        /* dark text — readable */
+      line-height: 1.6;         /* generous line height for multi-line cells */
+    }
+
+    /* Tool name cell — slightly larger and darker than the other cells */
+    .downloads-table td.tool-name {
+      font-size: 0.95rem;       /* slightly larger — the tool name is the primary identifier */
+      white-space: nowrap;      /* keep tool name on one line — prevents awkward wrapping */
+    }
+
+    /* Details cell — secondary descriptive text */
+    .downloads-table td.tool-details {
+      color: var(--ink-light);  /* muted — supporting information */
+      font-size: 0.85rem;       /* slightly smaller than tool name */
+      max-width: 260px;         /* constrain width so long descriptions don't crowd other columns */
+    }
+
+    /* Size cell — the file size figure */
+    .downloads-table td.tool-size {
+      color: var(--ink-light);  /* muted — secondary information */
+      white-space: nowrap;      /* keep size on one line */
+      font-size: 0.85rem;       /* slightly smaller */
+    }
+
+    /* Download cell — holds one or more download links */
+    .downloads-table td.tool-download {
+      white-space: nowrap;      /* keep download links on one line where possible */
+    }
+
+    /* The download links inside the table — styled as small pill buttons */
+    .dl-link {
+      display: inline-block;          /* sit side by side with other links */
+      margin-right: 6px;              /* small gap between multiple links in the same cell */
+      margin-bottom: 4px;             /* small gap if links wrap to a second line */
+      padding: 4px 14px;              /* comfortable click target — slightly smaller than card buttons */
+      border-radius: 20px;            /* pill shape — matches the card buttons */
+      font-size: 0.78rem;             /* small — these are action links not headlines */
+      font-family: inherit;           /* copy Georgia from parent */
+      text-decoration: none;          /* remove browser default underline */
+      letter-spacing: 0.03em;         /* subtle spacing */
+      border: 1px solid var(--border); /* standard tan border */
+      color: var(--ink-light);         /* muted text by default */
+      background: var(--surface);      /* near-white fill */
+      transition: background 0.15s, color 0.15s; /* smooth change on hover */
+    }
+
+    /* Download link on hover */
+    .dl-link:hover {
+      background: var(--accent);  /* cream fill on hover */
+      color: var(--ink);          /* darken text on hover */
+    }
+
+    /* The "HTML" link — slightly more prominent as it's the simplest/most universal format */
+    .dl-link.primary {
+      background: var(--accent);        /* medium cream — stands out from the other links */
+      color: var(--ink);                /* dark text */
+      border-color: var(--accent2);     /* slightly darker border */
+    }
+
+    /* Primary link on hover — goes slightly darker */
+    .dl-link.primary:hover {
+      background: var(--border);  /* darker cream on hover */
+    }
+
+    /* Footer — identical to index.html */
+    .main-footer {
+      margin-top: 48px;                    /* push it well below the table */
+      padding-top: 20px;                   /* inner space above the text */
+      border-top: 1px solid var(--border); /* thin tan line separates footer from content above */
+      font-size: 0.78rem;                  /* small — quiet, not competing with the table */
+      color: var(--ink-light);             /* muted brown */
+      letter-spacing: 0.04em;              /* subtle spacing */
+    }
+
+  </style>  <!-- closes the CSS block -->
+</head>
+
+<body>  <!-- everything from here is visible on screen -->
+
+  <!-- =====================================================================
+       SIDEBAR — identical structure to index.html
+       Downloads link has class="active" since this is the current page
+       ===================================================================== -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <h1 class="sidebar-title">Simple<br>Ed Tools</h1>
+      <p class="sidebar-tagline">Privacy focused offline tools for teaching and learning.</p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="index.html">Tools</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="downloads.html" class="active">Downloads</a></li>  <!-- active = current page -->
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      All tools run entirely in your browser.<br>No data leaves your device.
+    </div>
+
+  </aside>
+
+
+  <!-- =====================================================================
+       MAIN CONTENT
+       ===================================================================== -->
+  <main class="main">
+
+    <div class="main-header">
+      <h2>Downloads</h2>
+    </div>
+
+    <!-- Explanatory intro — helps users understand the difference between format options -->
+    <div class="intro-text">
+      <p>Every tool is available in multiple formats. The <strong>HTML file</strong> is the simplest option — open it in any browser and it works immediately, no installation needed. It is also the easiest to inspect, modify, and share.</p>
+      <p>The <strong>desktop apps</strong> for Windows and Mac are packaged versions of the same tool that run in their own window outside the browser. They are slightly more app-like in feel but require you to extract a zip file before running. Both formats work completely offline and collect no data.</p>
+    </div>
+
+    <!-- Downloads table -->
+    <div class="table-wrap">  <!-- wrapper handles horizontal scroll on narrow screens -->
+      <table class="downloads-table">
+
+        <!-- Table header row — column labels -->
+        <thead>
+          <tr>
+            <th>Tool</th>       <!-- tool name -->
+            <th>Details</th>    <!-- short description -->
+            <th>Size</th>       <!-- file size -->
+            <th>Download</th>   <!-- one or more download links -->
+          </tr>
+        </thead>
+
+        <!-- Table body — one row per tool per format grouping -->
+        <tbody>
+
+          <!-- FlashCards row -->
+          <tr>
+            <td class="tool-name">FlashCards</td>
+
+            <td class="tool-details">
+              Create and study flashcards with a spaced repetition queue.
+              Supports text and images. Export and import your deck as a JSON file.
+            </td>
+
+            <td class="tool-size">
+              HTML ~200 KB<br>   <!-- approximate size of the HTML file -->
+              App ~1.2 MB        <!-- approximate size of the desktop app zip -->
+            </td>
+
+            <td class="tool-download">
+              <!-- HTML file — primary option, most universal -->
+              <a class="dl-link primary"
+                 href="flashcards.html"
+                 download>
+                HTML file
+              </a>
+              <!-- Windows desktop app — links to GitHub Release asset -->
+              <a class="dl-link"
+                 href="https://github.com/mlittrell-ttu/mlittrell.github.io/releases/download/v1.0.0/flashcards-windows.zip">
+                Windows
+              </a>
+              <!-- Mac desktop app — links to GitHub Release asset -->
+              <a class="dl-link"
+                 href="https://github.com/mlittrell-ttu/mlittrell.github.io/releases/download/v1.0.0/flashcards-mac.zip">
+                Mac
+              </a>
+            </td>
+          </tr>
+
+          <!-- Add more tool rows here as new tools are built -->
+
+        </tbody>
+      </table>
+    </div>  <!-- closes .table-wrap -->
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <p>&copy; 2026 Simple Ed Tools &mdash; <a href="https://opensource.org/licenses/MIT">MIT License</a>. Free to use and share.</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>
