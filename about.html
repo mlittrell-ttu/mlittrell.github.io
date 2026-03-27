@@ -1,0 +1,258 @@
+<!DOCTYPE html>                        <!-- Tells the browser this is an HTML5 document -->
+<html lang="en">                       <!-- Root element wrapping everything; lang="en" helps screen readers -->
+<head>                                 <!-- Head section: invisible setup instructions for the browser -->
+  <meta charset="UTF-8" />             <!-- Use UTF-8 encoding so all characters and emoji display correctly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Makes the page scale properly on phones -->
+  <title>About — Simple Ed Tools</title>  <!-- Text shown in the browser tab -->
+  <style>  /* Opens the CSS block — everything here controls visual appearance */
+
+    /* CSS custom properties — identical to index.html and downloads.html so all pages share the same visual language */
+    :root {
+      --bg:        #f7f2e8;   /* warm parchment cream — the page background */
+      --surface:   #fffdf8;   /* near-white — card and panel backgrounds */
+      --border:    #d8cebc;   /* tan — borders and dividing lines */
+      --ink:       #2e2416;   /* dark brown-black — primary text */
+      --ink-light: #9e9080;   /* muted brown — secondary text and labels */
+      --accent:    #e0d5c2;   /* medium cream — hover states and active fills */
+      --accent2:   #c8bfb0;   /* slightly darker cream — borders on accented elements */
+      --shadow:    0 2px 12px rgba(0,0,0,0.08); /* subtle drop shadow */
+      --radius:    10px;      /* standard corner rounding */
+      --sidebar:   240px;     /* fixed width of the sidebar */
+    }
+
+    /* CSS reset — strips all browser default spacing and switches to border-box sizing */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Body — flex row creates the sidebar + main two-column layout */
+    body {
+      font-family: 'Georgia', serif;  /* Georgia serif — matches the rest of the site */
+      background: var(--bg);          /* warm parchment page background */
+      color: var(--ink);              /* dark brown-black default text color */
+      min-height: 100vh;              /* at least full viewport height so sidebar fills the screen */
+      display: flex;                  /* flex container — sidebar and main sit side by side */
+      flex-direction: row;            /* children flow left to right */
+    }
+
+    /* =====================================================================
+       SIDEBAR — identical to index.html and downloads.html
+       ===================================================================== */
+
+    .sidebar {
+      position: fixed;              /* stays put when page scrolls */
+      top: 0;                       /* flush with the top of the viewport */
+      left: 0;                      /* flush with the left edge */
+      width: var(--sidebar);        /* fixed width from our CSS variable */
+      height: 100vh;                /* full viewport height */
+      background: var(--surface);   /* near-white background */
+      border-right: 1px solid var(--border); /* thin tan line separating sidebar from main */
+      display: flex;                /* flex container */
+      flex-direction: column;       /* children stack top to bottom */
+      padding: 36px 24px;           /* 36px top/bottom, 24px left/right */
+    }
+
+    .sidebar-title {
+      font-size: 1.15rem;           /* slightly larger than body text */
+      font-weight: normal;          /* override browser bold default */
+      letter-spacing: 0.06em;       /* subtle letter spacing */
+      color: var(--ink);            /* dark brown-black */
+      line-height: 1.3;             /* tight line height for two-line title */
+      margin-bottom: 10px;          /* space between title and tagline */
+    }
+
+    .sidebar-tagline {
+      font-size: 0.78rem;           /* small — secondary information */
+      color: var(--ink-light);      /* muted brown */
+      line-height: 1.6;             /* generous line height */
+      margin-bottom: 32px;          /* gap before navigation links */
+      padding-bottom: 24px;         /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line separates branding from nav */
+    }
+
+    .sidebar-nav {
+      list-style: none;             /* remove default bullet points */
+      display: flex;                /* flex container */
+      flex-direction: column;       /* stack links vertically */
+      gap: 4px;                     /* small gap between each nav item */
+    }
+
+    .sidebar-nav a {
+      display: block;                   /* fill the full row width */
+      padding: 8px 12px;                /* comfortable click target */
+      border-radius: var(--radius);     /* rounded corners */
+      color: var(--ink-light);          /* muted by default */
+      text-decoration: none;            /* remove browser default underline */
+      font-size: 0.88rem;               /* slightly smaller than body text */
+      letter-spacing: 0.03em;           /* subtle letter spacing */
+      transition: background 0.15s, color 0.15s; /* smooth change on hover */
+    }
+
+    .sidebar-nav a:hover {
+      background: var(--accent);  /* medium cream fill on hover */
+      color: var(--ink);          /* darken text on hover */
+    }
+
+    .sidebar-nav a.active {
+      background: var(--accent);        /* cream fill shows current page */
+      color: var(--ink);                /* dark text */
+      border: 1px solid var(--accent2); /* slightly darker border defines the active pill */
+    }
+
+    .sidebar-footer {
+      margin-top: auto;           /* push to bottom of the sidebar */
+      font-size: 0.72rem;         /* very small — quiet footnote */
+      color: var(--ink-light);    /* muted */
+      line-height: 1.6;           /* generous spacing */
+    }
+
+    /* =====================================================================
+       MAIN CONTENT
+       ===================================================================== */
+
+    .main {
+      margin-left: var(--sidebar);  /* push right by exactly the sidebar width */
+      flex: 1;                      /* fill all remaining horizontal space */
+      padding: 48px 48px;           /* generous breathing room on all sides */
+      max-width: 860px;             /* cap width for readability */
+    }
+
+    /* Page heading row */
+    .main-header {
+      margin-bottom: 40px;              /* space between heading and content below */
+      padding-bottom: 20px;             /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line separates heading from content */
+    }
+
+    .main-header h2 {
+      font-size: 1.1rem;          /* modest size — label not hero headline */
+      font-weight: normal;        /* override browser bold */
+      color: var(--ink-light);    /* muted */
+      letter-spacing: 0.08em;     /* wider spacing gives it a section-label feel */
+      text-transform: uppercase;  /* all caps — consistent with other page headings */
+    }
+
+    /* =====================================================================
+       ABOUT CONTENT — prose sections
+       ===================================================================== */
+
+    /* The full about content area — constrained width for comfortable reading */
+    .about-content {
+      max-width: 600px;   /* prose reads best at a narrower width than the full main area */
+    }
+
+    /* Each section block — "How it works", "Why single files?", etc. */
+    .about-section {
+      margin-bottom: 40px;  /* generous space between sections */
+    }
+
+    /* Section heading — "How it works", "Why single files?", "Who made this?", "Privacy" */
+    .about-section h3 {
+      font-size: 0.78rem;           /* small — same label treatment as table headers */
+      font-weight: normal;          /* override browser bold */
+      letter-spacing: 0.1em;        /* wider spacing — feels like a section marker */
+      text-transform: uppercase;    /* all caps */
+      color: var(--ink-light);      /* muted — the prose below is the focus */
+      margin-bottom: 14px;          /* space between heading and paragraph below */
+      padding-bottom: 10px;         /* inner space before the border */
+      border-bottom: 1px solid var(--border); /* thin line under each section heading */
+    }
+
+    /* Body paragraphs within each section */
+    .about-section p {
+      font-size: 0.92rem;     /* slightly smaller than default body text — comfortable reading size */
+      line-height: 1.85;      /* generous line height — prose needs more breathing room than UI text */
+      color: var(--ink);      /* full dark ink — this is primary content */
+      margin-bottom: 14px;    /* space between paragraphs within the same section */
+    }
+
+    /* Last paragraph in a section — no trailing margin before the next section's heading */
+    .about-section p:last-child {
+      margin-bottom: 0;  /* removes the bottom margin on the final paragraph in each section */
+    }
+
+    /* Footer — identical to index.html and downloads.html */
+    .main-footer {
+      margin-top: 48px;                    /* push it well below the last section */
+      padding-top: 20px;                   /* inner space above the text */
+      border-top: 1px solid var(--border); /* thin tan line separates footer from content */
+      font-size: 0.78rem;                  /* small — quiet, not competing with the prose */
+      color: var(--ink-light);             /* muted brown */
+      letter-spacing: 0.04em;              /* subtle spacing */
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- =====================================================================
+       SIDEBAR — About link has class="active" since this is the current page
+       ===================================================================== -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <h1 class="sidebar-title">Simple<br>Ed Tools</h1>
+      <p class="sidebar-tagline">Privacy focused offline tools for teaching and learning.</p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="index.html">Tools</a></li>
+        <li><a href="about.html" class="active">About</a></li>  <!-- active = current page -->
+        <li><a href="downloads.html">Downloads</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      All tools run entirely in your browser.<br>No data leaves your device.
+    </div>
+
+  </aside>
+
+
+  <!-- =====================================================================
+       MAIN CONTENT
+       ===================================================================== -->
+  <main class="main">
+
+    <div class="main-header">
+      <h2>About</h2>
+    </div>
+
+    <div class="about-content">  <!-- constrained width wrapper for comfortable prose reading -->
+
+      <!-- How it works section -->
+      <div class="about-section">
+        <h3>How it works</h3>
+        <p>Most educational software tools depend on internet connections, accounts, and the collection of user data. Many lock features behind paid tiers, interrupt the classroom experience with advertisements, or are hosted by unknown third parties with unclear data practices. Simple Ed Tools takes a different approach where users and their data privacy is important.</p>
+        <p>When you open one of the tools here, everything happens locally on your device. Your flashcards, your notes, your work — none of it leaves your computer. When you close the tab, it is gone unless you choose to save it yourself.</p>
+        <p>These tools are built as single HTML files and are quite small in size. That means you can open them in a browser, save them to your desktop, share them with a colleague, or use them securely offline. There is no installation, subscription, or account needed. They are always free to use and have no ads.</p>
+      </div>
+
+      <!-- Why single files section -->
+      <div class="about-section">
+        <h3>Why single files?</h3>
+        <p>Apps that fit into a single file are easy to understand and work with, even on underpowered devices. Their code can be inspected and modified by anyone, and they work the same on any computer with a browser. Every tool on this site is built that way. Each one is a single HTML file containing everything it needs to run, with no external dependencies, no required internet connection, and no hidden processes running in the background.</p>
+      </div>
+
+      <!-- Who made this section -->
+      <div class="about-section">
+        <h3>Who made this?</h3>
+        <p>Simple Ed Tools was built by Michael Littrell, an educator and professor at Tennessee Tech University. These tools grew out of a need for simple, reliable utilities that work in any classroom environment regardless of network access or budget constraints.</p>
+      </div>
+
+      <!-- Privacy section -->
+      <div class="about-section">
+        <h3>Privacy</h3>
+        <p>The tools at Simple Ed Tools collect nothing. No accounts are required, no analytics run in the background, and nothing you do is ever transmitted anywhere. What you create and work with stays entirely on your device.</p>
+      </div>
+
+    </div>  <!-- closes .about-content -->
+
+    <footer class="main-footer">
+      <p>&copy; 2026 Simple Ed Tools &mdash; <a href="https://opensource.org/licenses/MIT">MIT License</a>. Free to use and share.</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>
