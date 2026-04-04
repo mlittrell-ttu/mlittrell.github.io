@@ -1,10 +1,13 @@
-<!DOCTYPE html>                        <!-- Tells the browser this is an HTML5 document -->
-<html lang="en">                       <!-- Root element wrapping everything; lang="en" helps screen readers -->
-<head>                                 <!-- Head section: invisible setup instructions for the browser -->
-  <meta charset="UTF-8" />             <!-- Use UTF-8 encoding so all characters and emoji display correctly -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Makes the page scale properly on phones -->
-  <title>FlashCards</title>              <!-- Text shown in the browser tab -->
-  <style> /*Opens the CSS block;everything here controls visual appearance;anything in root is available everywhere */              
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlashCards</title>
+  <style>
+
+    /* :root — CSS custom properties (variables) available everywhere.
+       Changing a value here updates it throughout the whole file at once. */
     :root {
       --bg:        #f7f2e8;
       --surface:   #fffdf8;
@@ -14,1843 +17,1437 @@
       --accent:    #e0d5c2;
       --accent2:   #c8bfb0;
       --green:     #8aab8a;
-      --shadow:    0 2px 12px rgba(0,0,0,0.10);/* 0=hor. offset, 2=vert. offset(px), 12=blur*/
-                                                /*rgba(color) = 0=rbga;.alpha = .10; 1 is solid*/ 
-      --radius:    10px; /* default 90° corners in html rounded from 0(default) to 10*/
-      --flip-time: 0.5s; /* store 0.5 seconds as our standard animation duration */
+      --shadow:    0 2px 12px rgba(0,0,0,0.10);
+      --radius:    10px;
+      --flip-time: 0.5s;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-    /* This is css reset line. *=wild card target all elements; *::before/after=any generated content before or after element
-       box-sizing: border-box=strips out default values and start with 0 so we control it.
-       Everything in css is rendered as a box "CSS box model" 4-layers:content, padding, border, margin*/                      
+    /* CSS reset — strip every element's default browser margin and padding */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    /*Everything visible will live in the body.*/
-    /*PC knows to draw everything inside body on screen.*/
-    /*These are CSS selectors and property/value(collectively called "CSS Rulesets" from {}).
-    Selector — the address that tells CSS which element on the page to target.
-    Property — the specific thing about that element you want to change, like its color, size,
-    Property + value (like min-height:100vh) = CSS Declaration
-    Element — a single building block of a webpage, made up of an opening tag, its content, and a closing tag.*/
-body {
-  font-family: 'Georgia', serif;  /* Georgia as the main font; if unavailable use serif font */
-  background: var(--bg);          /* set page background to --bg variable (off-white we defined in :root) */
-  color: var(--ink);              /* set text color to our --ink variable (near-black) — all text inheritsunless overridden */
-  min-height: 100vh;              /* make the body at least 100% of the viewport height — 100vh = full screen height */
-  display: flex;                  /* switch the body to flexbox layout — this changes how its children are arranged */
-                                  /* children are the the elements that sit inside another element in html*/
-                                  /* elements are building blocks of pages; consist of open tag, content, close tag.*/
-                                  /*body is an element.*/
-  flex-direction: column;         /* stack children vertically top to bottom (default flex stacks them horizontally) */
-  align-items: center;            /* center all children horizontally within the body */
-}
-/*Header is the cream bar that sits across the page up top and the text.*/
-header {
-  width: 100%;                      /* stretch header to fill the full width of its parent (the body) */
-  background: var(--bg);            /* set background to our --bg variable (warm parchment cream) */
-  color: var(--ink);                /* set text color to our --ink variable (dark brown-black) */
-  padding: 18px 40px;               /* add space inside the header — 18px top and bottom, 40px left and right */
-  display: flex;                    /* make the header a flex container so we can control how its children are arranged */
-  align-items: center;              /* vertically center the children (the title and card count) within the header's height */
-  justify-content: space-between;   /* push children to opposite ends — title goes far left, card count goes far right */
-  box-shadow: var(--shadow);        /* apply our reusable shadow beneath the header to lift it visually off the page */
-  border-bottom: 1px solid var(--border); /* thin line separates header from page content below */
-}
 
-/* Select h1 within the header. h1 is the biggest title part Flash Cards.*/
-    header h1 {               /* target ONLY h1 elements that live inside the header — not all h1s on the page */
-  font-size: 1.6rem;         /* set text size to 1.6rem — rem means relative to root font size (usually 16px) so 1.6rem = ~25px */
-  letter-spacing: 0.08em;   /* add a tiny gap between each letter — em is relative to current font size, 0.08em is subtle */
-  font-weight: normal;       /* override the browser default which makes h1 bold — lighter and more elegant */
-}
-    header h1 span {    /* target only a span element sitting inside the h1 inside the header — very specific */
-  color: var(--ink-light); /* make just that part of the heading text muted — slightly lighter than the main title text */
-}
-    nav {        /* target the nav element — the tab button row */
-  display: flex;  /* make nav a flex container so buttons sit side by side in a row */
-  gap: 6px;    /* add 6px of space between each button — gap is a flex property */
-}
-    nav button {           /* target only buttons that live inside the nav — not all buttons on the page */
-  background: transparent;           /* no background fill — button is see-through so cream header shows */
-  border: 1px solid var(--border);   /* a thin tan border matching the page border color */
-  color: var(--ink);                 /* dark text — readable against the cream header */
-  padding: 7px 18px;        /* space inside the button — 7px top and bottom, 18px left and right */
-  border-radius: 20px;      /* heavily round the corners — 20px on a small button creates a pill/capsule shape */
-  cursor: pointer;          /* change the mouse cursor to a hand when hovering — signals to the user this is clickable */
-  font-family: inherit;     /* use whatever font the parent element is using — inherit means "copy it from above" */
-  font-size: 0.85rem;       /* slightly smaller than the base font size. rem=relative to root size */
-  letter-spacing: 0.04em;   /* small letter spacing*/
-  transition: background 0.2s, border-color 0.2s;  /* animate background and border changes smoothly over 0.2 seconds when state changes e.g. on hover */
-}
-    nav button:hover, /* Targets nav buttons on hover */
-    nav button.active {  /* ...AND nav buttons that have the class "active" applied by JavaScript */
-  background: var(--accent);         /* give a medium cream fill — visible against the lighter header */
-  border-color: var(--border);       /* keep the border consistent */
-}
-    nav button.active {       /* target ONLY the currently active tab button specifically */
-  background: var(--accent);        /* fill with medium cream — visually shows which tab you are on */
-  border-color: var(--accent2);     /* slightly darker border so the active pill has a defined edge */
-}
-    /* main is the content area for any page. body is the whole page including header.*/
-    main {       /* target the main content area that holds all the content */
-  width: 100%;           /* stretch to fill its parent's full width */
-  max-width: 720px;      /* but never grow wider than 720px — keeps content readable on wide screens */
-  padding: 40px 20px;   /* 40px margin room top and bottom, 20px left and right */
-}
-    section {         /* target all section elements — each page (study, add, manage) is a section */
-  display: none;      /* hide every section by default — none of them are visible on load */
-}
-/*a class is a label you attach to an html element;one element can have multiple classes. can be used by css.
-  the"."in css means look for elements with this class name.
-  section.active is a CSS selector; targetting instructions*/
-    section.active {       /* target only the section that has the class "active" on it */
-  display: block;  /* make just that one section visible; JS adds/removes this class on tab clicks 
-  block properties= takes up full width, always start on new line, stack vertically*/
-}
-/* An ID (like a class) is a way to label html elements, but is unique to one element (unlike class).*/
-    #study-area {            /* target the element with the ID "study-area" — the # means ID selector */
-  display: flex;             /* make it a flex container */
-  flex-direction: column;    /* stack its children vertically */
-  align-items: center;       /* center children horizontally */
-  gap: 24px;                 /* add 24px of space between each child automatically */
-}
-    #progress-label {      /* target the element with ID "progress-label" — shows "card 1 of 12" etc. */
-  font-size: 0.85rem;      /* slightly smaller than body text */
-  color: var(--ink-light); /* use our muted color */
-  letter-spacing: 0.05em;  /* slight letter spacing */
-}
-  .card-scene {         /* target any element with the CLASS "card-scene" — the . means class selector */
-  width: 100%;          /* fill available width */
-  max-width: 520px;     /* but cap it at 520px so the card doesn't stretch too wide */
-  height: 300px;        /* fixed height — the card needs a defined height for the 3D flip to work */
-  perspective: 1000px;  /* set the 3D depth perspective — high number = more subtle 3D effect, low = more dramatic */
-  cursor: pointer;      /* show a hand cursor on hover*/
-}
-.card-inner {                         /* . means class selector
-  width: 100%;                        /* fill the full width of its parent (.card-scene) */
-  height: 100%;                       /* fill the full height of its parent (.card-scene) */
-  position: relative;                 /* establish this as a positioning reference point for its children (the front and back faces) */
-  transform-style: preserve-3d;       /* tell browser to treat children as 3D, not flat — for the flip to look 3D */
-  transition: transform var(--flip-time) ease;  /* when the transform property changes, animate it over our flip-time var (0.5s); "ease" means it start fast, slows at end */
-}
-    .card-inner.flipped {     /* target .card-inner elements that also have the class "flipped" added by JS*/
-  transform: rotateY(180deg); /* rotate the entire card 180 degrees around the vertical Y axis */
-}
-    .card-face {
-  position: absolute; /* remove element from normal document flow and position it relative to its nearest positioned parent (.card-inner which has position:relative) */
-  inset: 0;                        /* shorthand for top:0, right:0, bottom:0, left:0 — stretches the face to fill its parent completely */
-  background: var(--surface);      /* set background to our surface color */
-  border: 1px solid var(--border); /* thin visible edge using our border color var */
-  border-radius: var(--radius);    /* round the corners */
-  box-shadow: var(--shadow);       /* apply our drop shadow */
-  display: flex;                   /* make this face a flex container so its children can be arranged */
-  flex-direction: column;          /* stack children vertically */
-  align-items: center;             /* center children horizontally */
-  justify-content: center;         /* center children vertically — combined with above this puts content dead center */
-  padding: 30px;                   /* 30px breathing room between the card edge and the content inside */
-  backface-visibility: hidden;     /* hide this face when it is rotated away from the viewer — critical for the flip effect */
-  text-align: center;              /* center any text content inside the card */
-}
-    .card-face.back {
-  transform: rotateY(180deg);  /* pre-rotate the back face 180 degrees so it starts hidden*/
-  background: #f0e9d8;         /* give back a slightly deeper cream tint to visually distinguish it from front */
-}
- /* This is what produces the small "click to reveal" and "how did you do?" text sitting at the bottom of each card.*/  
-.card-face .hint {     /* target elements with class "hint" that live inside a .card-face — note the space meaning descendant */
-  position: absolute;          /* pull this element out of normal flow so we can place it precisely within the card face */
-  bottom: 12px;                /* pin it exactly 12px from the bottom edge of the card face — works because .card-face has position:relative as its parent */
-  font-size: 0.75rem;          /* make it smaller than body text — this is secondary information, not the main content */
-  color: var(--ink-light);     /* use our muted brown color to de-emphasise it — it should be noticeable but not distracting */
-  letter-spacing: 0.05em;      /* slight letter spacing makes it feel like a subtle label rather than main content */
-}
- /* The main content text displayed on each card face; the question on front, the answer on back */
-.card-face .card-text {
-  font-size: 1.4rem;    /* larger than body text — the primary text user needs to read */
-  line-height: 1.5;     /* each line of text has 1.5x the font size as spacing above it — prevents lines feeling cramped */
-  overflow-y: auto;     /* if text is taller than the card face, make it scrollable rather than spilling out */
-  max-height: 100%;     /* cap the text container at the full height of its parent card face — nothing can escape beyond it */
-  width: 100%;          /* stretch to full width of the card face so text wraps properly before it ever needs to scroll */
-}
-    /* Images dropped onto a card face — keeps them contained and neatly rounded within the card */
-.card-face img {
-  max-width: 100%;       /* never let the image grow wider than card face */
-  max-height: 220px;     /* cap the height at 220px */
-  border-radius: 6px;    /* slightly round the image corners */
-  object-fit: contain;   /* scale the image to fit within its bounds while preserving its proportions */
-}
-    /* The row of "Got It" and "Review Again" buttons that appear after flipping a card */
-#rating-buttons {  /* # is an id selector.*/
-  display: flex;   /* place the two buttons side by side in a row rather than stacking vertically */
-  gap: 16px;       /* add 16px of space between the two buttons */
-}
-/* The "Got It" button that appears after flipping a card — marks the card as learned */
-.btn-got-it {
-  background: var(--green);   /* medium cream fill — slightly more prominent than the lighter Review Again button */
-  color: var(--ink);           /* dark brown-black text — high contrast on the cream background */
-  border: 1px solid var(--accent2); /* slightly darker cream border gives it a defined edge */
-  padding: 12px 32px;     /* 12px top and bottom, 32px left and right */
-  border-radius: 24px;    /* rounded corners — 24px */
-  font-size: 1rem;        /* match the base body font size */
-  cursor: pointer;        /* show a hand cursor on hover */
-  font-family: inherit;   /* use font the parent element is using rather than browser default */
-  transition: opacity 0.2s;  /* when opacity changes on hover, animate it over 0.2 seconds */
-}
-   /* The "Review Again" button that appears after flipping a card — sends the card to the back of the queue */
-.btn-again {
-  background: var(--surface);  /* lightest cream — visually lighter than Got It to distinguish the two actions */
-  color: var(--ink);           /* dark brown-black text — high contrast on the near-white background */
-  border: 1px solid var(--border); /* tan border gives it a defined edge */
-  padding: 12px 32px;          /* 12px top and bottom, 32px left and right */
-  border-radius: 24px;         /* same heavy rounding as Got It*/
-  font-size: 1rem;             /* match the base body font size */
-  cursor: pointer;             /* show a hand cursor on hover */
-  font-family: inherit;        /* copy the font from the parent rather than using the browser default */
-  transition: opacity 0.2s;    /* animate opacity changes over 0.2s for the hover */
-}
-
-/* The visual feedback when the mouse hovers over either rating button */
-/* targeting two selectors with one rule using a comma; avoids writing the same rule twice */
-/* .btn-got-it = class selector, :hover = pseudo-class that activates only when mouse is over the element 
- ":" signals a pseudo class
- Pseudo-class — a condition the browser tracks automatically based on user behaviour or element state, 
- written with a colon; P-Classes you never add or remove yourself. regular classes are add/rm directly with js and html*/
-.btn-got-it:hover,
-.btn-again:hover {
-  opacity: 0.85;   /* reduce to 85% opacity on hover */
-}
-
-
-/* The message shown in the study area when there are no cards yet, or when a session is complete */
-#empty-study { /* #=id selector.*/
-  text-align: center;        /* center stand alone text horizontally */
-  color: var(--ink-light);   /* use our muted color */
-  font-size: 1.1rem;         /* slightly larger than body text */
-  padding: 60px 20px;        /* 60px top and bottom pushes the message away from the edges */
-  line-height: 1.8;          /* line spacing — this message may span multiple lines so extra space keeps it readable */
-}
-
-
-/* The white container box that holds the card creation form on the Add Card panel */
-.card-editor { /* .=class selector.*/
-  background: var(--surface);      /* light color*/
-  border: 1px solid var(--border); /* thin  edge to the box */
-  border-radius: var(--radius);  /* round the corners*/
-  padding: 28px;               /* 28px on all four sides between the box edge and the form content inside */
-  box-shadow: var(--shadow);   /* drop shadow */
-}
-
-
-/* The "New Flashcard" heading at the top of the card editor form — styled as a subtle section label rather than a bold title */
-.card-editor h2 {
-  margin-bottom: 24px;   /* push everything below the heading down 24px — creates separation b/t the title and form fields */
-  font-weight: normal;   /* override browser default that would make h2 bold */
-  font-size: 1.2rem;     /* slightly larger than body text */
-  color: var(--ink-light); /* muted color*/
-  letter-spacing: 0.05em;  /* slight spacing between letters */
-  border-bottom: 1px solid var(--border);  /* thin line under the heading, visually separates the title from the form content below */
-  padding-bottom: 10px;  /* 10px gap b/t the text and border-bottom line; without this the line sits against the text */
-}
-
-
-/* A wrapper around each form field (label + drop zone) in the card editor — adds space between each field */
-.field-group {
-  margin-bottom: 24px; /* push the next field group down 24px; creates vertical separation b/t the Front/Back sections */
-}
-
-/* The small uppercase labels above each drop zone in the card editor — "FRONT" and "BACK" */
-.field-group label { /* .field-group = class we define; label = html element that pre-exists. both must be true. 
-  display: block;   /* labels inline by default; block makes it take up its own full line so the drop zone starts below it */
-  font-size: 0.8rem;    /* smaller than body text — this is a supporting label not main content */
-  letter-spacing: 0.08em;   /* wider letter spacing than body text — combined with uppercase makes it feel like a quiet heading */
-  text-transform: uppercase; /* automatically converts the text to capitals regardless of how it is typed in the HTML */
-  color: var(--ink-light);   /* muted brown — de-emphasised, the drop zone below it is the main focus */
-  margin-bottom: 8px;        /* small gap between the label and the drop zone directly below it */
-}
-/* The dashed box on the card editor where users type text or drag and drop an image onto the card */
-.drop-zone {
-  border: 2px dashed var(--border);   /* dashed border */
-  border-radius: var(--radius);        /* round the corners */
-  padding: 20px;             /* 20px breathing room on all sides between the border and the content inside */
-  min-height: 120px;         /* guarantee a minimum height so the zone is always a large enough target to drop onto — without this it would collapse to just the size of its content */
-  display: flex;             /* make the zone a flex container*/
-  flex-direction: column;    /* stack children vertically — textarea above the drop hint text */
-  align-items: center;       /* center children horizontally */
-  justify-content: center;   /* center children vertically */
-  gap: 10px;                 /* 10px space between each child element inside the zone */
-  
-  /* watch border-color and background and animate both when they change*/
-  transition: border-color 0.2s, background 0.2s;  /* animate both border color and background — used when a file is dragged over to give visual feedback */
-  position: relative;  /* establish this as a positioning reference point for any absolutely positioned children inside it */
-}
- /* The drop zone when a file is actively being dragged over it; gives visual feedback that the zone is ready to receive the file */
-.drop-zone.drag-over { /* no space with .=targets elements with both these classes being true*/ 
-  border-color: var(--accent2); /* change the border to our accent color; rdy for drop*/
-  background: #f5ede0;   /* warm parchment tint to the background; reinforces active state visually */
-}
-/* The text input area inside the drop zone where users type the front or back of a card */
-.drop-zone textarea {
-  width: 100%;              /* stretch to fill the width of the drop zone */
-  border: none;             /* remove the default border browsers put around textareas */
-  background: transparent;  /* make the text area see-through */
-  resize: none;             /* remove default resize handle browsers put in the corner of textareas */
-  font-family: inherit;     /* copy font from the parent rather than using the browser default */
-  font-size: 1rem;          /* match the base body font size */
-  color: var(--ink);        /* color for the typed text */
-  outline: none;            /* remove default glow browsers added when textarea is clicked and active */
-  min-height: 80px;         /* minimum height */
-}
-    /* The image preview that appears inside the drop zone after a user drags an image onto the card editor */
-.drop-zone img {
-  max-width: 100%;       /* prevents overflow */
-  max-height: 180px;     /* cap the height */
-  border-radius: 6px;    /*  round corners */
-  object-fit: contain;   /* scale image to fit within bounds */
-}
-   /* The small "— or drag & drop an image here —" text sitting inside the drop zone */
-.drop-hint {
-  font-size: 0.78rem;      /* smaller than body text  */
-  color: var(--ink-light); /* muted  to de-emphasise it */
-}
-
-/* The small "Remove image" link that appears after an image is dropped — lets the user clear it and go back to text input */
-.clear-img-btn {
-  font-size: 0.75rem;        /* smaller than body text */
-  color: var(--accent);      /*  accent color */
-  background: none;          /* remove any background — looks like a text link not a button */
-  border: none;              /* remove the default browser border on buttons */
-  cursor: pointer;           /* show a hand cursor on hover */
-  padding: 0;                /* remove all padding — keeps it link-like with no extra space around it */
-  font-family: inherit;      /* copy the font from the parent */
-  text-decoration: underline; /* add an underline to look like a traditional text link rather than a button */
-}
-
-/* The main "Save Card" button at the bottom of the card editor */
-.btn-primary {
-  background: var(--accent);       /* medium cream background — stands out from the white card editor surface */
-  color: var(--ink);               /* dark brown-black text — high contrast on cream */
-  border: 1px solid var(--accent2); /* slightly darker cream border for a clean defined edge */
-  padding: 12px 32px;          /* 12px top and bottom, 32px left and right */
-  border-radius: 24px;         /* rounded corners */
-  font-size: 0.95rem;          /* slightly below body text size */
-  cursor: pointer;             /* show a hand cursor on hover */
-  font-family: inherit;        /* copy the font from the parent */
-  letter-spacing: 0.04em;      /* subtle letter spacing */
-  transition: background 0.2s; /* when background color changes on hover — animate it over 0.2s */
-}
-    
-/* The "Save Card" button when the mouse hovers over it */
-.btn-primary:hover {
-  background: var(--border);   /* shift to a slightly darker tan-cream on hover to signal interactivity */
-}
-
-/* The small "Card saved!" confirm message that briefly appears beside the Save Card button after save */
-#save-feedback {
-  font-size: 0.85rem;     /* smaller than body text */
-  color: var(--green);     /* green color */
-  margin-left: 14px;       /* push it 14px away from the Save Card button sitting to left */
-  opacity: 0;              /* start completely invisible, JS makes it appear briefly then fades it out */
-  transition: opacity 0.4s; /* when opacity changes animate it over 0.4s */
-}
-/* The two buttons at the top of the Manage panel — Export, Import, and any other toolbar actions */
-.manage-toolbar {
-  display: flex;         /* place the export/import toolbar buttons side by side in a row */
-  gap: 10px;             /* add 10px space between each button */
-  margin-bottom: 24px;   /* push the card list below down 24px; separates the toolbar from the cards */
-  flex-wrap: wrap;       /* if the buttons run out of horizontal space allow them to wrap onto a new line */
-}
-
-/* The secondary action buttons in the toolbar — Export and Import — less visually prominent than the primary Save Card button */
-.btn-secondary {
-  background: var(--surface);          /* button background  */
-  color: var(--ink);                   /* text color*/
-  border: 1px solid var(--border);     /* thin visible edge*/
-  padding: 9px 20px;                   /* small padding */
-  border-radius: 20px;                 /* heavily rounded corners */
-  font-size: 0.85rem;                  /* smaller than primary */
-  cursor: pointer;                     /* hand cursor on hover */
-  font-family: inherit;                /* copy font from parent rather than browser default */
-  transition: background 0.2s;         /* setsup animate background color over 0.2s on hover; readys it. */
-}
-    /* The Export/Import buttons when the mouse hovers over them. */
-.btn-secondary:hover {
-  background: var(--border);   /* swap background from var(--surface) to var(--border) on hover */
-}
-    /* The container that holds all the card rows in the Manage panel */
-#card-list { /*Id selector */
-  display: flex;        /* make this a flex container */
-  flex-direction: column;  /* stack the card rows vertically */
-  gap: 12px;               /* 12px of space between each card row */
-}
-
-/* Each individual card row in the Manage panel — shows a preview of the front, back, and a delete button */
-.card-list-item {
-  background: var(--surface);          /* background color */
-  border: 1px solid var(--border);     /* thin edge */
-  border-radius: var(--radius);        /* round corners */
-  padding: 16px 20px;                  /* 16px top and bottom, 20px left and right inside each row */
-  display: flex;                       /* make this row a flex container so its children sit side by side */
-  align-items: center;                 /* vertically center the children — front/back preview, and delete button align horizontally */
-  justify-content: space-between;      /* push children to opposite ends — preview text to the left, delete button to the right */
-  gap: 12px;                           /* 12px space between each child element inside the row */
-  cursor: grab;                        /* makes the card draggable in manage.*/
-}
-
-/* new ruleset for the dragged card in manage; makes it opaque.*/
-.card-list-item.dragging {
-  opacity: 0.4;
-}
-
-/* The dot grid handle on the left of each manage row — signals the row is draggable.
-   Two columns of three dots arranged in a tight grid; purely visual, no interaction of its own.
-   display:grid with two columns lets the dots pair up naturally into a 2×3 formation. */
-.drag-handle {
-  display: grid;                        /* grid layout so dots snap into 2 columns automatically */
-  grid-template-columns: repeat(2, 4px); /* two columns, each exactly 4px wide — sizes the grid to the dot width */
-  gap: 3px;                             /* 3px between every dot both horizontally and vertically */
-  padding: 2px;                         /* tiny outer padding so the handle doesn't sit flush against the row edge */
-  flex-shrink: 0;                       /* prevent the handle from shrinking if the row runs out of space */
-  cursor: grab;                         /* show grab cursor specifically on the handle — clearest signal of draggability */
-}
-
-/* Each individual dot in the drag handle grid */
-.drag-handle-dot {
-  width: 3px;                   /* fixed width — small enough to look like a subtle affordance */
-  height: 3px;                  /* fixed height — equal to width so each dot is a perfect circle */
-  border-radius: 50%;           /* 50% turns a square into a circle */
-  background: var(--accent2);   /* muted tan from our parchment palette — visible but not distracting */
-}
-
-    /* The front card text preview shown in each row of the Manage panel */
-.card-list-preview {
-  flex: 1;                    /* take up all space in the row*/
-  font-size: 0.9rem;          /* smaller than body text */
-  color: var(--ink);          /* text color */
-  overflow: hidden;           /* hide any text that extends beyond the element's width */
-  white-space: nowrap;        /* force all text onto a single line — no wrapping onto a second line */
-  text-overflow: ellipsis;    /* when text is cut off by overflow:hidden show "..." at the end */
-}
-    /* The small "to" separator arrow sitting between the front and back previews in each card row */
-.card-list-preview .arrow {
-  color: var(--ink-light);   /* muted color */
-  margin: 0 8px;             /* 0 top and bottom, 8px left and right — adds room either side of the arrow */
-}
-    /* The small thumbnail image shown in a card row when the card contains an image, not text */
-.card-list-preview img {
-  width: 36px;              /* fix the width to exactly 36px  */
-  height: 36px;             /* fix the height to exactly 36px */
-  object-fit: cover;        /* fill the 36x36 square completely */
-  border-radius: 4px;       /* round the corners */
-  vertical-align: middle;   /* align the image vertically */
-}
-/* The delete button on each card row in the Manage panel — small and understated until hovered */
-.btn-delete {
-  background: none;                /* no background fill — transparent */
-  border: 1px solid var(--border); /* thin border */
-  color: var(--accent);            /* color text */
-  border-radius: 6px;              /* slightly rounded corners*/
-  padding: 5px 12px;               /* small padding */
-  cursor: pointer;                 /* hand cursor on hover */
-  font-family: inherit;            /* copy font from parent*/
-  font-size: 0.8rem;               /* smaller than body text */
-  transition: background 0.2s;     /* animate background changes over 0.2s on hover */
-  flex-shrink: 0;                  /* prevent button from shrinking if row runs out of space — always stays full size */
-}
-/* The delete button when the mouse hovers over it*/
-.btn-delete:hover {
-  background: #f5ede0;   /*background color on hover — warm parchment tint signals the row is targeted */
-}
-
-/* Interval badge not working. Fix later. */
-    .interval-badge {
-      font-size: 0.72rem; color: var(--ink-light); background: var(--bg);
-      border: 1px solid var(--border); border-radius: 10px; padding: 2px 8px; flex-shrink: 0;
+    body {
+      font-family: 'Georgia', serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-/* The "No cards yet. Add some!" message shown in the Manage panel when the deck is empty */
-#empty-manage {
-  text-align: center;        /* center the message horizontally  */
-  color: var(--ink-light);   /* muted color */
-  padding: 60px 0;           /* 60px top and bottom, 0 left and right — pushes the message away from the edges*/
-}
-  </style>   <!-- closes the CSS block — everything between <style> and </style> was CSS -->
-</head>    <!-- closes the head section — everything between <head> and </head> was invisible browser instructions -->
+
+    /* header — cream bar across the top with the title and nav tabs */
+    header {
+      width: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      letter-spacing: 0.08em;
+      font-weight: normal;
+    }
+
+    header h1 span { color: var(--ink-light); } /* mutes the "Cards" part of the title */
+
+    nav { display: flex; gap: 6px; }
+
+    nav button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      padding: 7px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    nav button:hover,
+    nav button.active { background: var(--accent); border-color: var(--border); }
+
+    nav button.active { border-color: var(--accent2); }
+
+    /* main — the content column below the header */
+    main {
+      width: 100%;
+      max-width: 720px;
+      padding: 40px 20px;
+    }
+
+    /* sections are hidden by default; only .active is shown */
+    section        { display: none; }
+    section.active { display: block; }
 
 
+    /* ── STUDY VIEW ─────────────────────────────────────────── */
+
+    #study-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* shows which deck is currently being studied */
+    #study-deck-name {
+      font-size: 0.82rem;
+      color: var(--ink-light);
+      letter-spacing: 0.05em;
+      font-style: italic;
+    }
+
+    #progress-label {
+      font-size: 0.85rem;
+      color: var(--ink-light);
+      letter-spacing: 0.05em;
+    }
+
+    /* .card-scene — the 3D perspective container; the "camera" for the flip effect */
+    .card-scene {
+      width: 100%;
+      max-width: 520px;
+      height: 300px;
+      perspective: 1000px; /* depth of the 3D space; higher number = more subtle 3D */
+      cursor: pointer;
+    }
+
+    /* .card-inner — the element that actually rotates during the flip */
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;  /* children rendered as 3D objects, not flat */
+      transition: transform var(--flip-time) ease;
+    }
+
+    .card-inner.flipped { transform: rotateY(180deg); }
+
+    /* .card-face — shared styles for both faces of the card */
+    .card-face {
+      position: absolute;
+      inset: 0;  /* shorthand: top/right/bottom/left = 0; fills the parent completely */
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      backface-visibility: hidden; /* hides this face when it is rotated away from viewer */
+      text-align: center;
+    }
+
+    .card-face.back {
+      transform: rotateY(180deg); /* pre-rotated 180° so it starts hidden */
+      background: #f0e9d8;        /* slightly deeper cream to distinguish back from front */
+    }
+
+    .card-face .hint {
+      position: absolute;
+      bottom: 12px;
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      letter-spacing: 0.05em;
+    }
+
+    .card-face .card-text {
+      font-size: 1.4rem;
+      line-height: 1.5;  /* 1.5× font size between lines — prevents cramped text */
+      overflow-y: auto;
+      max-height: 100%;
+      width: 100%;
+    }
+
+    .card-face img {
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 6px;
+      object-fit: contain; /* scale to fit without cropping or stretching */
+    }
+
+    #rating-buttons { display: flex; gap: 16px; }
+
+    .btn-got-it {
+      background: var(--green);
+      color: var(--ink);
+      border: 1px solid var(--accent2);
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .btn-again {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .btn-got-it:hover,
+    .btn-again:hover { opacity: 0.85; }
+
+    #empty-study {
+      text-align: center;
+      color: var(--ink-light);
+      font-size: 1.1rem;
+      padding: 60px 20px;
+      line-height: 1.8;
+    }
 
 
+    /* ── MANAGE VIEW ────────────────────────────────────────── */
+
+    /* =============================================================
+       DECK ZONE — the contained box at the top of the Manage panel
+       that groups everything deck-related: the section label, the
+       pill row, and the Load Decks button. Giving it a distinct
+       background and border makes it read as one unit rather than
+       several floating elements.
+       ============================================================= */
+
+    /* outer box — light surface background lifts it off the page */
+    #deck-bar-wrap {
+      background: var(--surface);          /* slightly lighter than the page bg */
+      border: 1px solid var(--border);     /* thin edge defines the zone */
+      border-radius: var(--radius);        /* rounded corners match the rest of the app */
+      padding: 16px 20px;                  /* breathing room inside the box */
+      margin-bottom: 24px;                 /* space between this zone and the toolbar below */
+    }
+
+    /* small "DECKS" label at the top of the deck zone */
+    #deck-zone-label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 10px;
+    }
+
+    /* #deck-bar — responsive grid so deck cards form neat rows.
+       repeat(auto-fill, minmax(140px, 1fr)) = fill as many columns
+       as fit, each at least 140px wide, sharing leftover space equally. */
+    #deck-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    /* .deck-pill — each deck is a small card.
+       position:relative anchors the absolutely-positioned × button. */
+    .deck-pill {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      overflow: hidden;
+    }
+
+    /* .active — currently selected deck; accent fill signals selection */
+    .deck-pill.active {
+      background: var(--accent);
+      border-color: var(--accent2);
+      box-shadow: none;
+    }
+
+    /* .scratchpad — unsaved cards; dashed border = not backed by a file */
+    .deck-pill.scratchpad {
+      border-style: dashed;
+    }
+
+    /* .load-deck-card — the Load Decks slot; same grid size as deck cards
+       but centered + icon and label to signal it is an add-action */
+    .load-deck-card {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 14px 10px;
+      font-family: inherit;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .load-deck-card:hover {
+      background: var(--accent);
+      border-color: var(--accent2);
+    }
+
+    .load-deck-card-icon {
+      font-size: 1.2rem;
+      color: var(--ink-light);
+      line-height: 1;
+    }
+
+    .load-deck-card-label {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+    }
+
+    /* invisible overlay button — makes the whole .deck-pill clickable */
+    .deck-pill-name {
+      position: absolute;
+      inset: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    /* deck name text — normal flow so the card sizes to it */
+    .deck-pill-deck-name {
+      font-size: 0.85rem;
+      font-weight: normal;
+      color: var(--ink);
+      padding: 12px 32px 4px 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* card count line below the name */
+    .deck-pill-count {
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      padding: 0 14px 12px;
+    }
+
+    /* × unload button — top-right corner, above the overlay */
+    .deck-pill-unload {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 2;
+      background: none;
+      border: none;
+      font-size: 0.85rem;
+      color: var(--ink-light);
+      cursor: pointer;
+      padding: 2px 5px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .deck-pill-unload:hover { background: var(--accent2); color: var(--ink); }
 
 
+    /* ── CARDS CONTAINER ───────────────────────────────────── */
+
+    /* The cards container wraps the toolbar header and the card grid
+       into one box, making it visually clear the toolbar acts on the
+       cards below it rather than floating as a separate section. */
+    #cards-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;              /* clips the header's background to rounded corners */
+      margin-bottom: 0;
+    }
+
+    /* toolbar header — flush top of the cards container.
+       Slightly warmer cream background distinguishes it from the
+       white card surface without being jarring. */
+    #cards-toolbar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 16px;
+      background: #f0e8d8;           /* warm cream — one step deeper than --bg */
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* context label — now sits inside the toolbar header on the left */
+    #manage-context-label {
+      font-size: 0.78rem;
+      color: var(--ink-light);
+      font-style: italic;
+      flex: 1;                       /* pushes buttons to the right */
+      min-width: 0;                  /* allows text to truncate if narrow */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* button group on the right side of the toolbar header */
+    .manage-toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;                /* never shrinks — buttons stay together */
+    }
+
+    /* card grid inside the container — padded from the box edges */
+    #card-list-wrap {
+      padding: 14px;
+    }
 
 
+    /* ── SHARED BUTTON STYLES ───────────────────────────────── */
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--ink);
+      border: 1px solid var(--accent2);
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background: var(--border); }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      padding: 9px 20px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover { background: var(--border); }
 
 
+    /* ── CARD LIST ──────────────────────────────────────────── */
+
+    /* #card-list-wrap — padded inner area of the cards container */
+    #card-list-wrap {
+      padding: 14px;
+    }
+
+    /* Grid so cards form rows and auto-wrap.
+       minmax(160px, 1fr) = each card at least 160px, sharing leftover space. */
+    #card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    /* Each card — flex column so front / back / footer stack vertically.
+       position:relative anchors the absolutely-positioned drag dots. */
+    .card-list-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      cursor: grab;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .card-list-item:hover { border-color: var(--accent2); }
+
+    .card-list-item.dragging { opacity: 0.4; }
+
+    /* Front face — white, holds the question / term */
+    .cli-front {
+      padding: 12px 28px 10px 12px; /* right padding leaves room for drag dots */
+      border-bottom: 1px solid #f0e9d8;
+      font-size: 0.82rem;
+      color: var(--ink);
+      line-height: 1.4;
+      min-height: 52px;  /* consistent card height even for short questions */
+      overflow: hidden;
+    }
+
+    /* Image preview inside the front face */
+    .cli-front img {
+      max-width: 100%;
+      max-height: 80px;
+      border-radius: 4px;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Back face — slightly warmer cream, holds the answer */
+    .cli-back {
+      padding: 8px 12px 10px;
+      background: #f7efe0;
+      font-size: 0.76rem;
+      color: var(--ink-light);
+      line-height: 1.4;
+      min-height: 44px;
+      flex: 1;           /* grows to fill remaining card height */
+      overflow: hidden;
+    }
+
+    /* Image preview inside the back face */
+    .cli-back img {
+      max-width: 100%;
+      max-height: 60px;
+      border-radius: 4px;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Footer row — Edit and Delete buttons */
+    .cli-footer {
+      padding: 6px 10px 7px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 5px;
+      border-top: 1px solid #f0e9d8;
+    }
+
+    /* Subtle drag-dot grid — top-right corner, low opacity.
+       position:absolute so it floats above the front face text. */
+    .drag-dots {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      display: grid;
+      grid-template-columns: repeat(2, 3px);
+      gap: 2.5px;
+      opacity: 0.35;       /* quiet — noticeable on inspection, not competing */
+      pointer-events: none; /* never intercepts clicks meant for the card */
+    }
+
+    /* Each dot */
+    .drag-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--ink-light);
+    }
+
+    .btn-delete {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--ink-light);
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.7rem;
+      transition: background 0.2s;
+    }
+
+    .btn-delete:hover { background: #f5ede0; color: var(--ink); }
+
+    #empty-manage {
+      text-align: center;
+      color: var(--ink-light);
+      padding: 60px 0;
+      line-height: 1.8;
+    }
 
 
-<!-- All above here is invisible setup, all below is visible on the page-->
+    /* ── DROP ZONES ─────────────────────────────────────────── */
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone.drag-over { border-color: var(--accent2); background: #f5ede0; }
+
+    .drop-zone textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      resize: none;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+      outline: none;
+      min-height: 80px;
+    }
+
+    .drop-zone img {
+      max-width: 100%;
+      max-height: 180px;
+      border-radius: 6px;
+      object-fit: contain;
+    }
+
+    .drop-hint { font-size: 0.78rem; color: var(--ink-light); }
+
+    .clear-img-btn {
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      text-decoration: underline;
+    }
+
+    .field-group { margin-bottom: 24px; }
+
+    .field-group label {
+      display: block;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 8px;
+    }
 
 
+    /* ── MODAL ──────────────────────────────────────────────── */
+
+    /* .modal-overlay — full-screen dim layer locked to the viewport */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100; /* above everything else on the page */
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh; /* never taller than 90% of screen height */
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    #modal-title {
+      font-weight: normal;
+      font-size: 1.2rem;
+      color: var(--ink-light);
+      letter-spacing: 0.05em;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--ink-light);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover { color: var(--ink); }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      align-items: center;
+    }
 
 
+    /* ── SAVE TOAST ─────────────────────────────────────────────
+       A small notification that briefly appears at the bottom of
+       the screen after a silent save, confirming the write happened.
+       Uses the same opacity fade pattern as the old "Card saved!" span.
+       position:fixed keeps it locked to the viewport regardless of scroll.
+       pointer-events:none means it never blocks clicks underneath it. */
+    #save-toast {
+      position: fixed;                  /* locked to the viewport, not the page */
+      bottom: 32px;                     /* 32px from the bottom edge of the screen */
+      left: 50%;                        /* start at horizontal center */
+      transform: translateX(-50%);      /* shift left by half its own width to truly center it */
+      background: var(--ink);           /* dark background — contrasts with the cream page */
+      color: var(--surface);            /* light text on the dark background */
+      font-family: 'Georgia', serif;    /* match the app font */
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      padding: 10px 22px;
+      border-radius: var(--radius);     /* same rounded corners as other boxes */
+      box-shadow: var(--shadow);
+      opacity: 0;                       /* invisible by default */
+      pointer-events: none;             /* never intercepts mouse clicks */
+      transition: opacity 0.25s ease;   /* smooth fade in and out */
+      z-index: 200;                     /* above the modal overlay (z-index:100) */
+      white-space: nowrap;              /* keep the message on one line */
+    }
 
+    /* .visible — JS adds this class to show the toast, removes it to hide */
+    #save-toast.visible {
+      opacity: 1;  /* fully opaque when visible */
+    }
 
+  </style>
+</head>
 
+<body>
 
-
-
-
-
-<body>   <!-- opens the body element — everything from here until </body> is visible on screen -->
-<!-- Header -->
- <!-- Header -->
-  <!-- Header -->
-   <!-- Header -->
-    <!-- Header -->
-
-  <!-- Dark bar across the top of the page — a semantic HTML element that groups the title and nav tabs.
-     *CSS: targeted by the "header" selector which makes it dark, full width, and flex layout 
-     *Flash= color white by defaul header text from css target. Cards= color blue from nested elements span in css rules.
-    * span is a meaningless html element that exists as a hook so css or js can grab it.-->
-   <header> 
+  <!-- HEADER -->
+  <header>
     <h1>Flash<span>Cards</span></h1>
-    
-    <!-- The row of three tab buttons (Study, Add Card, Manage) sitting in the header.
-     HTML: nav is a semantic element meaning "navigation" — tells the browser this is a group of navigation controls
-     CSS: targeted by the "nav" selector which makes it a flex container so buttons sit side by side
-     JS: the buttons inside nav call showView() when clicked to switch between panels -->
     <nav>
-    <!-- The "Study" tab button in the nav bar — active by default when the page loads.
-     *HTML: a button element with three things attached:
-       *onclick — an html event attribute that calls a JavaScript function "showView(study)" when clicked
-       *class   — "active" connects to CSS nav button.active ruleset making it highlighted
-       *id      — "tab-study" gives it a unique label so JavaScript can find and target it specifically
-     *CSS: nav button styles it as a pill shape, nav button.active highlights it with accent color
-     *JS: onclick calls showView('study') which switches the visible panel and moves the active class
-         to this button. 
-         * id="tab-study" is how JS finds this button to add/remove the active class 
-         * "study" inside of showView = plain text arg being passed to showView on click;
-            combined with other text to build element IDs in JS for view and tab. -->
-<button onclick="showView('study')" class="active" id="tab-study">Study</button>
-      <button onclick="showView('add')"                  id="tab-add">Add Card</button>
-      <button onclick="showView('manage')"               id="tab-manage">Manage</button>
+      <button onclick="showView('study')" class="active" id="tab-study">Study</button>
+      <button onclick="showView('manage')" id="tab-manage">Manage</button>
     </nav>
   </header>
 
-<!-- The main content area that holds all three panels (Study, Add Card, Manage).
-     HTML: "main" is a semantic element meaning "this is the primary content of the page"
-     CSS: targeted by the "main" selector which caps its width at 720px and centers it on the page
-     JS: no direct connection — JS targets the sections inside main, not main itself -->
   <main>
 
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-    <!---------------------------------------------- STUDY VIEW ---------------------------------------------------------------->
-
-
-    <!-- The Study panel — the first thing visible when the app loads.
-     HTML: section is a semantic element meaning "a distinct chunk of related content"
-           id="view-study" gives it a unique label so JavaScript can find it
-           class="active" makes it visible on load — the other sections don't have this
-     CSS: "section" ruleset hides all sections by default with display:none
-          "section.active" ruleset shows this one with display:block because it has the active class
-     JS: showView() removes active from all sections then adds it to whichever panel was clicked
-         it finds this element specifically using getElementById('view-study') -->
+    <!-- ============================================================
+         STUDY VIEW
+         Studies only the active deck (or scratchpad if none selected).
+         #study-deck-name shows what is being studied.
+         ============================================================ -->
     <section id="view-study" class="active">
-      
-      <!-- The centered column inside the Study panel that holds the progress label, flip card, and rating buttons.
-     HTML: div is a generic block container — no semantic meaning, just a box for grouping things
-           id="study-area" gives it a unique label so CSS and JavaScript can target it
-     CSS: #study-area ruleset makes it a flex column that stacks and centers its children vertically
-     JS: no direct connection — JS targets the elements inside it like the card and rating buttons -->
       <div id="study-area">
-        
-        <!-- The "No cards yet!" message shown when there are no cards to study.
-     HTML: a div with id="empty-study" — a generic container holding the empty state message
-           visible by default in the HTML but JavaScript swaps its content and shows/hides it
-     CSS: #empty-study ruleset centers the text, mutes the color, and adds padding
-     JS: initStudy() and loadCard() both target this element by id to either:
-         - show it with the "no cards yet" message when deck is empty
-         - hide it with style.display='none' when cards are present
-         - replace its content with the "all cards mastered" completion message -->
+
+        <!-- Empty / completion message — JS writes content dynamically -->
         <div id="empty-study">
-          No cards yet!<br>Go to <strong>Add Card</strong> to create your first flashcard.
+          No cards yet!<br>Go to <strong>Manage</strong> to load a deck or add cards.
         </div>
-        
-        <!-- The container holding the actual study experience — progress label, flip card, and rating buttons.
-     Hidden by default and only shown by JavaScript when cards are available.
-     HTML: a div with id="study-deck" — generic container grouping the active study elements
-           style="display:none" is inline CSS that hides it immediately on page load
-     CSS: no ruleset targets this by id — all its layout properties are written inline in the style attribute
-          display:none keeps it hidden until JS shows it
-          width/flex properties control the layout of its children when visible
-          Styled here in html with inline css for readability;
-     JS: initStudy() shows it with style.display='flex' when cards exist
-         loadCard() hides it again with style.display='none' when session is complete. -->
+
+        <!-- The live study deck — hidden until JS confirms cards exist.
+             Layout properties are inline because they only apply when JS shows this element. -->
         <div id="study-deck" style="display:none; width:100%; flex-direction:column; align-items:center; gap:24px;">
-          
-          <!-- The "Got It: 7 / 10 · Remaining: 3" text shown above the flip card during a study session.
-     HTML: a div with id="progress-label" — starts completely empty, no content between the tags
-           JavaScript fills it with text dynamically as the session progresses
-     CSS: #progress-label ruleset makes it small, muted color, and letter-spaced
-     JS: loadCard() updates this element's text content every time a new card loads:
-         document.getElementById('progress-label').textContent =
-         'Got It: ' + gotItCount + ' / ' + totalCount + ' · Remaining: ' + studyQueue.length -->
-        <button id="btn-shuffle" class="btn-secondary" onclick="toggleShuffle()">⇄ Shuffle</button> <!-- added here for the shuffle. -->
-         <div id="progress-label"></div>
 
+          <div id="study-deck-name"></div>  <!-- e.g. "Studying: Biology 101" -->
 
-<!-- The CARD in the STUDY Page -->
- <!-- The CARD in the STUDY Page -->
-  <!-- The CARD in the STUDY Page -->
-   <!-- The CARD in the STUDY Page -->
-       <!-- The CARD in the STUDY Page -->
-        <!-- The CARD in the STUDY Page -->
+          <button id="btn-shuffle" class="btn-secondary" onclick="toggleShuffle()">⇄ Shuffle</button>
+          <div id="progress-label"></div>
 
-          <!-- The invisible 3D space container that makes the card flip look realistic.
-     HTML: a div with class="card-scene" — a generic container that establishes the 3D perspective
-           onclick="flipCard()" — an HTML event attribute that calls the JavaScript flipCard() function
-           when anywhere on the card area is clicked
-     CSS: .card-scene ruleset sets width, height, and perspective:1000px which creates 3D depth; without this the flip would look flat
-     JS: onclick calls flipCard() which toggles the "flipped" class on the inner card element
-         causing the CSS flip animation to trigger -->
-<div class="card-scene" onclick="flipCard()"> <!--the 3d-viewing window(perspective) -->
-            <div class="card-inner" id="card-inner"> <!-- the element that actually rotates -->
-              <div class="card-face front"> <!--the card front -->
-                <div class="card-text" id="card-front-content"></div> <!--the card text/image on front -->
-                <div class="hint">click to reveal</div> <!--the hint text to reveal back on card front -->
+          <!-- 3D flip card -->
+          <div class="card-scene" onclick="flipCard()">
+            <div class="card-inner" id="card-inner">
+              <div class="card-face front">
+                <div class="card-text" id="card-front-content"></div>
+                <div class="hint">click to reveal</div>
               </div>
-              <div class="card-face back"> <!--— The back face of the card-->
-                <div class="card-text" id="card-back-content"></div> <!--the card text/image on back -->
-                <div class="hint">how did you do?</div> <!--the how did you do? text -->
+              <div class="card-face back">
+                <div class="card-text" id="card-back-content"></div>
+                <div class="hint">how did you do?</div>
               </div>
             </div>
           </div>
 
-          <!-- The row of "Got It" and "Review Again" buttons that appear after flipping a card.
-     HTML: a div with id="rating-buttons" — generic container grouping the two rating buttons
-           style="display:none" — inline CSS that hides the buttons on page load and after each new card loads
-           they should only appear after the card has been flipped to reveal the answer
-     CSS: #rating-buttons ruleset makes it a flex container so the two buttons sit side by side
-          the display:none inline style overrides this until JavaScript shows it
-     JS: flipCard() shows it with style.display='flex' when the card is flipped
-         loadCard() hides it again with style.display='none' when the next card loads -->
+          <!-- Rating buttons — hidden until card is flipped -->
           <div id="rating-buttons" style="display:none;">
-
-            <!-- The "Review Again" button — sends the current card to the back of the study queue.
-     HTML: a button element with three things attached:
-           class="btn-again" — connects to CSS .btn-again ruleset which styles it
-           onclick="rateCard(false)" — HTML event attribute that calls rateCard() with false as the argument
-           "Review Again" — the visible text label on the button
-     CSS: .btn-again ruleset makes it color, pill shaped, color text
-          .btn-again:hover ruleset fades it slightly when mouse hovers
-     JS: onclick calls rateCard(false) — false is the argument telling the function
-         the user did NOT get the card right
-         rateCard() then resets the card interval to 1 and pushes it to the END
-         of the study queue so it comes back around later -->
-            <button class="btn-again" onclick="rateCard(false)">Review Again</button>
-
-<!-- The "Got It" button — removes the current card from the study queue marking it as learned.
-     HTML: a button element with three things attached:
-           class="btn-got-it" — connects to CSS .btn-got-it ruleset which styles it green
-           onclick="rateCard(true)" — HTML event attribute that calls rateCard() with true as the argument
-           "Got It" — the visible text label on the button
-     CSS: .btn-got-it ruleset makes it green, pill shaped, white text
-          .btn-got-it:hover ruleset fades it slightly when mouse hovers over it
-     JS: onclick calls rateCard(true) — true is the argument telling the function
-         the user DID get the card right
-         rateCard() then doubles the card interval and removes it from the study queue
-         gotItCount increments by 1 and loadCard() fires to show the next card -->
+            <button class="btn-again"  onclick="rateCard(false)">Review Again</button>
             <button class="btn-got-it" onclick="rateCard(true)">Got It</button>
-
           </div>
+
         </div>
       </div>
     </section>
 
 
+    <!-- ============================================================
+         MANAGE VIEW
 
-
-
-
-
-    <!-- ADD CARD VIEW -->
-     <!-- ADD CARD VIEW -->
-      <!-- ADD CARD VIEW -->
-       <!-- ADD CARD VIEW -->
-        <!-- ADD CARD VIEW -->
-         <!-- ADD CARD VIEW -->
-          <!-- ADD CARD VIEW -->
-           <!-- ADD CARD VIEW -->
-
-    <!-- The Add Card panel — where users create new flashcards with text or images.
-     HTML: section is a semantic element meaning "a distinct chunk of related content"
-           id="view-add" gives it a unique label so JavaScript can find and show it
-           no class="active" — this section starts hidden on page load
-     CSS: "section" ruleset hides it with display:none by default
-          "section.active" ruleset shows it when JavaScript adds the active class
-     JS: showView('add') adds the active class to this section when the Add Card tab is clicked
-         getElementById('view-add') is how JS finds this specific section -->
-    <section id="view-add">
-
-      <!-- The white box containing the card creation form — the main visible container on the Add Card panel.
-     HTML: a div with class="card-editor" — generic container grouping all the form elements
-           no id needed — CSS and JS don't need to find this specific element individually
-     CSS: .card-editor ruleset gives it a white surface background, border, rounded corners,
-          padding and shadow — making it look like a distinct raised form panel
-     JS: no direct connection — JS targets the specific input elements inside it,
-         not the container itself -->
-      <div class="card-editor">
-        <h2>New Flashcard</h2> <!-- is the child header on the square nested in the above div box -->
-
-        <!-- A wrapper around each form field — groups the label and drop zone for either the Front or Back of a card.
-     HTML: a div with class="field-group" — generic container, there are two of these on the page
-           one for the Front field and one for the Back field
-           uses a class not an id because both fields share identical styling
-     CSS: .field-group ruleset adds margin-bottom:24px — creates vertical space between the Front and Back sections
-          .field-group label ruleset styles the small uppercase label above each drop zone
-     JS: no direct connection — JS targets the specific drop zones and textareas inside -->
-        <div class="field-group">
-
-          <!-- The small uppercase "FRONT — type text or drop an image" label above the front drop zone.
-     HTML: label is a built-in HTML element designed to caption form inputs
-           &mdash; is an HTML entity — a special code that produces the — dash character; cant type just & for code confusion reasons.
-           the text is typed in lowercase here but CSS text-transform:uppercase displays it in caps
-     CSS: .field-group label ruleset makes it small, uppercase, muted, and display:block
-          so it sits on its own line above the drop zone
-     JS: no connection -->
-          <label>Front &mdash; type text or drop an image</label>
-
-          <!-- The dashed box where users type the front of a card or drag and drop an image.
-     HTML: a div with two identifiers attached:
-           class="drop-zone" — shared with the back drop zone, connects to CSS styling
-           id="drop-front" — unique label so JavaScript can find this specific zone
-           needs both — class for shared styling, id for individual JS targeting
-     CSS: .drop-zone ruleset gives it the dashed border, min-height, flex centering
-          .drop-zone.drag-over ruleset changes border and background when file is dragged over
-          .drop-zone textarea ruleset styles the text input inside
-          .drop-zone img ruleset styles any image preview inside
-     JS: setupDropZone('drop-front', 'text-front') attaches all drag and drop behaviour to this element
-         saveCard() reads this element's dataset.imgData to get any dropped image
-         clearDropZone() resets this element back to its empty text input state -->
-          <div class="drop-zone" id="drop-front">
-
-            <!-- The text input area inside the front drop zone where users type the question or term.
-     HTML: textarea is a built-in HTML element for multi-line text input
-           id="text-front" — unique label so JS can read its value when saving a card
-           placeholder — ghost text shown inside the box before the user types anything
-           &hellip; — HTML entity that produces the … ellipsis character
-           rows="3" — sets the default height to approximately three lines tall before type
-           self-closing with </textarea> — empty by default, user starts with a blank input
-     CSS: .drop-zone textarea ruleset strips all browser defaults — border, background,
-          resize handle, outline — making it blend invisibly into the drop zone
-     JS: setupDropZone() hides this textarea when an image is dropped onto the zone
-         saveCard() reads this element's value with getElementById('text-front').value
-         clearDropZone() restores this textarea when the user removes a dropped image -->
-          <textarea id="text-front" placeholder="Question, term, or concept&hellip;" rows="3"></textarea>
-
-            <!-- The small "— or drag & drop an image here —" hint text sitting below the textarea in the drop zone.
-     HTML: a div with class="drop-hint" — generic container holding the hint text
-           &mdash; — HTML entity producing the — dash character
-           &amp; — HTML entity producing the & character — cannot type & directly in HTML
-                   as the browser would read it as the start of another entity
-     CSS: .drop-hint ruleset makes it small and muted — de-emphasised secondary information
-     JS: setupDropZone() hides this element with style.display='none' when an image is dropped
-         clearDropZone() restores it with style.display='' when the image is removed -->
-            <div class="drop-hint">&mdash; or drag &amp; drop an image here &mdash;</div>
-          </div>
-        </div>
-        
-        <!-- The back of the card starts here and is identical to the front above just about -->
-        <div class="field-group"> 
-          <label>Back &mdash; type text or drop an image</label>
-          <div class="drop-zone" id="drop-back">
-            <textarea id="text-back" placeholder="Answer, definition, or label&hellip;" rows="3"></textarea>
-            <div class="drop-hint">&mdash; or drag &amp; drop an image here &mdash;</div>
-          </div>
-        </div>
-
-        <!-- A simple flex row that places the Save Card button and "Card saved!" confirmation message side by side.
-     HTML: a div with inline CSS — no class or id needed, just a one-job layout container
-           exists purely to put the button and feedback message on the same horizontal line
-     CSS: no ruleset targets this div — all its styling is inline
-          display:flex puts button and message side by side
-          align-items:center vertically centers them on the same line
-     JS: no direct connection — JS targets the specific elements inside it -->
-        <div style="display:flex; align-items:center;">
-          <button class="btn-primary" onclick="saveCard()">Save Card</button>
-          <span id="save-feedback">Card saved!</span>
-        </div>
-      </div>
-    </section>
-
-
-
-
-
-
-    <!-- MANAGE VIEW -->
-     <!-- MANAGE VIEW -->
-      <!-- MANAGE VIEW -->
-       <!-- MANAGE VIEW -->
-        <!-- MANAGE VIEW -->
-         <!-- MANAGE VIEW -->
-          <!-- MANAGE VIEW -->
-           <!-- MANAGE VIEW -->
-            <!-- MANAGE VIEW -->
-
-    <!-- The Manage panel — where users can see all their cards, export, import and delete them.
-     HTML: section is a semantic element meaning "a distinct chunk of related content"
-           id="view-manage" gives it a unique label so JS can find and show it
-           no class="active" — starts hidden on page load
-     CSS: "section" ruleset hides it with display:none by default
-          "section.active" ruleset shows it when JS adds the active class
-     JS: showView('manage') adds the active class to this section when the Manage tab is clicked
-         it also calls renderManageList() which builds the card list dynamically
-         getElementById('view-manage') is how JS finds this specific section -->
+         Top to bottom:
+           1. Deck bar  — pill row + Load Decks button
+           2. Toolbar   — + Add Card, Save Deck
+           3. Context   — "Editing: Name (N cards)"
+           4. Card list
+         ============================================================ -->
     <section id="view-manage">
-      
-      <!-- The row of Export and Import buttons at the top of the Manage panel.
-     HTML: a div with class="manage-toolbar" — generic container grouping the toolbar buttons
-           uses a class not an id — it is a type of thing rather than one unique element
-           though in practice there is only one toolbar in this app
-     CSS: .manage-toolbar ruleset makes it a flex row with gap, margin-bottom, and flex-wrap
-          so buttons sit side by side and wrap onto a new line on narrow screens
-     JS: no direct connection — JS targets the specific buttons inside it -->
-      <div class="manage-toolbar">
 
-        <!-- The "↓ Export Cards" button that downloads all cards as a JSON file.
-     HTML: a button element with three things attached:
-           class="btn-secondary" — connects to CSS .btn-secondary ruleset styling it as a subtle pill button
-           onclick="exportJSON()" — HTML event attribute that calls the JS exportJSON() function
-           &#8595; — an HTML entity producing the ↓ downward arrow character
-           "Export Cards" — the visible text label
-     CSS: .btn-secondary ruleset styles it as a light pill shaped button
-          .btn-secondary:hover ruleset shifts background to a slightly darker tone on hover
-     JS: onclick calls exportJSON() which converts the cards array to JSON text,
-         creates an in-memory file and triggers a browser download -->
-        <button class="btn-secondary" onclick="exportJSON()">&#8595; Export Cards</button>
+      <!-- DECK ZONE ─────────────────────────────────────────────
+           A contained box grouping all deck-level controls:
+             - "DECKS" section label
+             - #deck-bar pill row (rebuilt by renderDeckBar())
+               The Load Decks button lives at the start of this row
+               so that decks and their loader read as one unit.
+           The box has its own background and border so it reads
+           as a distinct zone above the card-level toolbar.
+      ──────────────────────────────────────────────────────────── -->
+      <div id="deck-bar-wrap">
 
-        <!-- The "↑ Import Cards" button that opens the OS file picker to load a JSON file.
-     HTML: a button element with three things attached:
-           class="btn-secondary" — connects to CSS .btn-secondary ruleset
-           onclick — HTML event attribute but this time contains JS directly instead of calling a named function
-           &#8593; — HTML entity producing the ↑ upward arrow character
-     CSS: .btn-secondary ruleset styles it as a light pill shaped button
-          .btn-secondary:hover ruleset shifts background on hover
-     JS: onclick contains inline JS — document.getElementById('import-input').click()
-         this finds the hidden file input below and programmatically clicks it triggering the OS file picker to open
-         the actual import work happens in importJSON() which is attached to the file input 
-         Inline JS = 
-          *onclick — HTML event attribute that fires when the element is clicked.
-          *document — built-in JS object representing the entire HTML page.
-          *"." — chain operator, means "now do this to the thing on the left"
-          *getElementById('import-input') — built-in JS method to search document and return the element with that id.
-          *.click() — built-in JS method that programmatically clicks the found element as if the user had clicked.
-         -->
-        <button class="btn-secondary" onclick="document.getElementById('import-input').click()">&#8593; Import Cards</button>
-        
-        <!-- The hidden file picker input that opens the OS file dialog when triggered.
-              Never visible to the user — the Import button above clicks it programmatically.
-     HTML: input is a self-closing built-in element for user input.
-           type="file" — tells the browser this is a file picker not a text input
-           id="import-input" — unique label so the Import button can find and click it
-           accept=".json" — tells the OS file picker to only show .json files
-           style="display:none" — inline CSS that keeps it completely hidden
-           onchange — HTML event attribute that fires when the user selects a file
-     CSS: no ruleset targets this — hidden entirely with inline display:none
-     JS: onchange calls importJSON(event) when a file is selected
-         event is a special built-in JS object automatically created by the browser
-         whenever an event fires — it contains information about what just happened including which file the user selected
-         the Import button finds this element with getElementById('import-input').click()
-         to programmatically open the file picker -->
-        <input type="file" id="import-input" accept=".json" style="display:none" onchange="importJSON(event)" />
+        <!-- small uppercase section label -->
+        <span id="deck-zone-label">Decks</span>
+
+        <!-- The hidden file input lives here — outside #deck-bar —
+             so that bar.innerHTML = '' in renderDeckBar() never wipes it.
+             The Load Decks button is created fresh inside renderDeckBar()
+             on every call and clicks this input programmatically. -->
+        <input type="file"
+               id="deck-load-input"
+               multiple
+               accept=".json"
+               style="display:none"
+               onchange="loadDecks(event)" />
+
+        <!-- renderDeckBar() fills #deck-bar on every call:
+             first item is always the Load Decks button (created in JS),
+             followed by one pill per loaded deck. -->
+        <div id="deck-bar"></div>
+      </div>
+
+      <!-- CARDS CONTAINER ─────────────────────────────────────────
+           One box wrapping the toolbar header and the card grid.
+           The toolbar is the header of this box — tethered visually
+           to the cards it acts on rather than floating separately.
+           #cards-toolbar-header = the warm cream strip at the top
+           #card-list-wrap       = padded area holding the card grid
+      ──────────────────────────────────────────────────────────── -->
+      <div id="cards-container">
+
+        <!-- Toolbar header — context label left, action buttons right -->
+        <div id="cards-toolbar-header">
+
+          <!-- Context label: "Biology 101 · 12 cards" or empty.
+               renderContextLabel() writes its textContent here. -->
+          <div id="manage-context-label"></div>
+
+          <!-- Action buttons — operate on the active deck's cards -->
+          <div class="manage-toolbar">
+            <button class="btn-secondary" onclick="openAddModal()">&#43; Add Card</button>
+            <!-- &#43; = + -->
+            <button class="btn-secondary" onclick="exportJSON()">&#8595; Save Deck</button>
+            <!-- &#8595; = ↓ -->
+            <button class="btn-secondary" onclick="saveAsJSON()">&#8599; Save As</button>
+            <!-- &#8599; = ↗ -->
+          </div>
+        </div>
+
+        <!-- Card grid and empty state sit inside the padded inner area -->
+        <div id="card-list-wrap">
+          <div id="card-list"></div>
+          <div id="empty-manage" style="display:none;"></div>
+        </div>
 
       </div>
-      <!-- The container where all card rows are dynamically built and displayed in the Manage panel.
-     Starts completely empty — JS fills it with a row for each card.
-     HTML: a div with id="card-list" — generic container, empty on load
-           no content between the tags — JavaScript builds everything inside it
-     CSS: #card-list ruleset makes it a flex column with gap:12px
-          so card rows stack vertically with consistent spacing between them
-     JS: renderManageList() wipes this element with innerHTML='' then rebuilds
-         it from scratch every time the Manage panel opens or a card is deleted
-         it loops through the cards array and creates a .card-list-item row
-         for each card and appends it here with appendChild() -->
-      <div id="card-list"></div>
-      
-      <!-- The "No cards yet. Add some!" message shown in the Manage panel when the deck is empty.
-     HTML: a div with id="empty-manage" — contains a simple hardcoded text message
-           style="display:none" — inline CSS hides it on page load
-           unlike #empty-study this content is hardcoded in the HTML not injected by JS
-     CSS: #empty-manage ruleset centers the text, mutes the color, adds padding
-     JS: renderManageList() controls visibility:
-         style.display='' when cards array is empty — removes inline style, reverts to block
-         style.display='none' when cards exist — hides it again -->
-      <div id="empty-manage" style="display:none;">No cards yet. Add some!</div>    
+
     </section>
 
   </main>
 
-  
-  
-  
-  
-  
-  
+
+  <!-- =============================================================
+       SHARED MODAL — "New Card" mode and "Edit Card" mode.
+
+       editIndex controls which mode is active:
+         null      → New Card  — save pushes a new card
+         a number  → Edit Card — save overwrites cards[editIndex]
+
+       Drop zone IDs:
+         drop-modal-front / text-modal-front
+         drop-modal-back  / text-modal-back
+  ============================================================= -->
+  <div class="modal-overlay" id="card-modal" style="display:none;">
+    <div class="modal-box">
+
+      <div class="modal-header">
+        <h2 id="modal-title">New Card</h2>
+        <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+        <!-- &#x2715; = × -->
+      </div>
+
+      <div class="field-group">
+        <label>Front &mdash; type text or drop an image</label>
+        <div class="drop-zone" id="drop-modal-front">
+          <textarea id="text-modal-front"
+                    placeholder="Question, term, or concept&hellip;"
+                    rows="3"></textarea>
+          <div class="drop-hint">&mdash; or drag &amp; drop an image here &mdash;</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Back &mdash; type text or drop an image</label>
+        <div class="drop-zone" id="drop-modal-back">
+          <textarea id="text-modal-back"
+                    placeholder="Answer, definition, or label&hellip;"
+                    rows="3"></textarea>
+          <div class="drop-hint">&mdash; or drag &amp; drop an image here &mdash;</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-primary" id="modal-save-btn" onclick="saveModal()">Save Card</button>
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      </div>
+
+    </div>
+  </div>
 
 
+  <!-- SAVE TOAST — shown briefly after a silent save.
+       JS targets this by id="save-toast";
+       showToast() adds/removes the .visible class. -->
+  <div id="save-toast"></div>
 
-
-
-
-
-
-
-  <!-- Opens the JS block — everything between <script> and </script> is JS.
-     Just like <style> opens a CSS block, <script> opens a JS block.
-     The browser switches from reading HTML to executing JS.
-     Sits at the bottom of <body> deliberately — by this point the browser has already
-     read and built the entire HTML page so JS can safely find and manipulate
-     any element without risk of trying to access something that does not exist yet -->
   <script>
-
 
     /*
      * ============================================================
      * FLASHCARDS — JavaScript
      * ============================================================
-     * Cards live only in memory while the app is open.
-     * Nothing is saved to the browser automatically.
-     * To keep your cards between sessions, use Export to JSON
-     * before closing, then Import from JSON when you reopen.
+     *
+     * DECK SYSTEM
+     * -----------
+     * decks[]        — array of loaded deck objects, each:
+     *                  { name: string, cards: [], dirty: boolean }
+     *                  name  = filename without .json
+     *                  cards = array of card objects
+     *                  dirty = true when cards changed since last Save
+     *
+     * activeDeckIdx  — integer:
+     *                  -1   = no deck selected (scratchpad mode)
+     *                  0+   = index of active deck in decks[]
+     *
+     * scratchCards   — cards created while no deck is active;
+     *                  not backed by any file
+     *
+     * cards          — always a reference to the currently active
+     *                  cards array. Updated by syncCards() on every
+     *                  deck switch. All card-level functions use this
+     *                  variable so they work correctly in both modes.
+     *
+     * Card object shape:
+     *   { id, front, back, frontImg, backImg, interval }
      * ============================================================
      */
 
 
     /* -----------------------------------------------------------
      * DATA STORE
-     * -----------------------------------------------------------
-     * `cards` is our one and only data structure — a plain array
-     * that lives in memory while the page is open.
-     *
-     * Each card object looks like this:
-     *   {
-     *     id:       1700000000000,   // unique number (timestamp in ms)
-     *     front:    "What is...?",   // text on the front (empty string if image used)
-     *     back:     "It is...",      // text on the back
-     *     frontImg: null,            // base64 image string, or null if none
-     *     backImg:  null,
-     *     interval: 1                // spaced repetition interval
-     *   }
-     */
-    
-    
-    
-     /* THE DATA STORE — the single array that holds every flashcard in the app.
-   Starts completely empty every time the page loads.
-   Everything in the app — studying, adding, managing — reads from or writes to this array.
-   
-   var — a keyword that creates a new variable (a named container that holds a value)
-   cards — the name we chose for this variable (we made this name up)
-   = — the assignment operator, means "put this value into this container"
-   [] — an empty array (a special JS container that holds an ordered list of items)
-   
-   so altogether: create a variable named cards and put an empty array in it */
-    var cards = [];
+     * ----------------------------------------------------------- */
+
+    var decks         = [];           /* array of { name, cards, dirty } */
+    var activeDeckIdx = -1;           /* -1 = scratchpad; 0+ = index in decks[] */
+    var scratchCards  = [];           /* unsaved cards with no deck */
+    var cards         = scratchCards; /* reference to the active cards array */
 
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    /* syncCards updates the `cards` reference to point at the correct array.
+       Because `cards` is a reference, pushing or splicing through it
+       also modifies the underlying deck or scratchpad array directly. */
+    function syncCards() {
+      cards = activeDeckIdx >= 0 ? decks[activeDeckIdx].cards : scratchCards;
+    }
+
+    /* isDirty — true when the active file-backed deck has unsaved changes.
+       Scratchpad is handled separately (it has no file to compare against). */
+    function isDirty() {
+      return activeDeckIdx >= 0 && decks[activeDeckIdx].dirty;
+    }
+
+    /* markDirty — call after any add, edit, delete, or reorder */
+    function markDirty() {
+      if (activeDeckIdx >= 0) decks[activeDeckIdx].dirty = true;
+    }
+
+    /* clearDirty — call after a successful Save Deck export */
+    function clearDirty() {
+      if (activeDeckIdx >= 0) decks[activeDeckIdx].dirty = false;
+    }
+
+
+    /* -----------------------------------------------------------
+     * DECK MANAGEMENT
+     * ----------------------------------------------------------- */
+
+    /* setActiveDeck switches focus to the deck at idx (-1 = scratchpad).
+       Warns if the current deck has unsaved changes before switching. */
+    function setActiveDeck(idx) {
+      if (idx === activeDeckIdx) return; /* already on this one — do nothing */
+
+      /* unsaved-changes warning only applies to file-backed decks */
+      if (isDirty()) {
+        if (!confirm(
+          '"' + decks[activeDeckIdx].name + '" has unsaved changes.\n' +
+          'Switch away without saving? Changes will be lost.'
+        )) return; /* user cancelled */
+        clearDirty();
+      }
+
+      activeDeckIdx = idx; /* update the index */
+      syncCards();          /* point `cards` at the new active array */
+      renderDeckBar();
+      renderManageList();
+      renderContextLabel();
+      initStudy();
+    }
+
+
+
+    /* openLoadDecks is called by the Load Decks button.
+       Chrome/Edge: uses showOpenFilePicker to get writable FileSystemFileHandles.
+         Storing the handle is the key fix for the deleted-card-reappears bug:
+         the old <input> path gave only a read-only File with no path -- nothing
+         to write back to. With a handle, exportJSON() can write directly to the
+         source file so saves actually overwrite the original.
+       Firefox: falls back to clicking the hidden <input type="file"> element. */
+    async function openLoadDecks() {
+      if (window.showOpenFilePicker) {
+        try {
+          var handles = await window.showOpenFilePicker({
+            multiple: true,
+            types: [{ description: 'JSON Deck Files', accept: { 'application/json': ['.json'] } }]
+          });
+          /* use a for loop not forEach -- await inside forEach does not pause as expected */
+          for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i];
+            try {
+              var file = await handle.getFile(); /* get the File object from the handle */
+              var text = await file.text();       /* read its contents as a string */
+              addDeckFromFileAndHandle(handle.name, text, handle); /* parse and push */
+            } catch (readErr) {
+              alert('Could not read "' + handle.name + '": ' + readErr.message);
+            }
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError') alert('Could not open files: ' + err.message);
+        }
+      } else {
+        document.getElementById('deck-load-input').click(); /* Firefox fallback */
+      }
+    }
+
+
+    /* addDeckFromFileAndHandle parses a JSON text string and pushes a deck.
+       Used by both load paths so the parse/deduplicate/push logic is not duplicated.
+       filename -- file name with extension e.g. "deck_a.json"
+       text     -- raw JSON string from the file
+       handle   -- FileSystemFileHandle (Chrome) or null (Firefox)
+       The handle is stored on the deck object so exportJSON() can write
+       directly back to the source file on subsequent saves. */
+    function addDeckFromFileAndHandle(filename, text, handle) {
+      try {
+        var imported = JSON.parse(text); /* JSON text -> JS array */
+        if (!Array.isArray(imported)) {
+          alert('"' + filename + '" is not a valid deck file.'); return;
+        }
+        var deckName = filename.replace(/\.json$/i, ''); /* strip .json */
+        var duplicate = decks.some(function(d) { return d.name === deckName; });
+        if (duplicate) {
+          alert('A deck named "' + deckName + '" is already loaded.'); return;
+        }
+        decks.push({
+          name:       deckName,
+          cards:      imported,
+          dirty:      false,
+          fileHandle: handle || null  /* null when loaded via Firefox <input> */
+        });
+        if (decks.length === 1 && activeDeckIdx === -1 && scratchCards.length === 0) {
+          activeDeckIdx = 0;
+          syncCards();
+        }
+        renderDeckBar(); renderManageList(); renderContextLabel(); initStudy();
+      } catch (err) {
+        alert('Could not read "' + filename + '" -- make sure it is a valid FlashDeck JSON file.');
+      }
+    }
+
+
+    /* loadDecks handles the multi-file input after the user picks JSON files.
+       Each file becomes a new deck object added to decks[].
+       Loading is additive — existing decks are not replaced.
+
+       Array.from() converts the browser's FileList into a plain JS array
+       so we can use forEach on it. */
+    /* loadDecks handles the Firefox <input type="file"> fallback.
+       Called by onchange on the hidden #deck-load-input element.
+       Reads each selected file with FileReader and hands off to
+       addDeckFromFileAndHandle() with null as the handle (the <input>
+       path cannot provide a writable FileSystemFileHandle). */
+    function loadDecks(event) {
+      var files = Array.from(event.target.files); /* FileList -> plain array */
+      if (!files.length) return;
+
+      files.forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          /* pass null for handle -- <input> files are read-only snapshots */
+          addDeckFromFileAndHandle(file.name, e.target.result, null);
+        };
+        reader.readAsText(file); /* read file as text; triggers reader.onload when done */
+      });
+
+      event.target.value = ''; /* reset so the same file can be re-selected if needed */
+    }
+
+
+    /* unloadDeck removes the deck at idx from decks[].
+       Warns if the deck has unsaved changes.
+       If the removed deck was active, falls back to scratchpad mode. */
+    function unloadDeck(idx) {
+      if (decks[idx].dirty) {
+        if (!confirm(
+          '"' + decks[idx].name + '" has unsaved changes.\n' +
+          'Unload anyway? Changes will be lost.'
+        )) return;
+      }
+
+      /* if the deck being removed is the active one, fall back to scratchpad */
+      if (activeDeckIdx === idx) {
+        activeDeckIdx = -1;
+        syncCards();
+      } else if (activeDeckIdx > idx) {
+        /* active deck's index shifts down by one because an earlier item was removed */
+        activeDeckIdx--;
+      }
+
+      decks.splice(idx, 1); /* remove one item at position idx */
+
+      renderDeckBar();
+      renderManageList();
+      renderContextLabel();
+      initStudy();
+    }
+
+
+    /* renderDeckBar rebuilds the pill row from scratch on every call.
+       ─────────────────────────────────────────────────────────────
+       BUG FIX: the previous version stored a hint <span> in the HTML
+       and tried to reference it by ID after bar.innerHTML = '' had
+       already removed it from the DOM. getElementById returns null for
+       elements not in the DOM, causing a "Cannot read properties of null"
+       error that halted the function before any pills were built.
+
+       The fix: renderDeckBar creates ALL of its child elements fresh
+       with createElement on every call. Nothing is referenced by ID
+       inside this function — there is nothing to go null. */
+    function renderDeckBar() {
+      var bar = document.getElementById('deck-bar');
+      bar.innerHTML = ''; /* wipe all children — rebuilding everything fresh */
+
+      /* build one card per deck in decks[] */
+      decks.forEach(function(deck, idx) {
+        var card = document.createElement('div');
+        card.className = 'deck-pill' + (idx === activeDeckIdx ? ' active' : '');
+        card.title = deck.dirty ? deck.name + ' (unsaved changes)' : deck.name;
+
+        /* invisible full-card overlay — activates this deck on click.
+           z-index:1 so the × button (z-index:2) intercepts its own clicks first. */
+        var overlay = document.createElement('button');
+        overlay.className = 'deck-pill-name';
+        overlay.setAttribute('aria-label', 'Select deck ' + deck.name);
+        overlay.onclick = (function(i) {
+          return function() { setActiveDeck(i); };
+        })(idx);
+
+        /* deck name — normal flow so the card height grows with the text */
+        var nameEl = document.createElement('div');
+        nameEl.className = 'deck-pill-deck-name';
+        nameEl.textContent = deck.name + (deck.dirty ? ' •' : '');
+
+        /* card count below the name */
+        var countEl = document.createElement('div');
+        countEl.className = 'deck-pill-count';
+        var n = deck.cards.length;
+        countEl.textContent = n + ' card' + (n !== 1 ? 's' : '');
+
+        /* × unload button — z-index:2 sits above the overlay */
+        var unloadBtn = document.createElement('button');
+        unloadBtn.className   = 'deck-pill-unload';
+        unloadBtn.textContent = '×';
+        unloadBtn.title       = 'Unload "' + deck.name + '"';
+        unloadBtn.onclick = (function(i) {
+          return function(e) {
+            e.stopPropagation();
+            unloadDeck(i);
+          };
+        })(idx);
+
+        card.appendChild(overlay);
+        card.appendChild(nameEl);
+        card.appendChild(countEl);
+        card.appendChild(unloadBtn);
+        bar.appendChild(card);
+      });
+
+      /* scratchpad card — shown when scratchCards has cards, no × button */
+      if (scratchCards.length > 0) {
+        var card = document.createElement('div');
+        card.className = 'deck-pill scratchpad' + (activeDeckIdx === -1 ? ' active' : '');
+        card.title = 'Cards not yet saved to any file';
+
+        var overlay = document.createElement('button');
+        overlay.className = 'deck-pill-name';
+        overlay.setAttribute('aria-label', 'Select unsaved cards');
+        overlay.onclick = function() { setActiveDeck(-1); };
+
+        var nameEl = document.createElement('div');
+        nameEl.className   = 'deck-pill-deck-name';
+        nameEl.textContent = 'Unsaved';
+
+        var countEl = document.createElement('div');
+        countEl.className   = 'deck-pill-count';
+        var ns = scratchCards.length;
+        countEl.textContent = ns + ' card' + (ns !== 1 ? 's' : '');
+
+        card.appendChild(overlay);
+        card.appendChild(nameEl);
+        card.appendChild(countEl);
+        bar.appendChild(card);
+      }
+
+      /* Load Decks card-slot — always last in the grid */
+      var loadCard = document.createElement('button');
+      loadCard.className = 'load-deck-card';
+      loadCard.onclick   = function() { openLoadDecks(); };
+      loadCard.title     = 'Load deck files';
+
+      var icon = document.createElement('div');
+      icon.className   = 'load-deck-card-icon';
+      icon.textContent = '+';
+
+      var label = document.createElement('div');
+      label.className   = 'load-deck-card-label';
+      label.textContent = 'Load decks';
+
+      loadCard.appendChild(icon);
+      loadCard.appendChild(label);
+      bar.appendChild(loadCard);
+    }
+
+
+    /* renderContextLabel updates the "Editing: Name (N cards)" line
+       above the card list in the Manage panel. */
+    function renderContextLabel() {
+      var el = document.getElementById('manage-context-label');
+
+      if (activeDeckIdx >= 0) {
+        var deck = decks[activeDeckIdx];
+        var n    = deck.cards.length;
+        el.textContent = 'Editing: ' + deck.name +
+                         ' (' + n + ' card' + (n !== 1 ? 's' : '') + ')' +
+                         (deck.dirty ? ' — unsaved changes' : '');
+      } else if (scratchCards.length > 0) {
+        var n = scratchCards.length;
+        el.textContent = 'Editing: Unsaved cards ' +
+                         '(' + n + ' card' + (n !== 1 ? 's' : '') + ') — not saved to any deck';
+      } else {
+        el.textContent = ''; /* nothing active — show nothing */
+      }
+    }
+
+
     /* -----------------------------------------------------------
      * VIEW SWITCHING
-     * -----------------------------------------------------------
-     * The app has three screens (sections). showView() hides all
-     * of them then activates the one requested.
-     */
-
-    
-    
-     /* THE VIEW SWITCHER — the function that shows one panel and hides the other two
-   when a tab button is clicked.
-    /* sweep 1 — hide all panels 
-    /* sweep 2 — unhighlight all tab buttons 
-    /* then show just the active panel and highlight just the active button 
-
-   
-   function — a keyword that says "I am defining a reusable block of code"
-   showView — the name we chose for this function (i made this name up)
-   (name)   — the parameter, a placeholder variable that receives the argument
-               passed in when the function is called e.g. 'study', 'add', or 'manage'
-   {        — opens the function body, everything inside runs when the function is called
-   
-   so altogether: create a reusable block of code called showView that accepts
-   one piece of input called name and does something with it*/ 
+     * ----------------------------------------------------------- */
 
     function showView(name) {
-      
-/* LOOP finds every section element on the page and loops through them all
-   running a function on each one — ***removes active class from all sections***
-   before showing just the new one
-
-   document         — built-in JS object representing the entire HTML page
-   .                — chain operator, means "do this to the thing on the left"
-   querySelectorAll — built-in method that finds ALL elements matching a CSS selector
-                      returns a list of every matching element
-   ('section')      — the CSS selector being searched for — all section elements
-   .forEach         — built-in method that loops through every item in a list
-                      and runs a function on each one
-   function(s)      — an anonymous function (no name) defined inline
-                      s is the parameter representing each section as the loop runs
-                      s = first section, then second, then third */
+      /* remove active from all sections (hides every panel) */
       document.querySelectorAll('section').forEach(function(s) {
-
-        /* removes the 'active' class from the current section being looped over
-   this hides it because the CSS rule "section.active { display:block }"
-   only shows sections that have the active class
-
-   s             — the current section element in the forEach loop
-   .             — chain operator
-   classList     — a built-in property of every HTML element that represents
-                   its list of classes — lets JS add, remove, and toggle classes
-   .remove()     — a built-in method of classList that removes a named class
-                   from the element if it exists, does nothing if it does not
-   ('active')    — the class name to remove — a plain text string */
         s.classList.remove('active');
       });
 
-/* same pattern as the section sweep above but targeting nav buttons instead
-   loops through every button inside the nav and removes the active class
-   from each one — wiping the highlighted state from all tab buttons
-   before the clicked one gets highlighted next
-
-   document              — built-in JS object representing the entire HTML page
-   .                     — chain operator
-   querySelectorAll      — finds ALL elements matching the CSS selector
-   ('nav button')        — descendant selector — all button elements inside nav
-                           same selector language as CSS: nav button { }
-   .forEach              — loops through every button in the returned list
-   function(b)           — anonymous function running once per button
-                           b = the current button being processed in each loop
-   b.classList.remove    — removes the named class from the current button
-   ('active')            — the class being removed
-
-   result — all three tab buttons have active removed; none of them are highlighted anymore
-            ready for just the clicked one to be highlighted next */
+      /* remove active from all nav buttons */
       document.querySelectorAll('nav button').forEach(function(b) {
         b.classList.remove('active');
       });
 
-      /* these two lines always run together as a pair — one shows the panel,
-   one highlights the tab button. together they complete the view switch.
-
-   LINE 1 — shows the correct panel
-   document.getElementById('view-' + name)   — builds the section id and finds it
-                                                'view-' + 'study' = 'view-study'; study coming from the html.
-   getElementById                - method that belongs to document object; searches for the ONE element with that id 
-   ('view-' + name)                          -  JS expression to build a string             
-   .classList.add('active')                  — adds active class to that section
-                                                CSS section.active { display:block } fires
-                                                that panel becomes visible
-
-   LINE 2 — highlights the correct tab button
-   document.getElementById('tab-' + name)    — builds the button id and finds it
-                                                'tab-' + 'study' = 'tab-study'
-   .classList.add('active')                  — adds active class to that button
-                                                CSS nav button.active { background: var(--accent) } fires
-                                                that tab becomes highlighted
-
-   together they produce:
-   showView('study')  →  view-study visible  +  tab-study highlighted
-   showView('add')    →  view-add visible    +  tab-add highlighted
-   showView('manage') →  view-manage visible +  tab-manage highlighted */
+      /* show the chosen panel and highlight its tab */
       document.getElementById('view-' + name).classList.add('active');
       document.getElementById('tab-'  + name).classList.add('active');
 
-      /* after switching the view these two lines check WHICH panel was just shown
-   and run additional setup functions if needed
-   not every panel needs extra setup — the add card panel just shows its form as-is
-
-   if           — a keyword that checks whether a condition is true
-                  if the condition is true the code after it runs
-                  if false it is skipped entirely
-   (name === 'study')  — the condition being checked
-                         === is the strict equality operator
-                         means "is name exactly equal to the string 'study'?"
-                         returns true or false
-   initStudy()         — if true, call this function to set up the study session
-   renderManageList()  — if true, call this function to build the card list*/
       if (name === 'study')  initStudy();
-      if (name === 'manage') renderManageList();
+      if (name === 'manage') {
+        renderDeckBar();
+        renderManageList();
+        renderContextLabel();
+      }
     }
 
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     /* -----------------------------------------------------------
      * DROP ZONE SETUP
      * -----------------------------------------------------------
-     * Attaches drag-and-drop behaviour to a drop zone.
-     * When an image is dropped we use FileReader to convert it
-     * to a base64 string — a text representation of the image
-     * that can be stored and displayed without a server.
+     * Attaches drag-and-drop image behaviour to one drop zone.
+     * FileReader converts the dropped image to a base64 string —
+     * a text representation that can live inside a JSON file.
      */
 
-    
-    
-    
-    
-    
-     /* SETS UP DRAG AND DROP BEHAVIOUR on a drop zone element.
-   called twice at the bottom of the file — once for the front drop zone
-   and once for the back drop zone.
-   
-   function        — keyword that defines a reusable block of code
-   setupDropZone   — the name we chose for this function
-   (zoneId, textareaId) — two parameters, placeholders for the values passed in:
-                          zoneId     = the id of the drop zone div e.g. 'drop-front'
-                          textareaId = the id of the textarea e.g. 'text-front'
-   {               — opens the function body
-
-   var             — keyword that creates a new variable
-   zone            — a variable we made up to hold the drop zone element
-   =               — assignment operator, puts the value on the right into the variable
-   document        — built-in JS object representing the entire HTML page
-   .               — chain operator, do this to the thing on the left
-   getElementById  — built-in method that finds ONE element by its id
-   (zoneId)        — the id being searched for — whatever was passed in as zoneId
-                     e.g. 'drop-front' finds <div class="drop-zone" id="drop-front">
-
-   var textarea    — a variable we made up to hold the textarea element
-   getElementById  — same method, this time finding the textarea by textareaId
-   (textareaId)    — e.g. 'text-front' finds <textarea id="text-front">
-
-   HTML CONNECTION: zoneId and textareaId match the id attributes on these elements:
-   <div class="drop-zone" id="drop-front">
-   <textarea id="text-front">
-
-   CSS CONNECTION: the drop zone element has these rulesets targeting it:
-   .drop-zone         — dashed border, min-height, flex centering
-   .drop-zone.drag-over — blue highlight when file dragged over */
-     function setupDropZone(zoneId, textareaId) {
+    function setupDropZone(zoneId, textareaId) {
       var zone     = document.getElementById(zoneId);
       var textarea = document.getElementById(textareaId);
 
-
-      /* watches the drop zone for a file being dragged over it
-   when detected prevents default browser behaviour and adds a visual highlight
-
-   zone              — the drop zone element we grabbed earlier with getElementById
-   .                 — chain operator
-   addEventListener  — a built-in method that attaches an event listener to an element
-                       listens for a specific event and runs a function when it fires
-                       similar to onclick in HTML but written in JavaScript instead
-   ('dragover'       — the built in event to listen for — fires continuously while a file
-                       is being dragged over the element
-   function(e)       — anonymous function that runs when dragover fires
-                       e = the event object, automatically created by the browser
-                       contains information about the drag event
-   e.preventDefault()— CRITICAL line — by default the browser does not allow dropping
-                       onto elements. preventDefault() cancels that default behaviour
-                       without this line the drop event would never fire
-   zone.classList    — the list of classes on the drop zone element
-   .add('drag-over') — adds the drag-over class to the drop zone
-                       CSS CONNECTION: .drop-zone.drag-over ruleset fires immediately:
-                       border-color: var(--accent2) and background: #eaf4fb
-                       giving the zone a blue highlight to signal it is ready to receive */
+      /* dragover fires continuously while a file hovers over the zone.
+         e.preventDefault() is CRITICAL — without it the drop event never fires. */
       zone.addEventListener('dragover', function(e) {
-        e.preventDefault();               // MUST call this to allow dropping
-        zone.classList.add('drag-over');  // add blue highlight while hovering
+        e.preventDefault();
+        zone.classList.add('drag-over');
       });
 
-      zone.addEventListener('dragleave', function() { //similar to above
-        zone.classList.remove('drag-over');  // remove highlight when file leaves
+      zone.addEventListener('dragleave', function() {
+        zone.classList.remove('drag-over');
       });
 
-
-      /* watches the drop zone for a file being dropped onto it
-   when detected prevents default browser behaviour and removes the blue highlight
-
-   zone              — the drop zone element we grabbed earlier with getElementById
-   .                 — chain operator
-   addEventListener  — built-in method attaching an event listener to the element
-   ('drop'           — the event to listen for — fires once when a file is
-                       released/dropped onto the element
-   function(e)       — anonymous function that runs when drop fires
-                       e = the event object automatically created by the browser
-                       contains information about the drop including the file itself
-   e.preventDefault()— cancels the browser default behaviour — without this the
-                       browser would try to open the dropped file in a new tab
-   zone.classList    — the list of classes on the drop zone element
-   .remove('drag-over') — removes the drag-over class now that the file has landed
-                       CSS CONNECTION: .drop-zone.drag-over ruleset deactivates
-                       blue highlight disappears, zone returns to normal appearance */
       zone.addEventListener('drop', function(e) {
         e.preventDefault();
         zone.classList.remove('drag-over');
 
+        var file = e.dataTransfer.files[0]; /* first dropped file */
+        if (!file || !file.type.startsWith('image/')) return; /* images only */
 
-        /* reads the dropped file from the event object and validates it is an image
-   if no file was dropped or it is not an image stop here and do nothing
-
-   var file        — variable WE created to hold the dropped file
-   =               — assignment operator
-   e               — built-in event object the BROWSER created automatically
-                     when the drop event fired, contains info about what happened
-   .               — dot notation, go inside and get
-   dataTransfer    — built-in property of the drop event object
-                     holds everything related to the drag and drop operation
-   .               — go inside and get
-   files           — built-in property of dataTransfer
-                     holds a list of all files that were dropped
-   [0]             — array index notation — gets the FIRST item in the list
-                     arrays start at 0 not 1, so [0] = first file
-                     we only want one file so we always grab index 0
-
-   if              — keyword that checks a condition
-   (!file          — ! means NOT — is there NO file? 
-                     if nothing was dropped file would be undefined/null
-   ||              — OR operator — if either condition is true the whole thing is true
-   !file.type      — file.type is a built-in property holding the file's MIME type
-                     e.g. 'image/jpeg', 'image/png', 'application/json'
-   .startsWith     — built-in string method that checks if a string begins with
-                     a specific sequence of characters — WE chose 'image/' to check
-   ('image/'))     — the string WE chose to check against
-                     any image file type starts with 'image/'
-   return          — keyword that immediately exits the function
-                     stops all code below from running
-
-   CSS CONNECTION: none
-   HTML CONNECTION: none — purely data validation before touching the DOM
-
-   altogether:
-   get the first dropped file
-   if there is no file OR it is not an image type
-   stop here, do nothing */
-        var file = e.dataTransfer.files[0];
-        if (!file || !file.type.startsWith('image/')) return; // images only
-
-        
-
-        /* creates a new FileReader object — a built-in browser tool for reading files
-   FileReader works asynchronously meaning it reads the file in the background
-   without freezing or blocking the rest of the page while it works
-
-   var reader      — variable WE created to hold the FileReader object
-   =               — assignment operator
-   new             — a keyword that creates a new instance of a built-in object
-                     like ordering a fresh copy of a tool from the browser's toolbox
-   FileReader()    — a built-in browser object NOT something i defined
-                     has built-in methods for reading files in different formats:
-                     .readAsDataURL()  — reads file as a base64 string (what we use)
-                     .readAsText()     — reads file as plain text
-                     .readAsArrayBuffer() — reads file as raw binary data
-   ()              — the parentheses create the new instance, like calling a function
-
-   asynchronous    — means the code does not wait for the file to finish reading before moving on to the next line
-                     instead it says "start reading, and when you are done
-                     run this function" — that function is reader.onload below
-
-   ORIGIN: FileReader is entirely built-in to the browser we just create an instance of it with "new"
-           similar to how document is built-in but we use it directly
-           FileReader needs "new" because we need our own fresh copy of it */
         var reader = new FileReader();
 
-        
-        /* defines what happens AFTER the file has been fully read by the FileReader
-   onload is a callback — a function that sits and waits until the reading is done
-   then fires automatically with the result
-
-   reader          — variable WE created holding our FileReader instance
-   .               — dot notation, go inside and get
-   onload          — built-in property of FileReader, NOT something WE defined
-                     holds a function that the browser calls automatically
-                     when the file has finished being read
-   =               — assignment operator — WE are putting our own function into onload
-                     telling the FileReader "when you finish reading, run THIS"
-   function(event) — anonymous function WE wrote that runs when reading is complete
-                     event = built-in event object BROWSER creates automatically
-                             contains the result of the file read operation
-
-   var base64      — variable WE created to hold the image data
-   =               — assignment operator
-   event           — the built-in event object passed in automatically by the browser
-   .               — dot notation
-   target          — built-in property of the event object
-                     refers to the FileReader that triggered the event
-   .               — dot notation
-   result          — built-in property of target
-                     holds the actual file data after reading is complete
-                     in our case a long base64 string like:
-                     "data:image/jpeg;base64,/9j/4AAQSkZJRgAB..."
-
-   ASYNCHRONOUS CONNECTION:
-   reader.onload does not run immediately — it runs LATER
-   when reader.readAsDataURL(file) below triggers the read and the browser finishes reading the file in the background
-   only then does this function fire with the result */
         reader.onload = function(event) {
-          var base64 = event.target.result;  // the long base64 image string
+          var base64 = event.target.result; /* "data:image/jpeg;base64,..." string */
 
-          
-          
-          /* hides the textarea and drop hint text inside the drop zone
-   making room to show the image preview instead
-   runs inside reader.onload so only fires AFTER the image has been fully converted
+          textarea.style.display = 'none';                         /* hide text input */
+          zone.querySelector('.drop-hint').style.display = 'none'; /* hide hint text */
 
-   LINE 1 — hides the textarea
-   textarea        — variable WE created earlier holding the textarea element
-                     HTML CONNECTION: <textarea id="text-front">
-   .               — dot notation
-   style           — built-in property of every HTML element
-                     gives access to the element's inline CSS styles
-   .               — dot notation
-   display         — the CSS display property WE are setting via JavaScript
-   = 'none'        — assignment, sets display to none hiding the element
-                     same as writing style="display:none" directly in the HTML
-
-   LINE 2 — hides the drop hint text
-   zone            — variable WE created earlier holding the drop zone element
-                     HTML CONNECTION: <div class="drop-zone" id="drop-front">
-   .               — dot notation
-   querySelector   — built-in method similar to querySelectorAll but returns
-                     only the FIRST matching element instead of a list
-                     searches INSIDE zone only, not the whole page
-   ('.drop-hint')  — CSS class selector WE defined, finds the drop hint div
-                     HTML CONNECTION: <div class="drop-hint">
-                     CSS CONNECTION: .drop-hint ruleset styles this element
-   .style.display  — built-in property chain accessing the inline CSS display property
-   = 'none'        — hides the drop hint
-
-   result — the drop zone now shows:
-   BEFORE                          AFTER
-   [ textarea              ]     [                          ]
-   [ — drag & drop image — ]     [   image preview here     ] */
-          textarea.style.display = 'none';
-          zone.querySelector('.drop-hint').style.display = 'none';
-
-          /* checks if there is already an image or remove button inside the drop zone
-   and removes them if found — prevents duplicates if user drops a second image
-   onto a zone that already has one
-
-   LINE 1 — looks for an existing image inside the zone
-   var existing    — variable WE created to hold the result of the search
-                     will be either an img element or null if nothing found
-   =               — assignment operator
-   zone            — variable WE created holding the drop zone element
-   .               — dot notation
-   querySelector   — built-in method that searches INSIDE zone for first match
-   ('img')         — element selector WE are passing in — finds any img element
-                     inside the drop zone
-                     HTML CONNECTION: any <img> previously added by a prior drop
-
-   LINE 2 — removes the existing image if one was found
-   if (existing)   — checks if existing has a value
-                     if querySelector found nothing it returns null
-                     null is falsy in JS meaning if(null) = false, skip it
-                     if an element was found it is truthy, if(element) = true, run it
-   existing.remove() — built-in method that removes the element from the DOM entirely
-                       NOT something WE defined — built into every HTML element
-
-   LINE 3 — looks for an existing remove button inside the zone
-   var existingBtn — variable WE created to hold the result
-   querySelector   — same search method, this time looking for .clear-img-btn
-   ('.clear-img-btn') — class selector WE defined
-                        HTML CONNECTION: the "Remove image" button added by a prior drop
-                        CSS CONNECTION: .clear-img-btn ruleset styles this button
-
-   LINE 4 — removes the existing button if one was found
-   if (existingBtn)     — same truthy/falsy check as line 2
-   existingBtn.remove() — built-in method removes it from the DOM
-
-   altogether — cleans the drop zone before adding new content
-   prevents this broken state if user drops two images:
-   WITHOUT this check        WITH this check
-   [ image1                ] [ image2        ]
-   [ image2                ] [ Remove image  ]
-   [ Remove image          ]
-   [ Remove image          ] */
-          var existing = zone.querySelector('img');
-          if (existing) existing.remove();
+          /* remove any previously dropped image or remove-button */
+          var existing    = zone.querySelector('img');
           var existingBtn = zone.querySelector('.clear-img-btn');
+          if (existing)    existing.remove();
           if (existingBtn) existingBtn.remove();
 
-
-          /* creates a brand new img element, sets its source to the base64 image string,
-   and adds it to the drop zone — this is what makes the image preview appear
-
-   LINE 1 — creates a new img element in memory
-   var img           — variable WE created to hold the new element
-   =                 — assignment operator
-   document          — built-in JS object representing the entire HTML page
-   .                 — dot notation
-   createElement     — built-in method that creates a brand new HTML element
-                       in memory but does NOT add it to the page yet
-                       like building a piece of furniture before putting it in a room
-   ('img')           — the element type WE are creating — a built-in HTML element
-                       creates the equivalent of <img> in the HTML
-
-   LINE 2 — sets the image source to the base64 string
-   img               — variable WE created holding the new img element
-   .                 — dot notation
-   src               — built-in property of img elements
-                       holds the image source — where the image comes from
-                       normally a file path or URL but here a base64 string
-   =                 — assignment operator
-   base64            — variable WE created earlier holding the converted image string
-                       the long "data:image/jpeg;base64,/9j/4AAQ..." string
-                       setting src to this string makes the browser display the image
-                       HTML CONNECTION: equivalent to <img src="data:image/jpeg;base64,...">
-
-   LINE 3 — adds the new img element to the drop zone
-   zone              — variable WE created holding the drop zone element
-   .                 — dot notation
-   appendChild       — built-in method that adds an element as the LAST child
-                       inside another element — places it into the DOM
-                       like putting that piece of furniture into the room
-   (img)             — the element WE just created that gets added
-
-   the full three step pattern:
-   createElement()   — build the element in memory
-   set properties    — configure it (src, class, text etc)
-   appendChild()     — place it into the DOM so it appears on screen
-
-   CSS CONNECTION: .drop-zone img ruleset automatically applies to this new element
-                   max-width, max-height, border-radius, object-fit:contain
-                   CSS targets all img elements inside .drop-zone regardless of
-                   whether they were in the original HTML or added by JavaScript */
+          /* three-step: createElement → set properties → appendChild */
           var img = document.createElement('img');
           img.src = base64;
           zone.appendChild(img);
 
-
-          
-/* stores the base64 image string directly on the drop zone element
-   so saveCard() can read it later when the user clicks Save Card
-
-   zone              — variable WE created holding the drop zone element
-   .                 — dot notation
-   dataset           — built-in property of every HTML element
-                       a special object that lets you store custom data
-                       directly on an HTML element
-                       anything stored here appears in the HTML as a data- attribute:
-                       zone.dataset.imgData = base64
-                       becomes: <div class="drop-zone" data-imgdata="...base64...">
-   .                 — dot notation
-   imgData           — the name WE chose for this piece of stored data
-                       we made this name up — could be anything
-                       becomes data-imgdata in the HTML
-   =                 — assignment operator
-   base64            — variable WE created holding the converted image string
-
-   WHY STORE IT HERE:
-   the base64 string needs to survive after this function finishes running
-   local variables like base64 disappear when their function ends
-   by storing it on the element itself it persists and can be read later:
-
-   storing it here         → zone.dataset.imgData = base64
-   reading it in saveCard() → var frontImg = frontZone.dataset.imgData
-
-   HTML CONNECTION: the data appears on the element as a custom attribute:
-   <div class="drop-zone" id="drop-front" data-imgdata="data:image/jpeg;base64,...">
-
-   JS CONNECTION: saveCard() reads it with:
-   frontZone.dataset.imgData  — gets the stored base64 string
-   delete zone.dataset.imgData — removes it when image is cleared */
+          /* store base64 on the element's dataset so saveModal() can read it later.
+             Local variables disappear when a function ends; dataset persists. */
           zone.dataset.imgData = base64;
 
-          
-          /* creates a "Remove image" button, configures it, and adds it to the drop zone
-   gives the user a way to clear the dropped image and restore the text input
-
-   LINE 1 — creates a new button element in memory
-   var btn           — variable WE created to hold the new button element
-   =                 — assignment operator
-   document          — built-in JS object representing the entire HTML page
-   .createElement    — built-in method that creates a new HTML element in memory
-   ('button')        — built-in HTML element type WE are creating
-                       equivalent to <button> in the HTML
-
-   LINE 2 — sets the visible text label on the button
-   btn               — variable WE created holding the new button element
-   .textContent      — built-in property of every HTML element
-                       sets the plain text content inside the element
-                       safer than innerHTML for plain text — never interprets HTML tags
-   = 'Remove image'  — the text WE chose to display on the button
-
-   LINE 3 — assigns a class to the button for CSS styling
-   btn.className     — built-in property that sets the class attribute on the element
-                       equivalent to writing class="clear-img-btn" in the HTML
-   = 'clear-img-btn' — the class name WE defined
-                       CSS CONNECTION: .clear-img-btn ruleset styles this button
-                       as a small underlined text link
-
-   LINE 4 — attaches a click handler to the button
-   btn.onclick       — built-in property that holds a function to run when clicked
-                       same as writing onclick="" in HTML but done in JavaScript
-   = function()      — anonymous function WE wrote that runs when button is clicked
-   clearDropZone     — function WE defined elsewhere that resets the drop zone
-   (zoneId, textareaId) — the two parameters WE pass in so clearDropZone knows
-                          which zone and textarea to reset
-
-   LINE 5 — adds the button to the drop zone
-   zone.appendChild(btn) — built-in method that places the button into the DOM
-                           as the last child of the drop zone element
-
-   } — closes reader.onload function
-   ; — ends the statement
-
-   the full drop zone state after all this runs:
-   ┌─────────────────────────────┐
-   │ .drop-zone                  │
-   │                             │
-   │   ┌─────────────────────┐   │
-   │   │ image preview       │   │  ← img element WE created
-   │   └─────────────────────┘   │
-   │                             │
-   │   Remove image              │  ← button WE created
-   └─────────────────────────────┘
-
-   CSS CONNECTION: .clear-img-btn ruleset makes it look like a text link
-   HTML CONNECTION: both new elements get appended as children of the drop zone */
-          var btn = document.createElement('button');
+          var btn       = document.createElement('button');
           btn.textContent = 'Remove image';
           btn.className   = 'clear-img-btn';
           btn.onclick     = function() { clearDropZone(zoneId, textareaId); };
           zone.appendChild(btn);
         };
 
-        /* starts the actual file reading process in the background
-   converts the dropped image file into a base64 Data URL string
-   this is the TRIGGER — it causes reader.onload to fire when finished
-   nothing above this line has actually read the file yet; this is what starts it
-
-   reader          — variable WE created two lines above this one
-                     holds a new FileReader object
-                     JS CONNECTION: var reader = new FileReader();
-   .               — dot notation
-   readAsDataURL   — built-in method on every FileReader object
-                     reads the file and converts it to a base64 Data URL string
-                     format: "data:image/png;base64,iVBORw0KGgo..."
-                     runs asynchronously — starts the job in the background
-                     and lets the rest of the code continue without waiting
-   (               — opens the argument list
-   file            — variable WE created at the top of the drop handler
-                     holds the actual image file the user dropped
-                     JS CONNECTION: var file = e.dataTransfer.files[0];
-   )               — closes the argument list, passing file to readAsDataURL
-
-   EXECUTION ORDER — why onload is written above this but runs after it
-   STEP 1: reader.onload = function(event){...}   registers what to do when done
-   STEP 2: reader.readAsDataURL(file)             starts the background read
-   STEP 3: browser reads and converts the file
-   STEP 4: reader.onload fires automatically with the finished base64 result
-           JS CONNECTION: reader.onload = function(event) { var base64 = event.target.result; } */
-        reader.readAsDataURL(file);  // triggers the async read
+        reader.readAsDataURL(file); /* start async read; triggers reader.onload when done */
       });
     }
 
 
-    /* resets a drop zone back to its original empty state
-   called when the user clicks "Remove image" on a drop zone that has an image
-   restores the textarea and drop hint, clears the stored image data
-
-   FUNCTION DECLARATION
-   function        — keyword that creates a reusable block of code
-   clearDropZone   — name WE chose for this function
-   (               — opens the parameter list
-   zoneId          — parameter WE named; a placeholder that will receive
-                     the id string of the drop zone to clear
-                     JS CONNECTION: called with 'drop-front' or 'drop-back'
-                     as the argument e.g. clearDropZone('drop-front', 'text-front')
-   ,               — separates the two parameters
-   textareaId      — parameter WE named; a placeholder that will receive
-                     the id string of the textarea inside that drop zone
-                     JS CONNECTION: called with 'text-front' or 'text-back'
-   )               — closes the parameter list
-   {               — opens the function body; everything inside runs when called
-
-   LINE 1 — finds the drop zone element and stores it
-   var             — declares a new variable scoped to this function
-   zone            — name WE chose for this variable
-   =               — assignment operator
-   document        — built-in object representing the entire HTML page
-   .               — dot notation
-   getElementById  — built-in method that finds ONE element by its id attribute
-   (zoneId)        — passes in the zoneId parameter WE received above
-                     HTML CONNECTION: <div class="drop-zone" id="drop-front">
-                     or               <div class="drop-zone" id="drop-back">
-
-   LINE 2 — finds the textarea element and stores it
-   var             — declares a new variable scoped to this function
-   textarea        — name WE chose for this variable
-   =               — assignment operator
-   document.getElementById — same built-in method as above
-   (textareaId)    — passes in the textareaId parameter WE received above
-                     HTML CONNECTION: <textarea id="text-front">
-                     or               <textarea id="text-back">
-
-   LINE 3 — removes the stored base64 image data from the drop zone
-   delete          — built-in JavaScript operator that removes a property entirely
-                     from an object; different from setting it to null or ''
-                     which would leave the property there with an empty value
-   zone            — the drop zone element WE just stored above
-   .               — dot notation
-   dataset         — built-in property on every HTML element that holds
-                     all custom data- attributes as an object
-   .               — dot notation
-   imgData         — property WE created in the drop handler when an image
-                     was dropped; stored the base64 string here
-                     JS CONNECTION: zone.dataset.imgData = base64;
-                     after delete this property no longer exists on the element
-                     so saveCard() reading zone.dataset.imgData will get undefined
-                     JS CONNECTION: var frontImg = frontZone.dataset.imgData || null; */
+    /* clearDropZone resets a drop zone to its blank text-input state */
     function clearDropZone(zoneId, textareaId) {
       var zone     = document.getElementById(zoneId);
       var textarea = document.getElementById(textareaId);
-      delete zone.dataset.imgData;  // remove the stored base64 data
 
+      delete zone.dataset.imgData; /* delete removes the property entirely */
 
-      /* finds the image and remove-button elements inside the drop zone
-   then removes them from the page if they exist
-   runs inside clearDropZone so only fires when user clicks "Remove image"
-
-   LINE 1 — finds the image element inside the drop zone
-   var             — declares a new variable scoped to this function
-   img             — name WE chose for this variable
-   =               — assignment operator
-   zone            — variable WE created two lines above holding the drop zone element
-                     HTML CONNECTION: <div class="drop-zone" id="drop-front">
-   .               — dot notation
-   querySelector   — built-in method that searches INSIDE zone only
-                     returns the FIRST matching element or null if nothing found
-   ('img')         — HTML element type selector, finds the image WE created
-                     in the drop handler when the user dropped an image
-                     JS CONNECTION: var img = document.createElement('img');
-                     HTML CONNECTION: <img src="data:image/png;base64,...">
-
-   LINE 2 — finds the remove button inside the drop zone
-   var             — declares a new variable scoped to this function
-   btn             — name WE chose for this variable
-   =               — assignment operator
-   zone.querySelector — same built-in method as above, searching inside zone
-   ('.clear-img-btn') — CSS class selector WE defined, finds the remove button
-                     WE created in the drop handler after the image was added
-                     JS CONNECTION: btn.className = 'clear-img-btn';
-                     CSS CONNECTION: .clear-img-btn ruleset styles this element
-
-   LINE 3 — removes the image from the page if one was found
-   if              — built-in conditional; only runs the code after it if true
-   (img)           — the variable WE just stored above
-                     if querySelector found an image this is a truthy element object
-                     if querySelector found nothing this is null which is falsy
-                     this guard prevents an error if remove() is called on null
-   img.remove()    — built-in method on every HTML element
-                     detaches the element from the page entirely
-                     after this line the <img> tag no longer exists in the HTML
-
-   LINE 4 — removes the button from the page if one was found
-   if (btn)        — same guard pattern as line 3
-                     truthy if querySelector found the button, falsy if null
-   btn.remove()    — built-in method, detaches the button from the page
-                     after this line the "Remove image" button no longer exists
-                     JS CONNECTION: zone.appendChild(btn) originally added it */
       var img = zone.querySelector('img');
       var btn = zone.querySelector('.clear-img-btn');
       if (img) img.remove();
       if (btn) btn.remove();
 
-      
-      /* restores the drop hint text and textarea back to visible
-   reverses what the drop handler hid when an image was dropped
-   drop zone is now back to its original empty state ready for new input
-
-   LINE 1 — makes the drop hint text visible again
-   zone            — variable WE created at the top of clearDropZone
-                     holds the drop zone element
-                     HTML CONNECTION: <div class="drop-zone" id="drop-front">
-   .               — dot notation
-   querySelector   — built-in method that searches INSIDE zone only
-                     returns the FIRST matching element or null if not found
-   ('.drop-hint')  — CSS class selector WE defined, finds the drop hint div
-                     HTML CONNECTION: <div class="drop-hint">
-                     CSS CONNECTION: .drop-hint ruleset styles this element
-   .               — dot notation
-   style           — built-in property on every HTML element
-                     gives access to the element's inline CSS styles
-   .               — dot notation
-   display         — the CSS display property WE are setting via JavaScript
-   = ''            — assignment, sets display to an empty string
-                     empty string means "remove whatever inline style was set"
-                     hands control back to the stylesheet which shows it normally
-                     JS CONNECTION: reverses zone.querySelector('.drop-hint').style.display = 'none'
-                     set in the drop handler when the image was first dropped
-
-   LINE 2 — makes the textarea visible again
-   textarea        — variable WE created at the top of clearDropZone
-                     holds the textarea element
-                     HTML CONNECTION: <textarea id="text-front">
-                     or               <textarea id="text-back">
-   .style.display  — same built-in property chain as line 1
-   = ''            — same empty string technique as line 1
-                     removes the inline display:none that was hiding it
-                     JS CONNECTION: reverses textarea.style.display = 'none'
-                     set in the drop handler when the image was first dropped
-
-   BEFORE clearDropZone        AFTER clearDropZone
-   [                    ]      [ textarea              ]
-   [   image preview    ]      [ — drag & drop image — ]
-   [   Remove image     ]      [                       ] */
+      /* setting display = '' removes the inline style,
+         handing control back to the stylesheet which shows them normally */
       zone.querySelector('.drop-hint').style.display = '';
       textarea.style.display = '';
-    }
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  /* -----------------------------------------------------------
-     * SAVE CARD
-     * -----------------------------------------------------------
-     * Reads the editor form, validates it, builds a card object,
-     * and pushes it into the cards array.
-     */
-
-    function saveCard() {                                            // runs when the user clicks the Save Card button
-      var frontZone = document.getElementById('drop-front');         // grabs the front drop zone element so we can check it for image data later
-      var backZone  = document.getElementById('drop-back');          // grabs the back drop zone element for the same reason
-      var frontText = document.getElementById('text-front').value.trim(); // reads whatever the user typed in the front textarea; trim() removes any leading or trailing whitespace
-      var backText  = document.getElementById('text-back').value.trim();  // same for the back textarea
-
-      // dataset.imgData is set by the drop handler, or undefined if no image
-      var frontImg = frontZone.dataset.imgData || null;   // reads the base64 image string stored on the front drop zone when an image was dropped; if no image was dropped dataset.imgData is undefined so || null makes it explicitly null
-      var backImg  = backZone.dataset.imgData  || null;   // same for the back drop zone
-
-      if (!frontImg && !frontText) { alert('Please add content to the front.'); return; }
-      if (!backImg  && !backText)  { alert('Please add content to the back.');  return; }
-
-      var card = {
-        id:       Date.now(),   // Date.now() returns current time as a unique number
-        front:    frontText,    // text (empty string if only an image was used)
-        back:     backText,
-        frontImg: frontImg,     // base64 string or null
-        backImg:  backImg,
-        interval: 1             // start at interval 1
-      };
-
-      cards.push(card);  // push() adds the card to the end of the array
-
-      // Reset the form for the next card
-      document.getElementById('text-front').value = '';
-      document.getElementById('text-back').value  = '';
-      clearDropZone('drop-front', 'text-front');
-      clearDropZone('drop-back',  'text-back');
-
-      // Show a brief "Card saved!" confirmation
-      var feedback = document.getElementById('save-feedback');
-      feedback.style.opacity = 1;
-      // setTimeout runs a function after a delay — 1800ms = 1.8 seconds
-      setTimeout(function() { feedback.style.opacity = 0; }, 1800);
+      textarea.value = ''; /* clear any typed text */
     }
 
 
     /* -----------------------------------------------------------
      * STUDY MODE
-     * -----------------------------------------------------------
-     * Uses a queue system:
-     *   "Got It"       → card removed from queue (done for this session)
-     *   "Review Again" → card moved to END of queue (comes back around)
-     * Session ends only when the queue is completely empty.
-     */
+     * ----------------------------------------------------------- */
 
-    var studyQueue = [];  // working copy of cards for this session
-    var gotItCount = 0;   // how many marked Got It this session
-    var totalCount = 0;   // total cards when session started
-    var shuffleOn  = false; //var to track wether shuffle is on or off.
-    var dragSrcIndex = null; // tracks which card being dragged in manage; holds position number for order.
+    var studyQueue   = [];
+    var gotItCount   = 0;
+    var totalCount   = 0;
+    var shuffleOn    = false;
+    var dragSrcIndex = null; /* tracks which manage row is being dragged */
 
     function toggleShuffle() {
-  shuffleOn = !shuffleOn;  // flip between true and false each time clicked
+      shuffleOn = !shuffleOn; /* flip the boolean */
 
-  var btn = document.getElementById('btn-shuffle');
-  if (shuffleOn) {
-    btn.style.background   = 'var(--accent)';  // filled accent color when on
-    btn.style.color        = 'white';
-    btn.style.borderColor  = 'var(--accent)';
-  } else {
-    btn.style.background   = '';  // empty string hands control back to the stylesheet
-    btn.style.color        = '';
-    btn.style.borderColor  = '';
-  }
+      var btn = document.getElementById('btn-shuffle');
+      if (shuffleOn) {
+        btn.style.background  = 'var(--accent)';
+        btn.style.color       = 'white';
+        btn.style.borderColor = 'var(--accent)';
+      } else {
+        btn.style.background  = ''; /* '' restores stylesheet control */
+        btn.style.color       = '';
+        btn.style.borderColor = '';
+      }
 
-  initStudy();  // always trigger a full session reset when toggled
-}
+      initStudy();
+    }
 
-    
     function initStudy() {
       if (cards.length === 0) {
+        /* tailor the empty message to the current state */
+        var msg;
+        if (activeDeckIdx >= 0) {
+          msg = 'No cards in <strong>' + decks[activeDeckIdx].name + '</strong>.<br>' +
+                'Go to <strong>Manage</strong> to add some.';
+        } else {
+          msg = 'No cards yet!<br>Go to <strong>Manage</strong> to load a deck or add cards.';
+        }
+        document.getElementById('empty-study').innerHTML    = msg;
         document.getElementById('empty-study').style.display = '';
-        document.getElementById('empty-study').innerHTML =
-          'No cards yet!<br>Go to <strong>Add Card</strong> to create your first flashcard.';
-        document.getElementById('study-deck').style.display = 'none';
+        document.getElementById('study-deck').style.display  = 'none';
         return;
       }
 
-      // slice() makes a shallow copy — the queue is independent from the
-      // real cards array so removing items here doesn't affect your data
+      /* slice() makes a shallow copy — removing from studyQueue won't affect cards[] */
       studyQueue = cards.slice();
 
-if (shuffleOn) {
-  for (var i = studyQueue.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));  // pick a random index from 0 up to i
-    var temp = studyQueue[i];                      // swap the two cards
-    studyQueue[i] = studyQueue[j];
-    studyQueue[j] = temp;
-  }
-}
+      /* Fisher-Yates shuffle if shuffle mode is on */
+      if (shuffleOn) {
+        for (var i = studyQueue.length - 1; i > 0; i--) {
+          var j    = Math.floor(Math.random() * (i + 1));
+          var temp = studyQueue[i];
+          studyQueue[i] = studyQueue[j];
+          studyQueue[j] = temp;
+        }
+      }
 
-gotItCount = 0;
-totalCount = cards.length;
+      gotItCount = 0;
+      totalCount = cards.length;
+
+      /* update the deck name label above the shuffle button */
+      document.getElementById('study-deck-name').textContent =
+        activeDeckIdx >= 0
+          ? 'Studying: ' + decks[activeDeckIdx].name
+          : 'Studying: Unsaved Cards';
 
       document.getElementById('empty-study').style.display = 'none';
       document.getElementById('study-deck').style.display  = 'flex';
@@ -1858,8 +1455,7 @@ totalCount = cards.length;
     }
 
     function loadCard() {
-      // Queue empty means every card was marked Got It — session complete
-      if (studyQueue.length === 0) {
+      if (studyQueue.length === 0) { /* session complete */
         document.getElementById('study-deck').style.display  = 'none';
         document.getElementById('empty-study').style.display = '';
         document.getElementById('empty-study').innerHTML =
@@ -1868,123 +1464,167 @@ totalCount = cards.length;
         return;
       }
 
-      // The card at index 0 is always the current card
-      var card = studyQueue[0];
+      var card = studyQueue[0]; /* index 0 is always the current card */
 
-      // Progress: shows Got It count and how many are still in the queue
+      /* \u00B7 = · middle dot character */
       document.getElementById('progress-label').textContent =
         'Got It: ' + gotItCount + ' / ' + totalCount +
         '  \u00B7  Remaining: ' + studyQueue.length;
 
-      // Fill the front and back faces of the flip card
       setCardContent('card-front-content', card.frontImg, card.front);
       setCardContent('card-back-content',  card.backImg,  card.back);
 
-      // Reset to unflipped state, hide rating buttons
-      document.getElementById('card-inner').classList.remove('flipped');
+      /* Reset the card to the front face WITHOUT animating.
+         If we just remove 'flipped' normally the CSS transition fires —
+         the card rotates 180° back to front and the back face briefly
+         flashes into view during that spin.
+
+         Fix: disable the transition, snap to front instantly, then force
+         the browser to process that paint by calling getBoundingClientRect()
+         (this triggers a reflow — the browser must commit the current state
+         before continuing). Then re-enable the transition so the next
+         user-triggered flip still animates smoothly.
+
+         inner.style.transition = 'none'  overrides the stylesheet rule.
+         inner.style.transition = ''      removes the inline override,
+                                          handing control back to CSS. */
+      var inner = document.getElementById('card-inner');
+      inner.style.transition = 'none';    /* disable flip animation temporarily */
+      inner.classList.remove('flipped');  /* instantly snap to front — no spin */
+      inner.getBoundingClientRect();      /* force reflow so the browser processes
+                                            the above before the next line runs */
+      inner.style.transition = '';        /* restore CSS animation for next user flip */
       document.getElementById('rating-buttons').style.display = 'none';
     }
 
-    // Fill a card face — shows image if one exists, otherwise shows text
+    /* fills one card face with an image or text */
     function setCardContent(elementId, imgData, text) {
       var el = document.getElementById(elementId);
       if (imgData) {
-        // innerHTML injects actual HTML — here an <img> tag with the base64 src
         el.innerHTML = '<img src="' + imgData + '" alt="card image">';
       } else {
-        // textContent is safer for plain text — won't interpret HTML tags
         el.textContent = text || '';
       }
     }
 
     function flipCard() {
       var inner   = document.getElementById('card-inner');
-      var flipped = inner.classList.toggle('flipped');  // toggle returns true if class was added
-      // Show rating buttons only after card is flipped to reveal the answer
+      var flipped = inner.classList.toggle('flipped'); /* toggle returns true if class was added */
       document.getElementById('rating-buttons').style.display = flipped ? 'flex' : 'none';
     }
 
     function rateCard(gotIt) {
-      // shift() removes and returns the FIRST item in the array
-      // like lifting the top card off a physical deck
-      var card = studyQueue.shift();
-
+      var card = studyQueue.shift(); /* shift() removes and returns the FIRST item */
       if (gotIt) {
-        // Double the interval (spaced repetition), cap at 30
-        card.interval = Math.min(card.interval * 2, 30);
+        card.interval = Math.min(card.interval * 2, 30); /* double, cap at 30 */
         gotItCount++;
       } else {
-        // push() adds the card to the END of the queue — it comes back later
         card.interval = 1;
-        studyQueue.push(card);
+        studyQueue.push(card); /* push to END — comes back around later */
       }
-
-      loadCard();  // load whatever is now at the front of the queue
+      loadCard();
     }
 
 
     /* -----------------------------------------------------------
-     * MANAGE VIEW — list all cards with delete buttons
-     */
+     * MANAGE VIEW
+     * ----------------------------------------------------------- */
+
+    /* escapeHtml converts the five characters that have special meaning in
+       HTML into their safe entity equivalents before injecting text via
+       innerHTML. Without this, card text containing < > & ' " would
+       break the card structure or create unintended HTML elements.
+       e.g. "x < y" would inject a broken tag; "&amp;" renders as "&". */
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g,  '&amp;')   /* & must come first to avoid double-escaping */
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
+        .replace(/'/g,  '&#39;');
+    }
+
 
     function renderManageList() {
       var list  = document.getElementById('card-list');
       var empty = document.getElementById('empty-manage');
-      list.innerHTML = '';  // wipe the current list before re-drawing
+      list.innerHTML = ''; /* wipe before rebuilding */
 
       if (cards.length === 0) {
+        /* tailor the empty message to the current context */
         empty.style.display = '';
+        if (activeDeckIdx >= 0) {
+          empty.innerHTML = 'No cards in <strong>' + decks[activeDeckIdx].name +
+                            '</strong>.<br>Hit &ldquo;+ Add Card&rdquo; to create one.';
+        } else if (decks.length > 0) {
+          empty.innerHTML = 'Select a deck above to view its cards,<br>' +
+                            'or hit &ldquo;+ Add Card&rdquo; to start a new unsaved set.';
+        } else {
+          empty.innerHTML = 'No decks loaded.<br>Use &ldquo;Load Decks&rdquo; to open JSON files,<br>' +
+                            'or hit &ldquo;+ Add Card&rdquo; to start fresh.';
+        }
         return;
       }
       empty.style.display = 'none';
 
-      // Loop through all cards and build a row for each one
       cards.forEach(function(card, index) {
         var item = document.createElement('div');
         item.className = 'card-list-item';
         item.draggable = true;
+
         item.addEventListener('dragstart', function() {
-          dragSrcIndex = index;       // remember which card we picked up
-          item.classList.add('dragging');  // fade it out
-});
+          dragSrcIndex = index;
+          item.classList.add('dragging');
+        });
+
         item.addEventListener('dragend', function() {
-        item.classList.remove('dragging');  // restore opacity when drag ends
-});
+          item.classList.remove('dragging');
+        });
+
         item.addEventListener('dragover', function(e) {
-          e.preventDefault();  // same as the image drop zones — must call this to allow dropping
-});
+          e.preventDefault(); /* required to allow the drop event to fire */
+        });
+
         item.addEventListener('drop', function() {
-          if (dragSrcIndex === null || dragSrcIndex === index) return;  // dropped on itself, do nothing
-          var moved = cards.splice(dragSrcIndex, 1)[0];  // remove the dragged card from its old position
-          cards.splice(index, 0, moved);                 // insert it at the new position
+          if (dragSrcIndex === null || dragSrcIndex === index) return;
+          var moved = cards.splice(dragSrcIndex, 1)[0]; /* remove from old position */
+          cards.splice(index, 0, moved);                /* insert at new position */
           dragSrcIndex = null;
-          renderManageList();  // redraw the list to reflect the new order
-});
+          markDirty();
+          renderManageList();
+          renderContextLabel();
+        });
 
-        // Show a thumbnail for image cards, or the first 40 characters of text
-        var frontPreview = card.frontImg
-          ? '<img src="' + card.frontImg + '" alt="img">'
-          : (card.front || '').substring(0, 40) + ((card.front || '').length > 40 ? '...' : '');
+        /* Build the front face content — image or truncated text.
+           We keep truncation for text so cards don't grow too tall;
+           the full content is visible in the Edit modal. */
+        var frontContent = card.frontImg
+          ? '<img src="' + card.frontImg + '" alt="card image">'
+          : escapeHtml((card.front || '').substring(0, 60) +
+              ((card.front || '').length > 60 ? '...' : ''));
 
-        var backPreview = card.backImg
-          ? '<img src="' + card.backImg + '" alt="img">'
-          : (card.back || '').substring(0, 40) + ((card.back || '').length > 40 ? '...' : '');
+        var backContent = card.backImg
+          ? '<img src="' + card.backImg + '" alt="card image">'
+          : escapeHtml((card.back || '').substring(0, 60) +
+              ((card.back || '').length > 60 ? '...' : ''));
 
+        /* card structure:
+             .drag-dots   — subtle 2x3 dot grid top-right corner
+             .cli-front   — question / term (white background)
+             .cli-back    — answer / definition (warm cream)
+             .cli-footer  — Edit + Delete buttons */
         item.innerHTML =
-          '<div class="drag-handle">' +        /* dot grid on the far left — visual cue that the row is draggable */
-            '<div class="drag-handle-dot"></div>' +  /* dot 1 — top left */
-            '<div class="drag-handle-dot"></div>' +  /* dot 2 — top right */
-            '<div class="drag-handle-dot"></div>' +  /* dot 3 — middle left */
-            '<div class="drag-handle-dot"></div>' +  /* dot 4 — middle right */
-            '<div class="drag-handle-dot"></div>' +  /* dot 5 — bottom left */
-            '<div class="drag-handle-dot"></div>' +  /* dot 6 — bottom right */
+          '<div class="drag-dots">' +
+            '<div class="drag-dot"></div><div class="drag-dot"></div>' +
+            '<div class="drag-dot"></div><div class="drag-dot"></div>' +
+            '<div class="drag-dot"></div><div class="drag-dot"></div>' +
           '</div>' +
-          '<div class="card-list-preview">' +
-            frontPreview +
-            '<span class="arrow"> → </span>' +
-            backPreview +
-          '</div>' +
-          '<button class="btn-delete" onclick="deleteCard(' + index + ')">Delete</button>';
+          '<div class="cli-front">' + frontContent + '</div>' +
+          '<div class="cli-back">'  + backContent  + '</div>' +
+          '<div class="cli-footer">' +
+            '<button class="btn-secondary" style="padding:2px 8px;font-size:0.7rem;" onclick="openEditModal(' + index + ')">Edit</button>' +
+            '<button class="btn-delete" onclick="deleteCard(' + index + ')">Delete</button>' +
+          '</div>';
 
         list.appendChild(item);
       });
@@ -1992,97 +1632,474 @@ totalCount = cards.length;
 
     function deleteCard(index) {
       if (!confirm('Delete this card?')) return;
-      // splice(index, 1) removes exactly one item at that position
-      cards.splice(index, 1);
-      renderManageList();  // re-draw the list
-      studyQueue = [];     // reset study queue so deleted card doesn't appear mid-session
+      cards.splice(index, 1); /* remove one item at this index */
+      markDirty();
+      renderManageList();
+      renderContextLabel();
+      studyQueue = []; /* reset so deleted card never appears mid-session */
     }
 
 
     /* -----------------------------------------------------------
-     * JSON EXPORT
-     * -----------------------------------------------------------
-     * Converts the cards array to a JSON text file and triggers
-     * a browser download. No server needed — all in the browser.
-     */
+     * SHARED MODAL — Add Card and Edit Card
+     * ----------------------------------------------------------- */
 
-    function exportJSON() {
-      if (cards.length === 0) { alert('No cards to export.'); return; }
+    var editIndex = null; /* null = add mode; a number = edit mode */
 
-      // JSON.stringify(data, null, 2) — the 2 means 2-space indentation
-      var json = JSON.stringify(cards, null, 2);
+    /* openAddModal — New Card mode; blank form */
+    function openAddModal() {
+      editIndex = null;
+      clearDropZone('drop-modal-front', 'text-modal-front');
+      clearDropZone('drop-modal-back',  'text-modal-back');
+      document.getElementById('modal-title').textContent    = 'New Card';
+      document.getElementById('modal-save-btn').textContent = 'Save Card';
+      document.getElementById('card-modal').style.display   = 'flex';
+    }
 
-      // Blob is an in-memory file-like object
-      var blob = new Blob([json], { type: 'application/json' });
+    /* openEditModal — Edit Card mode; form pre-filled with existing card content */
+    function openEditModal(index) {
+      editIndex = index;
+      var card  = cards[index];
 
-      // createObjectURL makes a temporary URL pointing to the blob
-      var url = URL.createObjectURL(blob);
+      clearDropZone('drop-modal-front', 'text-modal-front');
+      clearDropZone('drop-modal-back',  'text-modal-back');
 
-      // Create a hidden link, set it to download, click it, then clean up
-      var a      = document.createElement('a');
-      a.href     = url;
-      a.download = 'flashdeck_cards.json';
-      a.click();
-      URL.revokeObjectURL(url);  // free the memory used by the temporary URL
+      if (card.frontImg) {
+        prefillDropZone('drop-modal-front', 'text-modal-front', card.frontImg);
+      } else {
+        document.getElementById('text-modal-front').value = card.front || '';
+      }
+
+      if (card.backImg) {
+        prefillDropZone('drop-modal-back', 'text-modal-back', card.backImg);
+      } else {
+        document.getElementById('text-modal-back').value = card.back || '';
+      }
+
+      document.getElementById('modal-title').textContent    = 'Edit Card';
+      document.getElementById('modal-save-btn').textContent = 'Save Changes';
+      document.getElementById('card-modal').style.display   = 'flex';
+    }
+
+    /* prefillDropZone reconstructs the image preview state for an existing card image.
+       Mirrors the drop handler in setupDropZone so the zone looks identical
+       whether the image was freshly dropped or loaded from a saved card. */
+    function prefillDropZone(zoneId, textareaId, imgData) {
+      var zone     = document.getElementById(zoneId);
+      var textarea = document.getElementById(textareaId);
+
+      zone.dataset.imgData = imgData; /* store so saveModal() can read it */
+      textarea.style.display = 'none';
+      zone.querySelector('.drop-hint').style.display = 'none';
+
+      var img = document.createElement('img');
+      img.src = imgData;
+      zone.appendChild(img);
+
+      var btn       = document.createElement('button');
+      btn.textContent = 'Remove image';
+      btn.className   = 'clear-img-btn';
+      btn.onclick     = function() { clearDropZone(zoneId, textareaId); };
+      zone.appendChild(btn);
+    }
+
+    /* saveModal handles both Add and Edit.
+       Reads the form, validates, then pushes or overwrites depending on editIndex.
+       Always marks dirty and redraws. */
+    function saveModal() {
+      var frontZone = document.getElementById('drop-modal-front');
+      var backZone  = document.getElementById('drop-modal-back');
+      var frontText = document.getElementById('text-modal-front').value.trim();
+      var backText  = document.getElementById('text-modal-back').value.trim();
+      var frontImg  = frontZone.dataset.imgData || null; /* undefined → null via || */
+      var backImg   = backZone.dataset.imgData  || null;
+
+      if (!frontImg && !frontText) { alert('Please add content to the front.'); return; }
+      if (!backImg  && !backText)  { alert('Please add content to the back.');  return; }
+
+      if (editIndex === null) {
+        /* ADD MODE — push a new card */
+        cards.push({
+          id:       Date.now(), /* millisecond timestamp — unique enough for an ID */
+          front:    frontText,
+          back:     backText,
+          frontImg: frontImg,
+          backImg:  backImg,
+          interval: 1
+        });
+      } else {
+        /* EDIT MODE — overwrite content; preserve id and interval */
+        cards[editIndex].front    = frontText;
+        cards[editIndex].back     = backText;
+        cards[editIndex].frontImg = frontImg;
+        cards[editIndex].backImg  = backImg;
+      }
+
+      markDirty();
+      closeModal();
+      renderManageList();
+      renderContextLabel();
+      renderDeckBar(); /* update the dirty • on the pill */
+    }
+
+    function closeModal() {
+      document.getElementById('card-modal').style.display = 'none';
+      editIndex = null;
     }
 
 
     /* -----------------------------------------------------------
-     * JSON IMPORT
+     * EXPORT (SAVE DECK)
      * -----------------------------------------------------------
-     * Reads a JSON file the user picks, parses it, and REPLACES
-     * the current cards array with the imported cards.
-     * Simple and predictable — no duplicate merging needed.
+     * Resolves the deck name first, then branches on browser capability:
+     *
+     *   DECK NAME RESOLUTION
+     *   ─────────────────────
+     *   Named deck active  → use the existing deck name
+     *   Scratchpad active  → prompt() the user for a name first,
+     *                        then promote the scratchpad to a real deck
+     *
+     *   SAVE MECHANISM (after name is known)
+     *   ──────────────────────────────────────
+     *   Chrome / Edge  → showSaveFilePicker()
+     *     Opens the OS native Save As dialog with the deck name
+     *     pre-filled in the filename field. The user can navigate
+     *     to any folder, change the name, or overwrite the original
+     *     file. The browser writes directly to the chosen location.
+     *     If the user picks the same filename as the original, the
+     *     OS handles the overwrite confirmation automatically.
+     *     After a successful write we also store the returned
+     *     fileHandle on the deck object. A future "quick save"
+     *     feature could use that handle to write silently without
+     *     re-opening the dialog.
+     *
+     *   Firefox / other → blob download fallback
+     *     Creates an in-memory file and triggers a browser download.
+     *     The filename is pre-filled with the deck name so the file
+     *     lands in Downloads with the correct name. The user would
+     *     need to move it manually if they want it back in its
+     *     original location. Not ideal but fully functional.
+     *
+     *   async / await
+     *   ─────────────
+     *   showSaveFilePicker() is asynchronous — it returns a Promise
+     *   that resolves when the user finishes interacting with the
+     *   dialog. We use async/await to write the code in a readable
+     *   top-to-bottom style rather than chaining .then() callbacks.
+     *   async before function() tells JS this function may pause
+     *   and resume. await before an expression pauses execution
+     *   until the Promise resolves, then continues with the result.
+     *   The try/catch wrapping the picker call catches the case
+     *   where the user clicks Cancel in the dialog — the browser
+     *   throws an AbortError in that situation, which we silently
+     *   ignore so the app doesn't show an error message.
      */
 
-    function importJSON(event) {
-      var file = event.target.files[0];
-      if (!file) return;
+    /* showToast briefly displays a message at the bottom of the screen.
+       msg     — the text to show e.g. "Deck saved ✓"
+       duration — how long to show it in milliseconds (default 2200)
 
-      var reader = new FileReader();
-      reader.onload = function(e) {
+       How it works:
+         1. Set the toast text
+         2. Add .visible class  -> CSS opacity:1, toast fades in
+         3. After `duration` ms, remove .visible -> CSS opacity:0, toast fades out
+       clearTimeout(toastTimer) cancels any in-flight timer so that
+       calling showToast() twice quickly doesn't leave a ghost toast visible. */
+    var toastTimer = null; /* holds the setTimeout id so we can cancel it */
+
+    function showToast(msg, duration) {
+      duration = duration || 2200; /* default 2.2 seconds if not specified */
+      var el = document.getElementById('save-toast');
+      el.textContent = msg;        /* set the message text */
+      el.classList.add('visible'); /* CSS: opacity transitions to 1 */
+
+      clearTimeout(toastTimer);    /* cancel any previous dismiss timer */
+      toastTimer = setTimeout(function() {
+        el.classList.remove('visible'); /* CSS: opacity transitions back to 0 */
+      }, duration);
+      /* setTimeout is a built-in JS function that runs a callback after a delay.
+         It returns a numeric id we store in toastTimer.
+         clearTimeout(id) cancels that scheduled callback if it hasn't fired yet. */
+    }
+
+
+    async function exportJSON() {
+      /* ── STEP 1: resolve the deck name ─────────────────────── */
+
+      if (cards.length === 0) { alert('No cards to save.'); return; }
+
+      var deckName;       /* the name used for the filename and deck entry */
+      var isScratchpad = (activeDeckIdx === -1); /* true when saving from scratchpad */
+
+      if (!isScratchpad) {
+        /* named deck — name already known */
+        deckName = decks[activeDeckIdx].name;
+
+      } else if (!window.showSaveFilePicker) {
+        /* FIREFOX SCRATCHPAD — prompt() is safe here because we are not
+           going to call showSaveFilePicker() afterward.
+           On Chrome/Edge, calling prompt() before showSaveFilePicker()
+           consumes the user gesture token and causes a security error:
+           "Must be handling a user gesture to show a file picker."
+           Firefox does not have this restriction because it uses a
+           plain blob download instead of the native file picker. */
+        deckName = prompt('Name this deck:', 'My Deck');
+        if (!deckName) return;
+        deckName = deckName.trim();
+        if (!deckName) { alert('Please enter a deck name.'); return; }
+        var duplicate = decks.some(function(d) { return d.name === deckName; });
+        if (duplicate) {
+          alert('A deck named "' + deckName + '" is already loaded. Choose a different name.');
+          return;
+        }
+
+      } else {
+        /* CHROME/EDGE SCRATCHPAD — skip prompt() entirely.
+           The file picker dialog IS the naming step: we suggest "My Deck"
+           and the user renames it directly in the OS save dialog.
+           After saving we read the chosen name back from handle.name.
+           Using prompt() here would consume the user gesture and cause
+           showSaveFilePicker() to throw a SecurityError. */
+        deckName = 'My Deck'; /* placeholder — overwritten by handle.name after save */
+      }
+
+      /* ── STEP 2: build the JSON content ─────────────────────── */
+
+      var json = JSON.stringify(cards, null, 2); /* 2 = 2-space indentation */
+      var blob = new Blob([json], { type: 'application/json' }); /* in-memory file blob */
+
+      /* ── STEP 3: write the file ──────────────────────────────── */
+
+      /* THREE PATHS — checked in order of preference:
+         A) deck has a stored fileHandle  → write directly, no dialog
+         B) no handle, Chrome/Edge        → showSaveFilePicker dialog, store handle
+         C) no handle, Firefox            → blob download to Downloads folder
+
+         Path A is the fix for the deleted-card-reappears bug.
+         When a deck is loaded via showOpenFilePicker (openLoadDecks),
+         we store the FileSystemFileHandle on the deck object.
+         Writing back through that same handle overwrites the original
+         file in place — no navigation required, no dialog, no ambiguity
+         about which file is being updated. */
+
+      var pickerHandle   = null; /* will hold the handle from Path B if used — needed in Step 4 */
+      var existingHandle = !isScratchpad && decks[activeDeckIdx].fileHandle
+                           ? decks[activeDeckIdx].fileHandle
+                           : null;
+      /* existingHandle is the handle stored when the deck was loaded
+         (or from a previous save via showSaveFilePicker).
+         null when: scratchpad mode, Firefox load, or first-ever save. */
+
+      if (existingHandle) {
+
+        /* ── PATH A: direct write via stored handle — no dialog ── */
+
         try {
-          var imported = JSON.parse(e.target.result);
+          var writable = await existingHandle.createWritable(); /* open write stream to the source file */
+          await writable.write(blob); /* send blob content into the stream */
+          await writable.close();     /* flush to disk — file not updated without this */
+          /* silent save succeeded — show a brief toast so the user knows it happened */
+          showToast('✓ ' + deckName + ' saved');
+        } catch (err) {
+          alert('Could not save the file: ' + err.message);
+          return;
+        }
 
-          // Basic validation — it must be an array
-          if (!Array.isArray(imported)) {
-            alert('Invalid file — expected a JSON array of cards.');
-            return;
+      } else if (window.showSaveFilePicker) {
+
+        /* ── PATH B: Chrome/Edge, no handle yet — Save As dialog ── */
+
+        try {
+          /* showSaveFilePicker opens the OS save dialog.
+             suggestedName pre-fills the filename field with the deck name.
+             The user can navigate anywhere and change the name.
+             await pauses until they click Save or Cancel. */
+          var handle = await window.showSaveFilePicker({
+            suggestedName: deckName + '.json',
+            types: [{ description: 'JSON Deck File', accept: { 'application/json': ['.json'] } }]
+          });
+
+          var writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+
+          /* always capture the name the user typed in the dialog —
+             they may have changed it from the suggestion.
+             handle.name is the filename including .json e.g. "Biology 101.json" */
+          var savedName = handle.name.replace(/\.json$/i, '');
+          deckName      = savedName;  /* update for Step 4 and toast */
+          pickerHandle  = handle;     /* store so Step 4 can attach it to the new deck */
+
+          if (!isScratchpad) {
+            /* named deck — update the live deck object immediately */
+            decks[activeDeckIdx].fileHandle = handle;
+            decks[activeDeckIdx].name       = savedName;
           }
 
-          // Replace the current cards with the imported ones
-          cards = imported;
-
-          // Reset study queue so it picks up the newly loaded cards
-          studyQueue = [];
-          gotItCount = 0;
-          totalCount = 0;
-
-          alert('Loaded ' + cards.length + ' card(s) successfully.');
-          renderManageList();
-          initStudy();
-
         } catch (err) {
-          // JSON.parse throws an error if the text is not valid JSON
-          alert('Could not read that file — make sure it was exported from FlashDeck.');
+          if (err.name === 'AbortError') return; /* user cancelled */
+          alert('Could not save the file: ' + err.message);
+          return;
         }
-      };
-      reader.readAsText(file);
 
-      // Reset the input so the same file can be re-imported if needed
-      event.target.value = '';
+      } else {
+
+        /* ── PATH C: Firefox / fallback — blob download ─────────── */
+
+        var url = URL.createObjectURL(blob);
+        var a   = document.createElement('a');
+        a.href     = url;
+        a.download = deckName + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('\u2193 ' + deckName + '.json downloaded');
+      }
+
+      /* ── STEP 4: update app state after a successful save ────── */
+
+      if (isScratchpad) {
+        /* promote scratchpad to a named deck.
+           pickerHandle = the FileSystemFileHandle from Path B, null from Path C.
+           slice() copies scratchCards so clearing it below won't empty the new deck. */
+        decks.push({
+          name:       deckName,
+          cards:      scratchCards.slice(),
+          dirty:      false,
+          fileHandle: pickerHandle   /* enables silent saves going forward */
+        });
+        activeDeckIdx = decks.length - 1;
+        scratchCards  = [];
+        syncCards();
+      } else {
+        clearDirty();
+      }
+
+
+      renderDeckBar();      /* update pill: remove • or show newly promoted deck */
+      renderContextLabel(); /* update "Editing: Name (N cards)" label */
+      renderManageList();   /* redraw card list under the now-clean deck context */
     }
 
+
+
+    /* -----------------------------------------------------------
+     * SAVE AS
+     * -----------------------------------------------------------
+     * Always opens a picker dialog regardless of whether the deck
+     * already has a stored fileHandle.
+     *
+     * Chrome/Edge: showSaveFilePicker with the current deck name
+     *   pre-filled. After saving, the returned handle replaces
+     *   any existing fileHandle on the deck so future silent saves
+     *   go to the new location. Deck name updates to match the
+     *   filename the user chose.
+     *
+     * Firefox: blob download (same as the existing fallback).
+     *
+     * Scratchpad: same as exportJSON scratchpad path -- prompts
+     *   for a name then promotes the scratchpad to a named deck.
+     */
+    async function saveAsJSON() {
+      if (cards.length === 0) { alert('No cards to save.'); return; }
+
+      /* resolve the deck name -- same branching logic as exportJSON step 1:
+         prompt() is only called on Firefox (no showSaveFilePicker) because
+         on Chrome calling prompt() before showSaveFilePicker() consumes
+         the user gesture and causes a "Must be handling a user gesture" error */
+      var deckName;
+      var isScratchpad = (activeDeckIdx === -1);
+
+      if (!isScratchpad) {
+        deckName = decks[activeDeckIdx].name; /* pre-fill with current name */
+
+      } else if (!window.showSaveFilePicker) {
+        /* Firefox scratchpad -- prompt() is safe, no picker coming after */
+        deckName = prompt('Name this deck:', 'My Deck');
+        if (!deckName) return;
+        deckName = deckName.trim();
+        if (!deckName) { alert('Please enter a deck name.'); return; }
+        var duplicate = decks.some(function(d) { return d.name === deckName; });
+        if (duplicate) {
+          alert('A deck named "' + deckName + '" is already loaded. Choose a different name.');
+          return;
+        }
+
+      } else {
+        /* Chrome/Edge scratchpad -- skip prompt(), let the OS dialog be the naming step */
+        deckName = 'My Deck'; /* placeholder — overwritten by handle.name after save */
+      }
+
+      var json = JSON.stringify(cards, null, 2);
+      var blob = new Blob([json], { type: 'application/json' });
+
+      if (window.showSaveFilePicker) {
+
+        /* Chrome / Edge -- always open the picker regardless of existing handle */
+        try {
+          var handle = await window.showSaveFilePicker({
+            suggestedName: deckName + '.json', /* pre-fill with current name */
+            types: [{ description: 'JSON Deck File', accept: { 'application/json': ['.json'] } }]
+          });
+          var writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+
+          /* replace the stored handle with the one for the new location.
+             Future silent saves via Save Deck will go to this new file. */
+          if (!isScratchpad) {
+            decks[activeDeckIdx].fileHandle = handle;
+            var savedName = handle.name.replace(/\.json$/i, '');
+            decks[activeDeckIdx].name = savedName;
+            deckName = savedName; /* use the final saved name in the toast */
+          }
+
+        } catch (err) {
+          if (err.name === 'AbortError') return; /* user cancelled */
+          alert('Could not save the file: ' + err.message);
+          return;
+        }
+
+      } else {
+
+        /* Firefox -- blob download with the current deck name pre-filled */
+        var url = URL.createObjectURL(blob);
+        var a   = document.createElement('a');
+        a.href     = url;
+        a.download = deckName + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('↓ ' + deckName + '.json downloaded');
+      }
+
+      /* update app state -- same as exportJSON step 4 */
+      if (isScratchpad) {
+        decks.push({
+          name:       deckName,
+          cards:      scratchCards.slice(),
+          dirty:      false,
+          fileHandle: null
+        });
+        activeDeckIdx = decks.length - 1;
+        scratchCards  = [];
+        syncCards();
+      } else {
+        clearDirty();
+        showToast('✓ ' + deckName + ' saved');
+      }
+
+      renderDeckBar();
+      renderContextLabel();
+      renderManageList();
+    }
 
     /* -----------------------------------------------------------
      * STARTUP
-     * -----------------------------------------------------------
-     * Runs once when the page first loads.
-     * Cards always start empty — load from JSON file if needed.
-     */
-    setupDropZone('drop-front', 'text-front');
-    setupDropZone('drop-back',  'text-back');
-    initStudy();
+     * ----------------------------------------------------------- */
+    setupDropZone('drop-modal-front', 'text-modal-front');
+    setupDropZone('drop-modal-back',  'text-modal-back');
+    renderDeckBar();      /* draw the initial empty deck bar */
+    renderContextLabel();
+    initStudy();          /* show study panel in its initial empty state */
 
   </script>
 </body>
