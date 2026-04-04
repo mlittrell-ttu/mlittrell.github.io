@@ -995,18 +995,12 @@
      * ----------------------------------------------------------- */
 
     /* setActiveDeck switches focus to the deck at idx (-1 = scratchpad).
-       Warns if the current deck has unsaved changes before switching. */
+       No warning on switch — changes persist in memory even when a deck
+       is not active, so nothing is actually lost by switching away.
+       The dirty indicator (red dot on the deck card) is the signal
+       to the user that unsaved changes exist; they can save whenever ready. */
     function setActiveDeck(idx) {
       if (idx === activeDeckIdx) return; /* already on this one — do nothing */
-
-      /* unsaved-changes warning only applies to file-backed decks */
-      if (isDirty()) {
-        if (!confirm(
-          '"' + decks[activeDeckIdx].name + '" has unsaved changes.\n' +
-          'Switch away without saving? Changes will be lost.'
-        )) return; /* user cancelled */
-        clearDirty();
-      }
 
       activeDeckIdx = idx; /* update the index */
       syncCards();          /* point `cards` at the new active array */
@@ -1177,7 +1171,17 @@
         /* deck name — normal flow so the card height grows with the text */
         var nameEl = document.createElement('div');
         nameEl.className = 'deck-pill-deck-name';
-        nameEl.textContent = deck.name + (deck.dirty ? ' •' : '');
+        nameEl.textContent = deck.name; /* plain name — dot appended separately below */
+        if (deck.dirty) {
+          /* red dot appended as a child span so we can color it independently.
+             textContent can't contain HTML so we use appendChild instead. */
+          var dot = document.createElement('span');
+          dot.textContent = ' •';        /* bullet character */
+          dot.style.color = '#b85c5c';      /* muted red — signals unsaved without alarming */
+          dot.style.fontSize = '0.9em';
+          dot.title = 'Unsaved changes';
+          nameEl.appendChild(dot);
+        }
 
         /* card count below the name */
         var countEl = document.createElement('div');
