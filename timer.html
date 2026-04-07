@@ -1,0 +1,3249 @@
+<!DOCTYPE html>                        <!-- Tells the browser this is an HTML5 document -->
+<html lang="en">                       <!-- Root element wrapping everything; lang="en" helps screen readers -->
+<head>                                 <!-- Head section: invisible setup instructions for the browser -->
+  <meta charset="UTF-8" />             <!-- Use UTF-8 encoding so all characters display correctly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Makes page scale properly on phones -->
+  <title>Timer</title>                 <!-- Text shown in the browser tab -->
+  <style>  /* Opens the CSS block — everything here controls visual appearance */
+
+    /* =====================================================================
+       CSS CUSTOM PROPERTIES (VARIABLES)
+       Defined on :root so they are available everywhere on the page.
+       :root is a pseudo-class that targets the top-level <html> element.
+       var(--name) reads the value back wherever it is needed.
+       Changing a value here updates every element that uses it.
+       These match the parchment palette used across Simple Ed Tools.
+       ===================================================================== */
+    :root {
+      --bg:        #f7f2e8;   /* warm parchment cream — the page background */
+      --surface:   #fffdf8;   /* near-white — card and panel backgrounds */
+      --border:    #d8cebc;   /* tan — borders and dividing lines */
+      --ink:       #2e2416;   /* dark brown-black — primary text */
+      --ink-light: #9e9080;   /* muted brown — secondary/label text */
+      --accent:    #e0d5c2;   /* medium cream — hover states and active fills */
+      --accent2:   #c8bfb0;   /* slightly darker cream — borders on accented elements */
+      --green:     #8aab8a;   /* muted sage — kept for potential future use */
+      --warn:      #c8844a;   /* warm orange — displayed when under 60 seconds remain */
+      --shadow:    0 2px 12px rgba(0,0,0,0.08); /* subtle drop shadow — 0=horizontal offset, 2=vertical, 12=blur radius, 0.08=opacity */
+      --radius:    10px;      /* standard corner rounding applied across all cards and buttons */
+    }
+
+    /* CSS RESET
+       *        = wildcard — targets every element on the page
+       ::before/::after = pseudo-elements — generated content that sits before or after real elements
+       box-sizing: border-box — changes how widths are calculated:
+         default (content-box): width only counts the content, padding and border add on top
+         border-box: width includes padding and border — much more predictable for layout
+       margin: 0 / padding: 0 — strips the browser's default spacing from every element */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* BODY — the full visible page
+       font-family: 'Georgia', serif — Georgia is the named font; serif is the fallback category
+         if Georgia is not installed, the browser picks any available serif font
+       min-height: 100vh — vh = viewport height units; 100vh = full screen height
+         min-height rather than height so the body can grow taller than the screen if content is long
+       display: flex / flex-direction: column — switches to flexbox layout, stacks children top to bottom
+       align-items: center — horizontally centers all direct children (header and main) */
+    body {
+      font-family: 'Georgia', serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* =====================================================================
+       HEADER — the cream bar across the top
+       ===================================================================== */
+
+    /* The sticky header holding the title and controls.
+       position: sticky — the header scrolls with the page until it hits top:0,
+         then it sticks there. Different from position:fixed which is always stuck.
+       z-index: 100 — controls stacking order; higher number = in front of other elements.
+         Needed so the header sits on top of timer rows when scrolling. */
+    header {
+      width: 100%;                          /* stretch to fill the full viewport width */
+      background: var(--bg);                /* parchment cream background */
+      color: var(--ink);                    /* dark text */
+      padding: 18px 40px;                   /* 18px top/bottom, 40px left/right inside the header */
+      display: flex;                        /* flex container — children sit side by side */
+      align-items: center;                  /* vertically center children within the header height */
+      justify-content: space-between;       /* push title to far left, controls to far right */
+      box-shadow: var(--shadow);            /* subtle drop shadow lifts header above page content */
+      border-bottom: 1px solid var(--border); /* thin tan line separates header from content */
+      position: sticky;                     /* sticks to top of viewport when page scrolls */
+      top: 0;                               /* the sticky point — header sticks when it reaches 0px from top */
+      z-index: 100;                         /* sits above timer rows in the stacking order */
+    }
+
+    /* The "ClassTimer" title — h1 is the most important heading on the page */
+    header h1 {
+      font-size: 1.6rem;        /* rem = relative to root font size (usually 16px), so 1.6rem ≈ 25px */
+      letter-spacing: 0.08em;   /* em = relative to current font size; 0.08em is subtle spacing */
+      font-weight: normal;      /* override the browser default which makes h1 bold */
+    }
+
+    /* The <span> inside h1 wraps the word "Timer" — gives it the muted color.
+       span is a generic inline element with no semantic meaning; used as a styling hook */
+    header h1 span { color: var(--ink-light); }
+
+    /* Wrapper for the right side of the header — groups sound control and nav buttons */
+    .header-right {
+      display: flex;        /* side by side */
+      align-items: center;  /* vertically center the sound control and nav together */
+      gap: 16px;            /* gap is a flex property — adds space between children automatically */
+    }
+
+    /* The "Alert: [dropdown]" sound picker group */
+    .sound-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* The "Alert" label text beside the sound picker */
+    .sound-control label {
+      font-size: 0.78rem;
+      color: var(--ink-light);  /* muted — secondary to the dropdown */
+      letter-spacing: 0.04em;
+    }
+
+    /* The sound picker dropdown select element */
+    .sound-control select {
+      background: var(--surface);          /* near-white fill */
+      border: 1px solid var(--border);     /* tan border */
+      border-radius: var(--radius);        /* rounded corners using the shared variable */
+      padding: 5px 10px;                   /* comfortable click area */
+      font-family: inherit;                /* inherit = copy the font from the parent element */
+      font-size: 0.78rem;
+      color: var(--ink);
+      cursor: pointer;                     /* show a hand cursor on hover — signals interactivity */
+      outline: none;                       /* remove default browser focus glow */
+    }
+
+    /* =====================================================================
+       NAV BUTTONS — Timers / Stopwatch tab switchers
+       ===================================================================== */
+
+    /* The nav element is a semantic HTML container meaning "navigation controls" */
+    nav { display: flex; gap: 6px; }
+
+    /* Each individual tab button */
+    nav button {
+      background: transparent;              /* see-through — cream header shows through */
+      border: 1px solid var(--border);      /* tan border */
+      color: var(--ink);                    /* dark text */
+      padding: 7px 18px;                    /* 7px top/bottom, 18px left/right */
+      border-radius: 20px;                  /* heavily rounded = pill/capsule shape */
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      transition: background 0.2s, border-color 0.2s; /* animate background and border changes over 0.2s */
+    }
+
+    /* Hover state AND active class — both get the same filled look.
+       The comma means "apply this rule to both selectors".
+       .active is added/removed by JavaScript when tabs are clicked. */
+    nav button:hover, nav button.active {
+      background: var(--accent);        /* medium cream fill */
+      border-color: var(--accent2);     /* slightly darker border */
+    }
+
+    /* =====================================================================
+       MAIN CONTENT AREA
+       ===================================================================== */
+
+    /* The scrollable content area below the header.
+       Widened to 1100px to accommodate the side-by-side timer grid. */
+    main {
+      width: 100%;
+      max-width: 1100px;      /* wider than before — gives room for 2-3 cards side by side */
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* View sections — the Timers panel and the Stopwatch panel.
+       Only one is visible at a time — JS adds/removes the "active" class.
+       display: none hides them all by default.
+       display: flex shows the active one as a flex column. */
+    .view-section { display: none; width: 100%; flex-direction: column; gap: 0; }
+    .view-section.active { display: flex; }
+
+    /* =====================================================================
+       TOOLBAR — the row above the timer list with the counter and Add button
+       ===================================================================== */
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;   /* counter on left, Add Timer button on right */
+      margin-bottom: 24px;              /* space between toolbar and first timer row */
+      padding-bottom: 16px;             /* space above the border line */
+      border-bottom: 1px solid var(--border); /* thin separator line */
+    }
+
+    .toolbar-left { display: flex; gap: 8px; align-items: center; }
+
+    /* The "3 of 10 timers" count label — updated by JS */
+    .timer-count { font-size: 0.78rem; color: var(--ink-light); letter-spacing: 0.04em; }
+
+    /* =====================================================================
+       TIMER ROW — the outer wrapper and card for each timer
+       ===================================================================== */
+
+    /* =====================================================================
+       TIMER LIST GRID — side by side layout
+       ===================================================================== */
+
+    /* The timer list container — uses flex wrap so cards sit side by side.
+       align-items: flex-start — cards don't stretch to match the tallest sibling;
+         each card is only as tall as its own content. */
+    #timer-list {
+      display: flex;              /* flex container */
+      flex-wrap: wrap;            /* cards wrap onto a new row when they run out of horizontal space */
+      gap: 16px;                  /* 16px between every card both horizontally and vertically */
+      align-items: flex-start;    /* cards align to the top of each row, not stretched to equal height */
+    }
+
+    /* The outer wrapper around each timer card.
+       flex: 1 1 300px — the three values mean:
+         flex-grow: 1   — card can grow to fill available space
+         flex-shrink: 1 — card can shrink if needed
+         flex-basis: 300px — preferred starting width before growing/shrinking
+       min-width: 260px — never narrower than 260px
+       On a wide screen two or three cards fit per row.
+       On a narrow screen cards stack to one per row.
+       transition: all 0.3s ease — smoothly animates ANY property change */
+    .timer-row-wrap {
+      flex: 1 1 300px;            /* grow and shrink from a 300px base width */
+      min-width: 260px;           /* never narrower than this */
+      transition: all 0.3s ease;
+    }
+
+    /* The promoted card spans the full width of the list — sits alone on its own row.
+       flex-basis: 100% forces it to take up the entire flex row.
+       order: -1 moves it visually to the front regardless of its position in the DOM.
+       The JS sort() already moves it first in the array but order: -1 is a CSS backup. */
+    .timer-row-wrap.promoted {
+      flex: 1 1 100%;             /* take up the full row width */
+      min-width: 0;               /* override the 260px min so it can truly fill 100% */
+      order: -1;                  /* always render first even without JS reordering */
+    }
+
+    /* The actual card element containing all timer content.
+       display: flex / flex-direction: column — stacks all the timer elements vertically
+       gap: 14px — adds space between each child element inside the card automatically
+       transition: border-color 0.2s — smoothly animates border color changes */
+    .timer-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.2s;
+    }
+
+    /* Running state — empty ruleset kept as a marker.
+       No visual border change on running rows — the promoted row handles emphasis. */
+    .timer-row.running { }
+
+    /* Warning state — orange border when under WARNING_THRESHOLD seconds remain */
+    .timer-row.warning { border-color: var(--warn); }
+
+    /* :focus-within is a CSS pseudo-class the browser tracks automatically.
+       It activates on this element whenever ANY descendant inside it has keyboard focus.
+       No JavaScript needed — the browser applies this class itself.
+       This is what makes the currently active row look slightly more prominent
+       when the user is clicking or typing in its inputs. */
+    .timer-row:focus-within {
+      border-color: var(--accent2);             /* slightly darker border signals this row is in focus */
+      box-shadow: 0 2px 16px rgba(0,0,0,0.11); /* slightly deeper shadow — lifts it off the page */
+    }
+
+    /* The promoted/expanded row — larger padding and a strong 2px dark border.
+       spans the full list width via flex-basis:100% on the wrapper above. */
+    .timer-row-wrap.promoted .timer-row {
+      padding: 28px 32px;             /* more generous padding when expanded */
+      border: 2px solid var(--ink);   /* 2px dark border — clear visual emphasis on the promoted row */
+    }
+
+    /* =====================================================================
+       ROW HEADER — label input and action buttons (Expand, Remove)
+       ===================================================================== */
+
+    /* The top line of each row — label on the left, buttons on the right */
+    .row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    /* The session label text input — "Group Work", "Quiz", etc.
+       flex: 1 — makes the input grow to fill all available horizontal space,
+         pushing the action buttons to the right edge.
+       border-bottom: 1px solid transparent — invisible bottom border by default;
+         becomes visible on focus via the :focus rule below.
+         Using transparent rather than removing the border prevents layout shift when it appears. */
+    .row-label {
+      flex: 1;
+      border: none;                           /* no border — blends into the card background */
+      background: transparent;                /* see-through */
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--ink-light);                /* muted — secondary to the time display */
+      outline: none;                          /* remove default browser focus ring */
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid transparent;   /* invisible border placeholder — no layout shift on focus */
+      padding-bottom: 2px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    /* Label input on focus — makes the bottom border visible and darkens the text */
+    .row-label:focus {
+      border-bottom-color: var(--border);  /* tan border becomes visible on focus */
+      color: var(--ink);                   /* text darkens when typing */
+    }
+
+    /* Container for Expand and Remove buttons — flex-shrink: 0 prevents them from shrinking
+       if the label input grows and pushes on available space */
+    .row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* Small icon-style buttons — Expand and Remove.
+       background: none — completely transparent.
+       These look like text labels with a thin border rather than solid buttons. */
+    .btn-icon {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--ink-light);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-icon:hover { background: var(--accent); color: var(--ink); }
+
+    /* =====================================================================
+       TIME DISPLAY — the large countdown number
+       ===================================================================== */
+
+    /* The large time readout — "05:00" etc.
+       Smaller clamp range than before — cards are narrower in the grid layout.
+       font-variant-numeric: tabular-nums — makes all digits the same width so "11:11" and "08:09"
+         take up identical space — prevents the display from jumping left/right as numbers change. */
+    .row-time {
+      font-family: 'Times New Roman', serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);  /* smaller range for narrow grid cards */
+      letter-spacing: 0.04em;
+      font-weight: normal;
+      color: var(--ink);
+      line-height: 1;
+      text-align: center;
+      transition: color 0.5s, font-size 0.3s;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* The promoted row gets a much larger time display — visible from the back of a classroom */
+    .timer-row-wrap.promoted .row-time { font-size: clamp(4rem, 10vw, 7rem); }
+
+    /* Warning state on the time display — added by JS via classList when under 60s remain */
+    .row-time.warning { color: var(--warn); }
+
+    /* =====================================================================
+       PROGRESS TRACK AND FILL — the depleting bar below the time display
+       ===================================================================== */
+
+    /* The outer progress track — the empty cream background bar.
+       overflow: hidden — clips the inner fill so it never visually escapes the track bounds
+       transform: scaleX(-1) — mirrors the entire element horizontally.
+         Without this, the bar would shrink from right to left (fill starts on left, disappears left first).
+         Flipping the track makes the fill appear to drain from right to left —
+         the bar empties on the right side as time runs down, which reads more naturally. */
+    .row-track {
+      width: 100%;
+      height: 8px;
+      background: var(--accent);       /* cream empty track */
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      transform: scaleX(-1);           /* mirror horizontally so bar depletes left-to-right */
+    }
+
+    /* The inner fill — the colored portion showing remaining time.
+       Starts at width: 100% (full) and shrinks to 0% as time runs out.
+       JS updates the width via inline style: fillEl.style.width = pct + '%'
+       transition: width 0.5s linear — smoothly animates the width change each second
+         "linear" means constant speed — no easing, which looks natural for a clock */
+    .row-fill {
+      height: 100%;
+      background: var(--ink-light);    /* muted brown fill */
+      border-radius: 4px;
+      transition: width 0.5s linear, background 0.5s;
+      width: 100%;                     /* starts full — JS updates this every second */
+    }
+
+    /* Warning state on the fill — shifts to warm orange when time is running low */
+    .row-fill.warning { background: var(--warn); }
+
+    /* =====================================================================
+       ROW CONTROLS — Start/Pause and Reset buttons
+       ===================================================================== */
+
+    /* The row of control buttons below the progress bar */
+    .row-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;    /* if buttons don't fit on one line, wrap onto the next */
+    }
+
+    /* The primary action button — Start, Pause, or Resume.
+       min-width: 100px — prevents the button from resizing when the label changes
+         between "Start" (5 chars) and "Resume" (6 chars) — consistent width feels more stable */
+    .btn-primary {
+      background: var(--accent);
+      color: var(--ink);
+      border: 1px solid var(--accent2);
+      padding: 9px 28px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+      min-width: 100px;
+      text-align: center;
+    }
+    .btn-primary:hover { background: var(--border); }
+
+    /* Secondary buttons — Reset and any other supporting actions */
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink-light);
+      border: 1px solid var(--border);
+      padding: 9px 18px;
+      border-radius: 24px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-secondary:hover { background: var(--accent); color: var(--ink); }
+
+    /* =====================================================================
+       DURATION INPUTS — the h/m/s number fields for setting time
+       ===================================================================== */
+
+    /* The row holding the hours, minutes, seconds inputs and their labels */
+    .duration-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+    /* Each individual number input box.
+       text-align: center — centers the digit(s) inside the box
+       -moz-appearance: textfield — removes the up/down spinner arrows in Firefox
+       The ::webkit rules below do the same for Chrome/Safari/Edge */
+    .duration-row input[type="number"] {
+      width: 56px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--ink);
+      text-align: center;
+      outline: none;
+      -moz-appearance: textfield;   /* removes spinner arrows in Firefox */
+    }
+
+    /* Removes spinner arrows in Chrome, Safari, and Edge.
+       ::-webkit-inner-spin-button and ::-webkit-outer-spin-button are browser-specific
+       pseudo-elements that represent the up/down arrows on number inputs.
+       -webkit-appearance: none hides them. */
+    .duration-row input[type="number"]::-webkit-inner-spin-button,
+    .duration-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* The small "h", "m", "s" separator labels between the number inputs */
+    .duration-row .sep { font-size: 0.8rem; color: var(--ink-light); }
+
+    /* Duplicate rule — harmless but can be cleaned up. The first declaration above takes effect. */
+    .duration-row input[type="number"] { width: 56px; padding: 6px 8px; font-size: 0.9rem; }
+
+    /* =====================================================================
+       PRESET BUTTONS — 5 min, 10 min, 15 min, 30 min quick-set buttons
+       ===================================================================== */
+
+    /* The row of preset buttons */
+    .row-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Each preset pill button — smaller and lighter than the main controls */
+    .btn-preset {
+      background: var(--surface);
+      color: var(--ink-light);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-preset:hover { background: var(--accent); color: var(--ink); }
+
+    /* =====================================================================
+       ADD TIMER PLACEHOLDER — the dashed box shown when the list is empty
+       ===================================================================== */
+
+    /* The dashed "add your first timer" area — shown when no timers exist.
+       Takes up full width when empty so it's a clear invitation to add the first timer. */
+    .add-timer-placeholder {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--ink-light);
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, border-color 0.15s;
+      width: 100%;              /* full width — shown only when list is empty */
+    }
+    .add-timer-placeholder:hover { background: var(--accent); border-color: var(--accent2); color: var(--ink); }
+
+    /* =====================================================================
+       STOPWATCH VIEW — the counting-up mode
+       ===================================================================== */
+
+    /* The centered column layout for the stopwatch view */
+    .sw-wrap { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 20px 0; }
+
+    /* The optional session label input for the stopwatch — ID selector targets the one unique element */
+    #sw-label {
+      width: 100%;
+      max-width: 400px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 1.1rem;
+      color: var(--ink-light);
+      text-align: center;
+      outline: none;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    /* The large stopwatch time display — bigger clamp range than timer rows since it is the sole focus */
+    #sw-display {
+      font-family: 'Times New Roman', serif;
+      font-size: clamp(4rem, 18vw, 8rem);
+      letter-spacing: 0.04em;
+      font-weight: normal;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stopwatch progress track — fills as time goes up, visually resets every 60 minutes */
+    .sw-track { width: 100%; max-width: 520px; height: 6px; background: var(--accent); border-radius: 3px; overflow: hidden; }
+
+    /* The stopwatch fill — starts at 0% and grows. JS updates width every second. */
+    #sw-fill { height: 100%; background: var(--ink-light); border-radius: 3px; width: 0%; transition: width 0.05s linear; }
+
+    /* Stopwatch control buttons row */
+    .sw-controls { display: flex; gap: 12px; }
+
+
+    /* =====================================================================
+       ALARMS VIEW
+       ===================================================================== */
+
+    /* Outer column — centres everything, matches sw-wrap spacing */
+    .alarms-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px 0;
+    }
+
+    /* The "add alarm" form box — same surface card style used on timer rows */
+    .alarm-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 14px;
+    }
+
+    /* Label + input stacked vertically inside the form */
+    .alarm-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Small uppercase label above each field — matches the manage-panel style */
+    .alarm-field label {
+      font-size: 0.75rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+    }
+
+    /* Custom time picker wrapper — groups the three selects into one styled box.
+       Looks like a single input; the selects sit flush inside it with no gaps. */
+    .alarm-time-selects {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 0;
+      transition: border-color 0.15s;
+      overflow: hidden;           /* clips children to the rounded corners */
+    }
+
+    /* Highlight the whole box when any of the three selects is active */
+    .alarm-time-selects:focus-within {
+      border-color: var(--accent2);
+    }
+
+    /* Each individual select — styled to look like the rest of the app,
+       not the default OS control.
+       appearance:none / -webkit-appearance:none removes the OS arrow chrome.
+       Each select gets its own subtle right border as a separator. */
+    .alarm-time-selects select {
+      border: none;
+      border-right: 1px solid var(--border);  /* thin divider between segments */
+      background: var(--surface);
+      font-family: 'Times New Roman', serif;
+      font-size: 1.2rem;
+      color: var(--ink);
+      padding: 8px 10px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      text-align: center;
+      transition: background 0.15s;
+    }
+
+    /* Remove the right border from the last select (AM/PM) so the box edge is clean */
+    .alarm-time-selects select:last-child {
+      border-right: none;
+      color: var(--ink-light);       /* AM/PM is secondary info — muted slightly */
+      font-size: 1rem;               /* slightly smaller than the time digits */
+      padding: 8px 10px 8px 6px;
+    }
+
+    /* Hover and focus highlight on individual selects */
+    .alarm-time-selects select:hover,
+    .alarm-time-selects select:focus {
+      background: var(--accent);     /* cream fill signals it is interactive */
+    }
+
+    /* Colon separator between hour and minute columns */
+    .alarm-time-colon {
+      font-family: 'Times New Roman', serif;
+      font-size: 1.3rem;
+      color: var(--ink-light);
+      padding: 0 3px;
+      pointer-events: none;          /* clicks pass through to underlying selects */
+      user-select: none;
+      background: var(--surface);
+    }
+
+    /* Optional label text input */
+    .alarm-field input[type="text"] {
+      font-family: 'Georgia', serif;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--ink);
+      padding: 7px 12px;
+      outline: none;
+      width: 180px;
+    }
+
+    .alarm-field input[type="text"]:focus {
+      border-color: var(--accent2);
+    }
+
+    /* Container holding all the alarm rows */
+    #alarm-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Each individual alarm row */
+    .alarm-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* .firing — warm amber background + pulsing border when alarm is sounding.
+       The background fill makes it stand out from silent rows at a glance,
+       which is more noticeable than a border change alone. */
+    .alarm-row.firing {
+      background: #fef3e4;           /* warm amber tint — clearly different from --surface */
+      border-color: var(--warn);
+      border-width: 2px;             /* slightly thicker border reinforces the active state */
+      animation: alarm-pulse 1.2s ease-in-out infinite;
+    }
+
+    /* Pulse keyframes — alternates between warm amber tints on both background and border */
+    @keyframes alarm-pulse {
+      0%, 100% { background: #fef3e4; border-color: var(--warn); }
+      50%       { background: #fde8cc; border-color: #e8a060; }
+    }
+
+    /* The large time display on each row */
+    .alarm-time {
+      font-family: 'Times New Roman', serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    /* The optional label beside the time */
+    .alarm-label {
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--ink-light);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* Badge shown on the row while the alarm is sounding */
+    .alarm-firing-badge {
+      font-size: 0.78rem;
+      color: var(--warn);
+      letter-spacing: 0.05em;
+      font-style: italic;
+      flex-shrink: 0;
+      background: #fde8cc;           /* slightly deeper tint to lift it off the row */
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid #e8c090;
+    }
+
+    /* Empty state message when no alarms are set */
+    #alarm-empty {
+      text-align: center;
+      color: var(--ink-light);
+      padding: 40px 0;
+      font-size: 0.95rem;
+    }
+
+
+    /* =====================================================================
+       SESSIONS VIEW — session builder and execution
+       ===================================================================== */
+
+    .sessions-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 20px 0;
+    }
+
+    /* Session name input — large, borderless, bottom-border only */
+    .sess-name-input {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+      font-family: inherit;
+      font-size: 1.3rem;
+      color: var(--ink);
+      outline: none;
+      padding-bottom: 6px;
+      letter-spacing: 0.04em;
+      transition: border-color 0.2s;
+    }
+    .sess-name-input:focus { border-bottom-color: var(--accent2); }
+    .sess-name-input::placeholder { color: var(--ink-light); }
+
+    /* Section header row — label on left, total pill on right */
+    .sess-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .sess-section-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: var(--ink-light);
+    }
+
+    .sess-total-pill {
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      background: var(--accent);
+      border: 1px solid var(--accent2);
+      border-radius: 20px;
+      padding: 3px 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .sess-total-pill span {
+      color: var(--ink);
+      font-family: 'Times New Roman', serif;
+      font-size: 0.9rem;
+    }
+
+    /* Timeline preview bar */
+    .sess-tl-track {
+      display: flex;
+      height: 28px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 5px;
+    }
+
+    .sess-tl-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.62rem;
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0 6px;
+      transition: width 0.3s;
+    }
+
+    .sess-tl-empty {
+      width: 100%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      letter-spacing: 0.04em;
+    }
+
+    .sess-tl-markers {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: var(--ink-light);
+      padding: 0 2px;
+      margin-bottom: 4px;
+    }
+
+    /* Segment cards list */
+    .sess-seg-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sess-seg-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .sess-seg-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* The clickable colored circle showing segment number */
+    .sess-color-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-family: inherit;
+      flex-shrink: 0;
+      position: relative;
+      transition: transform 0.15s;
+    }
+    .sess-color-btn:hover { transform: scale(1.15); }
+
+    /* Color swatch popup — appears above the circle on click */
+    .color-popup {
+      position: absolute;
+      bottom: 34px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+      z-index: 50;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    }
+
+    .color-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.1s;
+    }
+    .color-swatch:hover { transform: scale(1.2); }
+    .color-swatch.selected { border-color: var(--ink); }
+
+    .sess-seg-title-input {
+      flex: 1;
+      border: none;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--ink);
+      outline: none;
+      padding-bottom: 2px;
+      letter-spacing: 0.03em;
+      transition: border-color 0.2s;
+    }
+    .sess-seg-title-input:focus { border-bottom-color: var(--border); }
+    .sess-seg-title-input::placeholder { color: var(--ink-light); }
+
+    .sess-seg-remove {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--ink-light);
+      border-radius: 6px;
+      padding: 3px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .sess-seg-remove:hover { background: var(--accent); color: var(--ink); }
+
+    .sess-seg-desc-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: var(--ink);
+      outline: none;
+      padding: 8px 10px;
+      resize: none;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .sess-seg-desc-input:focus { border-color: var(--accent2); }
+    .sess-seg-desc-input::placeholder { color: var(--ink-light); }
+
+    .sess-seg-foot {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sess-dur-label {
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    .sess-dur-inputs {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .sess-dur-inputs input[type="number"] {
+      width: 52px;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      font-family: inherit;
+      font-size: 0.88rem;
+      color: var(--ink);
+      text-align: center;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+    .sess-dur-inputs input[type="number"]::-webkit-inner-spin-button,
+    .sess-dur-inputs input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .sess-dur-sep { font-size: 0.78rem; color: var(--ink-light); }
+
+    .sess-presets {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    /* Add segment dashed button */
+    .sess-add-seg {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 13px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--ink-light);
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, border-color 0.15s;
+      background: transparent;
+      width: 100%;
+      font-family: inherit;
+    }
+    .sess-add-seg:hover { background: var(--accent); border-color: var(--accent2); color: var(--ink); }
+
+    /* Builder action row */
+    .sess-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 4px;
+    }
+
+    .sess-validation {
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      letter-spacing: 0.03em;
+    }
+    .sess-validation.ok   { color: #1D9E75; }
+    .sess-validation.warn { color: var(--warn); }
+
+    /* =====================================================================
+       SESSION EXECUTION MODAL — full-page overlay during a running session
+       ===================================================================== */
+
+    .sess-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(46,36,22,0.60);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .sess-modal {
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 600px;
+      overflow: hidden;
+    }
+
+    .sess-modal-header {
+      padding: 16px 24px 14px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .sess-modal-name {
+      font-size: 1rem;
+      color: var(--ink);
+      letter-spacing: 0.04em;
+    }
+
+    .sess-modal-total {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .sess-modal-total-label { font-size: 0.7rem; color: var(--ink-light); }
+
+    .sess-modal-total-time {
+      font-family: 'Times New Roman', serif;
+      font-size: 1.4rem;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Execution timeline bar */
+    .sess-exec-tl {
+      padding: 12px 24px 10px;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .sess-exec-tl-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.07em;
+      color: var(--ink-light);
+      margin-bottom: 7px;
+    }
+
+    .sess-exec-tl-track {
+      display: flex;
+      height: 30px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 5px;
+    }
+
+    .sess-exec-tl-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.62rem;
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0 4px;
+      transition: opacity 0.4s;
+    }
+
+    .sess-exec-tl-seg.done    { opacity: 0.42; }
+    .sess-exec-tl-seg.current { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 4px; }
+    .sess-exec-tl-seg.upcoming { opacity: 0.42; }
+
+    .sess-exec-tl-markers {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: var(--ink-light);
+      padding: 0 2px;
+    }
+
+    /* Current segment display */
+    .sess-exec-body { padding: 14px 24px 12px; }
+
+    .sess-exec-seg-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .sess-exec-seg-label { font-size: 0.65rem; letter-spacing: 0.07em; color: var(--ink-light); }
+
+    .sess-exec-seg-badge {
+      font-size: 0.62rem;
+      letter-spacing: 0.05em;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    .sess-exec-main {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 10px;
+    }
+
+    .sess-exec-countdown {
+      font-family: 'Times New Roman', serif;
+      font-size: 3.4rem;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      flex-shrink: 0;
+      min-width: 126px;
+      transition: color 0.5s;
+    }
+    .sess-exec-countdown.warning { color: var(--warn); }
+
+    .sess-exec-info { flex: 1; min-width: 0; }
+
+    .sess-exec-seg-name {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .sess-exec-seg-desc {
+      font-size: 0.78rem;
+      color: var(--ink-light);
+      line-height: 1.5;
+    }
+
+    .sess-exec-progress-wrap { margin-bottom: 12px; }
+
+    .sess-exec-track {
+      width: 100%;
+      height: 5px;
+      background: var(--accent);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .sess-exec-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s linear, background 0.5s;
+    }
+
+    .sess-exec-fill.warning { background: var(--warn) !important; }
+
+    .sess-exec-progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.63rem;
+      color: var(--ink-light);
+      margin-top: 4px;
+    }
+
+    /* Mini segment list inside modal */
+    .sess-exec-divider { height: 0.5px; background: var(--border); margin-bottom: 10px; }
+
+    .sess-exec-seg-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 2px; }
+
+    .sess-exec-mini-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 5px 8px;
+      border-radius: 6px;
+    }
+
+    .sess-exec-mini-row.done     { opacity: 0.36; }
+    .sess-exec-mini-row.current  { background: var(--accent); }
+    .sess-exec-mini-row.upcoming { opacity: 0.58; }
+
+    .sess-exec-mini-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .sess-exec-mini-name {
+      flex: 1;
+      font-size: 0.78rem;
+      color: var(--ink);
+    }
+    .sess-exec-mini-name.done-text { text-decoration: line-through; color: var(--ink-light); }
+
+    .sess-exec-mini-dur {
+      font-size: 0.73rem;
+      color: var(--ink-light);
+      font-family: 'Times New Roman', serif;
+    }
+
+    .sess-exec-mini-pill {
+      font-size: 0.58rem;
+      letter-spacing: 0.05em;
+      padding: 2px 7px;
+      border-radius: 20px;
+      min-width: 36px;
+      text-align: center;
+    }
+
+    /* Modal footer */
+    .sess-exec-footer {
+      padding: 10px 24px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 0.5px solid var(--border);
+      gap: 10px;
+    }
+
+    /* Silence button — warm orange, visible, uses warn color */
+    .sess-silence-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--warn);
+      border: 1px solid var(--warn);
+      border-radius: 24px;
+      padding: 8px 18px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: #fffdf8;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: background 0.2s;
+    }
+    .sess-silence-btn:hover { background: #b8733a; border-color: #b8733a; }
+
+    .sess-sound-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fffdf8;
+      flex-shrink: 0;
+      animation: sess-pulse 0.8s infinite;
+    }
+
+    @keyframes sess-pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.2; }
+    }
+
+    .sess-exec-ctrl-btns { display: flex; gap: 8px; }
+
+    /* Paused banner */
+    .sess-paused-banner {
+      text-align: center;
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      color: var(--ink-light);
+      padding: 6px 0 2px;
+      border-top: 0.5px solid var(--border);
+    }
+
+  </style>  <!-- closes the CSS block -->
+</head>
+
+<body>  <!-- everything from here is visible on screen -->
+
+  <!-- HEADER
+       The sticky cream bar at the top of the page.
+       Contains the site title and the right-side controls group.
+       CSS: header ruleset — sticky positioning, flex layout, shadow, border -->
+  <header>
+
+    <!-- Site title — "Class" in dark ink, "Timer" in muted ink via the span -->
+    <h1>Class<span>Timer</span></h1>
+
+    <!-- Right side of the header — sound picker and nav tab buttons grouped together -->
+    <div class="header-right">
+
+
+      <!-- NAV TAB BUTTONS — switch between Timers and Stopwatch views
+           HTML: each button has an id so JS can find it to add/remove the active class
+           onclick: calls showView() with the view name as a string argument
+           CSS: nav button — pill shape, transparent; nav button.active — cream fill
+           JS: showView() hides all view sections then shows the matching one,
+               and moves the active class to the matching button -->
+      <nav>
+        <button class="active" id="tab-timers"    onclick="showView('timers')">Timers</button>
+        <button               id="tab-stopwatch" onclick="showView('stopwatch')">Stopwatch</button>
+        <button               id="tab-alarms"    onclick="showView('alarms')">Alarms</button>
+        <button               id="tab-sessions"  onclick="showView('sessions')">Sessions</button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT AREA
+       Holds both the Timers view section and the Stopwatch view section.
+       CSS: main — max-width 760px, centered, flex column -->
+  <main>
+
+    <!-- =====================================================================
+         TIMERS VIEW — the multi-timer list panel
+         Visible by default (has class "active")
+         CSS: .view-section.active — display:flex
+         ===================================================================== -->
+    <div class="view-section active" id="view-timers">
+
+      <!-- TOOLBAR — timer count label and Add Timer button
+           CSS: .toolbar — flex row, space-between pushes count left and button right -->
+     <div class="toolbar">
+  <div class="toolbar-left sound-control">
+    <label for="sound-select">Alert</label>
+    <select id="sound-select">
+      <option value="chime">Soft chime</option>
+      <option value="beep">Double beep</option>
+      <option value="mute">Mute</option>
+    </select>
+  </div>
+  <button class="btn-secondary" onclick="addTimer()">+ Add Timer</button>
+</div>
+
+      <!-- TIMER LIST — empty on load; JS builds all timer rows inside this div.
+           renderAll() wipes innerHTML and rebuilds from scratch on state changes.
+           tick() does targeted updates inside individual rows to avoid disrupting focused inputs. -->
+      <div id="timer-list"></div>
+
+      <!-- EMPTY PLACEHOLDER — the dashed "add your first timer" box.
+           Shown when timers array is empty, hidden when timers exist.
+           JS: renderAll() sets style.display='none' when timers.length > 0 -->
+      <div class="add-timer-placeholder" id="empty-placeholder" onclick="addTimer()">
+        + Add your first timer
+      </div>
+
+    </div>  <!-- closes #view-timers -->
+
+
+    <!-- =====================================================================
+         STOPWATCH VIEW — counts up from zero
+         Hidden by default (no "active" class)
+         CSS: .view-section — display:none by default
+         ===================================================================== -->
+    <div class="view-section" id="view-stopwatch">
+      <div class="sw-wrap">
+
+        <!-- Optional session label for the stopwatch -->
+        <input type="text" id="sw-label" placeholder="Session label (optional)" maxlength="40" />
+
+        <!-- The large time display — JS updates textContent every second via swTick() -->
+        <div id="sw-display">00:00.00</div>
+
+        <!-- Progress track — fills over a 60-minute window then visually resets.
+             The fill is calculated as (elapsed % 3600) / 3600 * 100 in swTick() -->
+        <div class="sw-track">
+          <div id="sw-fill"></div>  <!-- starts at width:0% — grows as time passes -->
+        </div>
+
+        <!-- Stopwatch controls -->
+        <div class="sw-controls">
+          <!-- Start/Pause button — label toggled by JS between "Start", "Pause", "Resume" -->
+          <button class="btn-primary" id="btn-sw" onclick="toggleStopwatch()">Start</button>
+          <button class="btn-secondary" onclick="resetStopwatch()">Reset</button>
+        </div>
+
+      </div>
+    </div>  <!-- closes #view-stopwatch -->
+
+
+    <!-- =====================================================================
+         ALARMS VIEW — set one-shot alarms for specific clock times
+         Hidden by default (no "active" class)
+         Multiple alarms can be active simultaneously.
+         Each alarm fires at its set time, plays the selected alert sound
+         every 3 seconds for up to 60 seconds or until manually stopped.
+         ===================================================================== -->
+    <div class="view-section" id="view-alarms">
+      <div class="alarms-wrap">
+
+        <!-- Add alarm form ------------------------------------------------- -->
+        <div class="alarm-form">
+
+          <!-- Custom time picker: three selects (hour / minute / AM-PM).
+               Each select opens a full dropdown on a single click anywhere.
+               JS: buildAlarmSelects() populates hours 1-12 and minutes 00-59 at startup.
+               addAlarm() reads all three and converts to 24-hour HH:MM for storage. -->
+          <div class="alarm-field">
+            <label>Time</label>
+            <div class="alarm-time-selects">
+              <select id="alarm-hour"></select>
+              <!-- options filled by buildAlarmSelects() -->
+              <span class="alarm-time-colon">:</span>
+              <select id="alarm-minute"></select>
+              <!-- options filled by buildAlarmSelects() -->
+              <select id="alarm-ampm">
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Optional label for the alarm -->
+          <div class="alarm-field">
+            <label for="alarm-label-input">Label (optional)</label>
+            <input type="text" id="alarm-label-input"
+                   placeholder="e.g. End of class"
+                   maxlength="40" />
+          </div>
+
+          <!-- Add button — calls addAlarm() which reads the two inputs above -->
+          <button class="btn-primary" onclick="addAlarm()">Set Alarm</button>
+
+        </div>
+
+        <!-- Alarm list — empty on load; renderAlarms() fills this -->
+        <div id="alarm-list"></div>
+
+        <!-- Empty state — shown when no alarms are set -->
+        <div id="alarm-empty">No alarms set. Pick a time above and click Set Alarm.</div>
+
+      </div>
+    </div>  <!-- closes #view-alarms -->
+
+
+    <!-- =====================================================================
+         SESSIONS VIEW — build a timed agenda with named segments
+         Each session is a sequence of timed segments with descriptions.
+         Builder mode: create/edit segments before starting.
+         Execution mode: full-page overlay modal runs the session.
+         ===================================================================== -->
+    <div class="view-section" id="view-sessions">
+      <div class="sessions-wrap">
+
+        <!-- Session name -->
+        <div>
+          <div class="sess-section-label" style="margin-bottom:6px;">Session name</div>
+          <input class="sess-name-input" id="sess-name" type="text"
+                 placeholder="e.g. Essay Brainstorm Session" maxlength="60"
+                 oninput="renderSessionTimeline()" />
+        </div>
+
+        <!-- Timeline preview + segments -->
+        <div>
+          <div class="sess-section-head">
+            <div class="sess-section-label">Segments</div>
+            <div class="sess-total-pill" id="sess-total-pill">Total — <span>0:00</span></div>
+          </div>
+
+          <!-- Live timeline preview -->
+          <div class="sess-tl-track" id="sess-tl-track">
+            <div class="sess-tl-empty">Add segments to see the timeline</div>
+          </div>
+          <div class="sess-tl-markers" id="sess-tl-markers"></div>
+
+          <!-- Segment cards — built by renderSessionBuilder() -->
+          <div class="sess-seg-list" id="sess-seg-list"></div>
+
+          <!-- Add segment -->
+          <button class="sess-add-seg" onclick="addSegment()">+ Add segment</button>
+        </div>
+
+        <!-- Actions -->
+        <div class="sess-actions">
+          <div class="sess-validation" id="sess-validation">Add at least one segment to begin.</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-secondary" onclick="clearSession()">Clear</button>
+            <button class="btn-primary"   id="sess-start-btn" onclick="startSession()">Start session</button>
+          </div>
+        </div>
+
+      </div>
+    </div>  <!-- closes #view-sessions -->
+
+    <!-- Session execution overlay — hidden by default; shown when session is running -->
+    <div class="sess-overlay" id="sess-overlay" style="display:none;">
+      <div class="sess-modal">
+
+        <div class="sess-modal-header">
+          <div class="sess-modal-name" id="sess-exec-name">Session</div>
+          <div class="sess-modal-total">
+            <span class="sess-modal-total-label">total left</span>
+            <span class="sess-modal-total-time" id="sess-exec-total">0:00</span>
+          </div>
+        </div>
+
+        <!-- Timeline bar -->
+        <div class="sess-exec-tl">
+          <div class="sess-exec-tl-label">Session timeline</div>
+          <div class="sess-exec-tl-track" id="sess-exec-tl-track"></div>
+          <div class="sess-exec-tl-markers" id="sess-exec-tl-markers"></div>
+        </div>
+
+        <!-- Current segment -->
+        <div class="sess-exec-body">
+          <div class="sess-exec-seg-meta">
+            <div class="sess-exec-seg-label" id="sess-exec-seg-label">Segment 1</div>
+            <div class="sess-exec-seg-badge" id="sess-exec-seg-badge">now running</div>
+          </div>
+          <div class="sess-exec-main">
+            <div class="sess-exec-countdown" id="sess-exec-countdown">0:00</div>
+            <div class="sess-exec-info">
+              <div class="sess-exec-seg-name" id="sess-exec-seg-name"></div>
+              <div class="sess-exec-seg-desc" id="sess-exec-seg-desc"></div>
+            </div>
+          </div>
+          <div class="sess-exec-progress-wrap">
+            <div class="sess-exec-track">
+              <div class="sess-exec-fill" id="sess-exec-fill" style="width:100%;"></div>
+            </div>
+            <div class="sess-exec-progress-meta">
+              <span>segment time remaining</span>
+              <span id="sess-exec-seg-total-label">—</span>
+            </div>
+          </div>
+
+          <div class="sess-exec-divider"></div>
+
+          <!-- Mini segment list -->
+          <div class="sess-exec-seg-list" id="sess-exec-seg-list"></div>
+        </div>
+
+        <!-- Paused indicator -->
+        <div class="sess-paused-banner" id="sess-paused-banner" style="display:none;">
+          — Session paused —
+        </div>
+
+        <!-- Footer controls -->
+        <div class="sess-exec-footer">
+          <button class="sess-silence-btn" id="sess-silence-btn"
+                  style="display:none;" onclick="silenceSessionAlert()">
+            <div class="sess-sound-dot"></div>
+            Silence alert
+          </button>
+          <div style="flex:1;"></div>
+          <div class="sess-exec-ctrl-btns">
+            <button class="btn-primary"   id="sess-exec-pause-btn" onclick="toggleSessionPause()">Pause</button>
+            <button class="btn-secondary" onclick="endSession()">End session</button>
+          </div>
+        </div>
+
+      </div>
+    </div>  <!-- closes #sess-overlay -->
+
+  </main>  <!-- closes main -->
+
+  <!-- JAVASCRIPT BLOCK
+       Sits at the bottom of <body> deliberately — by this point the browser has already
+       read and built the entire HTML, so JS can safely find and manipulate any element
+       without risk of trying to access something that does not exist yet. -->
+  <script>
+
+    /*
+     * ============================================================
+     * CLASS TIMER — JavaScript
+     * ============================================================
+     *
+     * HOW THIS APP WORKS
+     * ------------------
+     * The core data is a single array called `timers`. Each item in the
+     * array is a plain JavaScript object representing one timer row.
+     *
+     * When state changes (timer starts, ticks, resets), the data object
+     * is updated first, then the DOM is rebuilt to reflect it.
+     * This is the "data-first" pattern — the data is the source of truth,
+     * the DOM is just a visual representation of it.
+     *
+     * RENDER STRATEGY
+     * ---------------
+     * renderAll() — rebuilds the entire timer list from scratch.
+     *   Used when structure changes: adding, deleting, promoting a timer.
+     *
+     * tick() targeted update — updates only the time display, progress fill,
+     *   and border class of the ticking timer.
+     *   Used every second to avoid destroying focused inputs in other rows.
+     *   If renderAll() ran every second, any number box the user was typing
+     *   in would be replaced and they'd lose focus mid-edit.
+     *
+     * TWO MODES
+     * ---------
+     * Timers tab  — multiple countdown timers, each independent
+     * Stopwatch   — single count-up timer, separate from the timers
+     * ============================================================
+     */
+
+
+    /* -----------------------------------------------------------
+     * CONSTANTS
+     * These values are defined once here and referenced throughout.
+     * Using named constants instead of raw numbers makes the code
+     * easier to understand and change — if you want to adjust the
+     * warning threshold you change it in one place, not everywhere.
+     * ----------------------------------------------------------- */
+
+    var WARNING_THRESHOLD = 60;   /* seconds remaining before orange warning activates */
+    var MAX_TIMERS        = 10;   /* maximum number of timer rows allowed at once */
+    /* alert intervals are now stored on each timer object as t.alertInterval
+       so each timer can be silenced independently */
+
+
+    /* -----------------------------------------------------------
+     * DATA STORE
+     * -----------------------------------------------------------
+     * timers — the single source of truth for all timer state.
+     * Starts as an empty array. Each addTimer() call pushes one object in.
+     *
+     * Each timer object has these properties:
+     *   id              — unique number from Date.now() (current time in milliseconds)
+     *                     guaranteed unique because no two timers are created at the exact same millisecond
+     *   label           — string typed by the user in the label input, e.g. "Group Work"
+     *   promoted        — bool — true when this row is expanded to the top
+     *   running         — bool — true when setInterval is actively counting down
+     *   intervalRef     — the return value of setInterval(), stored so we can stop it with clearInterval()
+     *                     null when the timer is not running
+     *   warning         — bool — true when remainingSeconds is under WARNING_THRESHOLD
+     *   totalSeconds    — the full duration the user set, in seconds — never changes after being set
+     *   remainingSeconds — counts down from totalSeconds to 0 — updated by tick() every second
+     */
+    var timers = [];
+
+
+    /* -----------------------------------------------------------
+     * VIEW SWITCHING
+     * -----------------------------------------------------------
+     * Called when a nav tab button is clicked.
+     * Hides all view sections, then shows the requested one.
+     * Removes active class from all buttons, adds it to the clicked one.
+     *
+     * name — a string passed in from the onclick attribute: 'timers' or 'stopwatch'
+     *         used to build element IDs: 'view-timers', 'tab-timers' etc.
+     * ----------------------------------------------------------- */
+    function showView(name) {
+      /* sweep 1 — hide all view sections by removing their active class */
+      document.querySelectorAll('.view-section').forEach(function(s) {
+        s.classList.remove('active');
+        /* classList is a built-in property of every HTML element — a live list of its CSS classes
+           .remove() removes the named class; does nothing if it is not present */
+      });
+
+      /* sweep 2 — unhighlight all nav buttons */
+      document.querySelectorAll('nav button').forEach(function(b) {
+        b.classList.remove('active');
+      });
+
+      /* show the requested section and highlight the matching button */
+      document.getElementById('view-' + name).classList.add('active');
+      document.getElementById('tab-'  + name).classList.add('active');
+      /* 'view-' + 'timers' = 'view-timers' — string concatenation builds the full id */
+    }
+
+
+    /* -----------------------------------------------------------
+     * TIMER MANAGEMENT — add, delete, promote
+     * ----------------------------------------------------------- */
+
+    /* ADD TIMER — creates a new timer object with default values and adds it to the array */
+    function addTimer() {
+      if (timers.length >= MAX_TIMERS) {
+        /* alert() is a built-in browser function that shows a popup message */
+        alert('Maximum of ' + MAX_TIMERS + ' timers reached.');
+        return;  /* return exits the function immediately — nothing below this line runs */
+      }
+
+      /* push() is a built-in array method that adds an item to the END of the array */
+      timers.push({
+        id:               Date.now(),  /* Date.now() = current time as milliseconds since Jan 1 1970
+                                          used as a unique ID — no two timers share the same ms */
+        label:            '',          /* empty string — user types their own label */
+        promoted:         false,
+        running:          false,
+        intervalRef:      null,        /* null = not running; set to interval ID when started */
+        warning:          false,
+        totalSeconds:     300,         /* default 5 minutes = 300 seconds */
+        remainingSeconds: 300,
+        alertInterval:    null         /* holds this timer's repeating alert interval — null when silent */
+      });
+
+      renderAll();  /* rebuild the DOM to show the new timer row */
+    }
+
+    /* DELETE TIMER — removes a timer by its id, stops its interval first */
+    function deleteTimer(id) {
+      var t = getTimer(id);
+      if (!t) return;  /* guard — do nothing if the timer was not found */
+
+      /* always stop the interval before removing the timer from the array.
+         If we removed it first, the interval would keep firing but getTimer() would return null. */
+      if (t.intervalRef) clearInterval(t.intervalRef);
+
+      /* filter() creates a NEW array containing only items where the function returns true.
+         This effectively removes the timer with the matching id. */
+      timers = timers.filter(function(x) { return x.id !== id; });
+
+      renderAll();
+    }
+
+    /* PROMOTE TIMER — expands one timer to the top, collapses any currently promoted one.
+       Only one timer can be promoted at a time.
+       If the same timer is clicked twice, it toggles back to normal. */
+    function promoteTimer(id) {
+      var t = getTimer(id);
+      if (!t) return;
+      var wasPromoted = t.promoted;
+
+      /* remove promoted status from ALL timers first */
+      timers.forEach(function(x) { x.promoted = false; });
+
+      /* then toggle the clicked one — if it was promoted, it stays false (demoted);
+         if it was not promoted, it becomes true */
+      t.promoted = !wasPromoted;
+
+      /* sort() reorders the array in place.
+         The comparison function returns a positive number if b should come before a.
+         promoted timers sort to the front (index 0) so they render first / at the top */
+      timers.sort(function(a, b) {
+        return (b.promoted ? 1 : 0) - (a.promoted ? 1 : 0);
+        /* if b is promoted: (1 - 0) = 1 → b before a
+           if a is promoted: (0 - 1) = -1 → a before b
+           if neither: (0 - 0) = 0 → no change */
+      });
+
+      renderAll();
+    }
+
+    /* GET TIMER — utility function that finds a timer object by its id.
+       Returns the object if found, or null if not found.
+       Used by nearly every other function to safely look up a timer. */
+    function getTimer(id) {
+      for (var i = 0; i < timers.length; i++) {
+        if (timers[i].id === id) return timers[i];  /* === is strict equality — checks value AND type */
+      }
+      return null;  /* not found */
+    }
+
+
+    /* -----------------------------------------------------------
+     * TIMER CORE — toggle, tick, reset
+     * ----------------------------------------------------------- */
+
+    /* TOGGLE TIMER — starts the timer if stopped, pauses if running.
+       id — the unique ID of the timer to toggle, passed in from the button's onclick */
+    function toggleTimer(id) {
+      var t = getTimer(id);
+      if (!t) return;
+
+      if (t.running) {
+        /* PAUSE — clear the interval to stop the ticking */
+        clearInterval(t.intervalRef);  /* clearInterval() cancels a repeating setInterval */
+        t.intervalRef = null;
+        t.running     = false;
+      } else {
+        /* START — only if there is time remaining */
+        if (t.remainingSeconds <= 0) return;  /* do nothing if already at zero */
+
+        t.running = true;
+
+        /* setInterval(function, delay) — calls the function repeatedly every `delay` milliseconds.
+           Returns an ID (a number) that we store in intervalRef so we can stop it later.
+           1000 milliseconds = 1 second.
+           The function we pass in calls tick(id) — the id is captured via closure:
+           the inner function "closes over" the id variable from the outer scope and remembers it. */
+        t.intervalRef = setInterval(function() { tick(id); }, 1000);
+      }
+
+      renderAll();  /* rebuild to update the button label (Start → Pause etc.) */
+    }
+
+    /* TICK — called every second by setInterval while a timer is running.
+       Updates remainingSeconds, checks for warning state and completion,
+       then does a TARGETED DOM update rather than a full renderAll().
+       
+       WHY TARGETED UPDATE:
+       If renderAll() ran every second it would rebuild the entire HTML of every timer row.
+       This destroys any <input> elements, meaning any input the user is focused on
+       (editing the duration on another timer) would be replaced, losing focus mid-edit.
+       Instead, tick() finds just the elements it needs to update and changes only those. */
+    function tick(id) {
+      var t = getTimer(id);
+      if (!t) return;
+
+      t.remainingSeconds--;  /* decrement by one second */
+
+      if (t.remainingSeconds <= 0) {
+        /* TIME IS UP */
+        t.remainingSeconds = 0;
+        clearInterval(t.intervalRef);
+        t.intervalRef = null;
+        t.running     = false;
+        playAlert(id);    /* trigger the audio alert for this specific timer */
+        renderAll();    /* full re-render is safe here — timer just finished, no inputs are focused on it */
+        return;
+      }
+
+      /* update the warning flag */
+      t.warning = t.remainingSeconds > 0 && t.remainingSeconds <= WARNING_THRESHOLD;
+
+      /* TARGETED DOM UPDATE — find the card element using data-id attribute
+         data-id is a custom attribute we add in renderAll() specifically for this purpose.
+         querySelector('[data-id="123"]') finds the element with that exact attribute value. */
+      var card = document.querySelector('[data-id="' + id + '"]');
+      if (!card) { renderAll(); return; }  /* fallback — if element not found, do a full rebuild */
+
+      /* update ONLY the time display text and class */
+      var timeEl = card.querySelector('.row-time');
+      /* querySelector() searches INSIDE card only — not the whole page */
+      if (timeEl) {
+        timeEl.textContent = formatTime(t);  /* textContent sets the plain text inside the element */
+        timeEl.className   = 'row-time' + (t.warning ? ' warning' : '');
+        /* ternary operator: condition ? valueIfTrue : valueIfFalse
+           adds ' warning' to the class string only when t.warning is true */
+      }
+
+      /* update ONLY the progress bar fill width */
+      var fillEl = card.querySelector('.row-fill');
+      if (fillEl) {
+        var pct = t.totalSeconds > 0 ? (t.remainingSeconds / t.totalSeconds) * 100 : 0;
+        /* e.g. 150 remaining / 300 total * 100 = 50% */
+        fillEl.style.width = pct + '%';  /* inline style overrides the CSS width */
+        fillEl.className   = 'row-fill' + (t.warning ? ' warning' : '');
+      }
+
+      /* update ONLY the card border class — warning adds orange border */
+      card.className = 'timer-row' + (t.running ? ' running' : '') + (t.warning ? ' warning' : '');
+    }
+
+    /* RESET TIMER — stops and restores the timer to its full duration */
+    function resetTimer(id) {
+      var t = getTimer(id);
+      if (!t) return;
+      clearInterval(t.intervalRef);
+      t.intervalRef    = null;
+      t.running        = false;
+      t.warning        = false;
+      t.remainingSeconds = t.totalSeconds;  /* restore to the full set duration */
+      renderAll();
+    }
+
+    /* SET PRESET — sets a timer to a predetermined duration from a preset button.
+       Called with the timer id and the duration in seconds.
+       e.g. setPreset(1234567890, 600) sets that timer to 10 minutes. */
+    function setPreset(id, seconds) {
+      var t = getTimer(id);
+      if (!t) return;
+      t.totalSeconds     = seconds;
+      t.remainingSeconds = seconds;
+      renderAll();
+    }
+
+    /* APPLY CUSTOM TIME — reads the h/m/s inputs for a timer and updates its duration.
+       Called via onchange on each number input — fires when the value changes and the
+       input loses focus (user presses Tab or clicks elsewhere).
+       id — used to build the input element IDs: 'dur-{id}-h', 'dur-{id}-m', 'dur-{id}-s' */
+    function applyCustomTime(id) {
+      var t = getTimer(id);
+      if (!t) return;
+
+      /* parseInt() converts a string to an integer — e.g. "25" → 25
+         || 0 handles empty input: parseInt('') returns NaN, and NaN || 0 = 0 */
+      var total = (parseInt(document.getElementById('dur-'+id+'-h').value)||0)*3600
+                + (parseInt(document.getElementById('dur-'+id+'-m').value)||0)*60
+                + (parseInt(document.getElementById('dur-'+id+'-s').value)||0);
+
+      if (total <= 0) return;  /* do not allow zero or negative duration */
+
+      t.totalSeconds     = total;
+      t.remainingSeconds = total;
+      /* no renderAll() here — the inputs are already in the DOM and showing the right values.
+         A full rebuild would destroy the focused input and be jarring for the user. */
+    }
+
+    /* SYNC LABEL — reads the label input and saves it back to the data object.
+       Called onblur — "blur" fires when an element loses focus (user clicks or tabs away).
+       This keeps the label in the data model in sync with what the user typed. */
+    function syncLabel(id) {
+      var t = getTimer(id);
+      if (!t) return;
+      var el = document.getElementById('label-' + id);
+      if (el) t.label = el.value;  /* .value reads the current text in an input */
+    }
+
+
+    /* -----------------------------------------------------------
+     * RENDER — builds the DOM from the timers data array
+     * -----------------------------------------------------------
+     * renderAll() is the main render function.
+     * It wipes the timer list and rebuilds it entirely from the timers array.
+     * Called after any structural change (add, delete, promote, start, reset).
+     * NOT called every second during ticking — see tick() for why.
+     * ----------------------------------------------------------- */
+
+    function renderAll() {
+      var list = document.getElementById('timer-list');
+      var ph   = document.getElementById('empty-placeholder');
+      var ct   = document.getElementById('timer-count');
+      /* update the "X of 10 timers" count label */
+      if (ct) ct.textContent = timers.length + ' of ' + MAX_TIMERS + ' timer' + (timers.length !== 1 ? 's' : '');
+
+      list.innerHTML = '';  /* wipe all existing rows — innerHTML='' removes all child elements */
+
+      /* show or hide the empty placeholder depending on whether there are timers */
+      ph.style.display = timers.length === 0 ? '' : 'none';
+      /* '' (empty string) removes any inline display style, letting CSS control it (block/visible)
+         'none' hides it explicitly */
+
+      /* loop through every timer and build a row for each one */
+      timers.forEach(function(t) {
+
+        /* OUTER WRAPPER — .timer-row-wrap handles flex sizing in the grid.
+           The promoted class makes this card span the full row width. */
+        var wrap = document.createElement('div');
+        wrap.className = 'timer-row-wrap' + (t.promoted ? ' promoted' : '');
+
+        /* INNER CARD — .timer-row is the visible card */
+        var card = document.createElement('div');
+        card.className = 'timer-row' + (t.running ? ' running' : '') + (t.warning ? ' warning' : '');
+
+        /* data-id is a custom HTML attribute we add specifically so tick() can find this card.
+           setAttribute(name, value) adds any attribute to an element.
+           In the HTML this looks like: <div class="timer-row" data-id="1700000000000"> */
+        card.setAttribute('data-id', t.id);
+
+        /* buildRowHTML() returns the inner HTML string for this timer's row.
+           innerHTML = sets all the HTML inside the card at once. */
+        card.innerHTML = buildRowHTML(t);
+
+        /* appendChild() adds the element to the DOM as the last child of the parent.
+           Think of it like placing the furniture (card) into the room (wrap),
+           then placing the room into the building (list). */
+        wrap.appendChild(card);
+        list.appendChild(wrap);
+      });
+    }
+
+
+    /* -----------------------------------------------------------
+     * BUILD ROW HTML — returns the inner HTML string for one timer row
+     * -----------------------------------------------------------
+     * Rather than creating individual elements with createElement(),
+     * we build an HTML string and assign it to innerHTML all at once.
+     * This is faster than many separate createElement() calls.
+     *
+     * t — the timer object from the timers array
+     * ----------------------------------------------------------- */
+
+    function buildRowHTML(t) {
+      var html = '';  /* start with an empty string, concatenate pieces onto it */
+
+      /* ROW HEADER — label input on the left, Expand/Remove buttons on the right */
+      html += '<div class="row-header">';
+
+      /* Label input — onfocus="this.select()" selects all text when clicked,
+         so typing immediately replaces the existing value rather than appending.
+         onblur="syncLabel(id)" saves the value back to the data object when focus leaves.
+         escA() escapes any special characters in the label so they don't break the HTML attribute. */
+      html +=   '<input class="row-label" type="text" id="label-'+t.id+'"'
+              +   ' value="'+escA(t.label)+'"'
+              +   ' placeholder="Session label..."'
+              +   ' maxlength="40"'
+              +   ' onblur="syncLabel('+t.id+')" />';
+
+      html +=   '<div class="row-actions">';
+
+      /* Expand/Minimise button — label toggles based on promoted state */
+      html +=     '<button class="btn-icon" onclick="promoteTimer('+t.id+')">'
+              +     (t.promoted ? 'Minimise' : 'Expand')
+              +   '</button>';
+
+      /* Remove button — only visible when the timer is not actively running.
+         Hiding it while running prevents accidentally deleting a live timer. */
+      if (!t.running) {
+        html += '<button class="btn-icon" onclick="deleteTimer('+t.id+')">Remove</button>';
+      }
+
+      html +=   '</div>';  /* closes row-actions */
+      html += '</div>';    /* closes row-header */
+
+      /* TIME DISPLAY — the large countdown number
+         formatTime(t) converts remainingSeconds to a readable string like "04:59" */
+      html += '<div class="row-time' + (t.warning ? ' warning' : '') + '">'
+            +   formatTime(t)
+            + '</div>';
+
+      /* PROGRESS TRACK AND FILL — buildTrackHTML() returns the bar HTML */
+      html += buildTrackHTML(t);
+
+      /* ROW CONTROLS — Start/Pause and Reset buttons */
+      html += '<div class="row-controls">';
+
+/* Start/Pause/Resume button — label changes based on timer state:
+   running → "Pause"
+   paused partway through → "Resume"
+   fresh/not started → "Start" */
+html +=   '<button class="btn-primary" onclick="toggleTimer('+t.id+')">'+(t.running?'Pause':(t.remainingSeconds < t.totalSeconds && !t.running ? 'Resume' : 'Start'))+'</button>';
+
+/* Reset button — always visible, restores timer to full duration */
+html +=   '<button class="btn-secondary" onclick="resetTimer('+t.id+')">Reset</button>';
+
+/* Stop Alert button — only shown when THIS specific timer's alert is active.
+   t.alertInterval being non-null means this timer finished and is still sounding.
+   Passes t.id so stopAlert() knows which timer to silence — other timers are unaffected. */
+if (t.alertInterval) {
+  html += '<button class="btn-secondary" onclick="stopAlert('+t.id+')">Stop Alert</button>';
+}
+
+html += '</div>';  /* closes row-controls */
+
+      /* DURATION INPUTS AND PRESETS — only shown when the timer is not running.
+         Hiding them while running prevents confusion since changes wouldn't take effect mid-run. */
+      if (!t.running) {
+
+        /* convert totalSeconds back into hours, minutes, seconds for the input values
+           Math.floor() rounds down to the nearest integer
+           % is the modulo operator — gives the remainder after division
+           e.g. 3725 seconds:
+             h = Math.floor(3725/3600) = 1
+             m = Math.floor((3725 % 3600) / 60) = Math.floor(125/60) = 2
+             s = 3725 % 60 = 5
+             → 1:02:05 */
+        var h = Math.floor(t.totalSeconds / 3600);
+        var m = Math.floor((t.totalSeconds % 3600) / 60);
+        var s = t.totalSeconds % 60;
+
+        /* Duration input row — three number inputs for hours, minutes, seconds.
+           onfocus="this.select()" — selects all text on click so typing replaces the value.
+           onchange fires when the value changes and input loses focus, calling applyCustomTime(). */
+        html += '<div class="duration-row">';
+        html +=   '<input type="number" id="dur-'+t.id+'-h" value="'+h+'" min="0" max="23"'
+                +   ' onfocus="this.select()" onchange="applyCustomTime('+t.id+')" />'
+                +   '<span class="sep">h</span>';
+        html +=   '<input type="number" id="dur-'+t.id+'-m" value="'+m+'" min="0" max="59"'
+                +   ' onfocus="this.select()" onchange="applyCustomTime('+t.id+')" />'
+                +   '<span class="sep">m</span>';
+        html +=   '<input type="number" id="dur-'+t.id+'-s" value="'+s+'" min="0" max="59"'
+                +   ' onfocus="this.select()" onchange="applyCustomTime('+t.id+')" />'
+                +   '<span class="sep">s</span>';
+        html += '</div>';
+
+        /* Preset buttons — each calls setPreset() with the timer id and duration in seconds.
+           An array of [label, seconds] pairs is used to build the buttons in a loop,
+           avoiding writing each button separately. forEach() runs the function once per pair. */
+        html += '<div class="row-presets">';
+        [['5 min', 300], ['10 min', 600], ['15 min', 900], ['30 min', 1800]].forEach(function(p) {
+          /* p[0] = label string, p[1] = seconds */
+          html += '<button class="btn-preset" onclick="setPreset('+t.id+','+p[1]+')">' + p[0] + '</button>';
+        });
+        html += '</div>';
+      }
+
+      return html;  /* return the complete HTML string to be set as innerHTML */
+    }
+
+
+    /* -----------------------------------------------------------
+     * BUILD TRACK HTML — returns the progress bar HTML for one timer row
+     * ----------------------------------------------------------- */
+
+    function buildTrackHTML(t) {
+      /* calculate the current fill percentage
+         e.g. 150 remaining / 300 total * 100 = 50% */
+      var pct = t.totalSeconds > 0 ? (t.remainingSeconds / t.totalSeconds) * 100 : 0;
+      /* guard: if totalSeconds is 0 (shouldn't happen normally) avoid dividing by zero */
+
+      /* The track and fill are returned as a single HTML string.
+         The fill width is set as an inline style — inline styles override CSS class styles.
+         The warning class is added when t.warning is true, changing the fill color to orange. */
+      return '<div class="row-track">'
+           +   '<div class="row-fill' + (t.warning ? ' warning' : '') + '"'
+           +     ' style="width:' + pct + '%">'
+           +   '</div>'
+           + '</div>';
+    }
+
+
+    /* -----------------------------------------------------------
+     * FORMAT TIME — converts a timer's remaining seconds into a display string
+     * -----------------------------------------------------------
+     * Returns "mm:ss" if under one hour, or "h:mm:ss" if over.
+     * e.g. 125 seconds → "02:05"
+     *      3725 seconds → "1:02:05"
+     * ----------------------------------------------------------- */
+
+    function formatTime(t) {
+      var sec = t.remainingSeconds;
+      var h   = Math.floor(sec / 3600);
+      var m   = Math.floor((sec % 3600) / 60);
+      var s   = sec % 60;
+      /* ternary: if there are hours, include them; otherwise just show mm:ss */
+      return h > 0
+        ? h + ':' + pad(m) + ':' + pad(s)
+        : pad(m) + ':' + pad(s);
+    }
+
+    /* PAD — adds a leading zero to single-digit numbers.
+       e.g. pad(5) → "05", pad(12) → "12"
+       Ensures time always displays as two digits for minutes and seconds. */
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+    /* ESCAPE ATTRIBUTE — makes a string safe to use inside an HTML attribute value.
+       Replaces " with &quot; and ' with &#39; so the attribute string doesn't break.
+       e.g. if a label contains a quote: My "Quiz" → My &quot;Quiz&quot;
+       Without this, the " would end the HTML attribute early and break the element. */
+    function escA(s) {
+      return (s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      /* /"/g — a regular expression: / opens, " is the character to find, / closes, g = global (replace ALL occurrences) */
+    }
+
+
+    /* -----------------------------------------------------------
+     * WEB AUDIO API — generates alert tones without any sound files
+     * -----------------------------------------------------------
+     * The Web Audio API is built into every modern browser.
+     * No files are fetched — the browser generates the sound mathematically.
+     *
+     * KEY CONCEPTS:
+     * AudioContext — the top-level audio manager. All audio flows through it.
+     * OscillatorNode — generates a continuous waveform (a raw tone) at a set frequency.
+     * GainNode — controls volume. Here used to fade the tone out gracefully.
+     *
+     * SIGNAL CHAIN: oscillator → gain → ctx.destination (the speakers)
+     * ----------------------------------------------------------- */
+
+    /* PLAY ALERT — plays the selected sound repeatedly every 3 seconds for up to 30 seconds.
+       Takes the timer id so the interval is stored on that specific timer object,
+       allowing each timer to be silenced independently. */
+    function playAlert(id) {
+      var t = getTimer(id);
+      if (!t) return;
+      var c = document.getElementById('sound-select').value;
+      if (c === 'mute') return;
+
+      playOnce(c);  /* play immediately */
+
+      /* store the interval on the timer object — not a global variable.
+         This is what lets each timer's Stop Alert button silence only that timer. */
+      t.alertInterval = setInterval(function() {
+        playOnce(c);  /* repeat every 3 seconds */
+      }, 3000);
+
+      /* auto-stop this timer's alert after 30 seconds */
+      setTimeout(function() {
+        stopAlert(id);
+      }, 30000);
+
+      renderAll();  /* rebuild so the Stop Alert button appears on this row */
+    }
+
+function playOnce(c) {
+  var ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (c === 'chime') {
+    playTone(ctx, 880, 0, 1.2, 'sine');
+  } else if (c === 'beep') {
+    playTone(ctx, 660, 0, 0.15, 'square');
+    playTone(ctx, 660, 0.2, 0.15, 'square');
+  }
+}
+
+    /* STOP ALERT — silences the repeating alert for one specific timer.
+       Takes the timer id so only that timer's interval is cleared,
+       leaving any other timers' alerts running. */
+    function stopAlert(id) {
+      var t = getTimer(id);
+      if (!t) return;
+      clearInterval(t.alertInterval);  /* stop only this timer's interval */
+      t.alertInterval = null;           /* reset to null so the button disappears from this row */
+      renderAll();
+    }
+
+    /* PLAY TONE — creates and schedules a single tone using the Web Audio API
+       ctx       — the AudioContext created in playAlert()
+       frequency — the pitch in Hz (660 = E5, 880 = A5)
+       startTime — seconds from now when the tone begins (0 = immediately)
+       duration  — how long the tone lasts in seconds
+       type      — the waveform shape: 'sine' (smooth/musical) or 'square' (buzzy) */
+    function playTone(ctx, frequency, startTime, duration, type) {
+
+      /* Create the oscillator — generates the raw tone */
+      var osc = ctx.createOscillator();
+      osc.type            = type;       /* wave shape */
+      osc.frequency.value = frequency;  /* pitch in Hz */
+
+      /* Create the gain node — controls volume.
+         We use it to fade the tone out so it doesn't cut off abruptly. */
+      var gain = ctx.createGain();
+
+      /* setValueAtTime(value, time) — set gain to 0.4 (40% volume) at the start time
+         ctx.currentTime is the AudioContext's clock — the current moment in audio time */
+      gain.gain.setValueAtTime(0.4, ctx.currentTime + startTime);
+
+      /* exponentialRampToValueAtTime — smoothly fades volume to near-zero over the duration.
+         Cannot ramp to exactly 0 (exponential ramp is asymptotic) so 0.001 is used instead.
+         This creates a natural fade-out rather than an abrupt cutoff. */
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+
+      /* Connect the signal chain: oscillator → gain → speakers */
+      osc.connect(gain);
+      gain.connect(ctx.destination);  /* ctx.destination = the device's audio output (speakers/headphones) */
+
+      /* Schedule the tone — start() and stop() use AudioContext time, not wall-clock time.
+         This ensures precise timing even if the browser is under load. */
+      osc.start(ctx.currentTime + startTime);
+      osc.stop(ctx.currentTime + startTime + duration);
+    }
+
+
+    /* -----------------------------------------------------------
+     * ALARMS STATE AND FUNCTIONS
+     * -----------------------------------------------------------
+     * Each alarm is a plain object stored in the alarms[] array:
+     *   {
+     *     id:        unique number from Date.now()
+     *     timeStr:   "HH:MM" in 24-hour format (what <input type="time"> gives us)
+     *     label:     optional string entered by the user
+     *     firing:    boolean — true while the alarm sound is actively playing
+     *     interval:  setInterval reference for the repeating sound, or null
+     *   }
+     *
+     * A single setInterval (alarmChecker) runs every 10 seconds and compares
+     * the current clock time against each alarm's timeStr. When they match,
+     * the alarm fires. Using a 10-second check window means the alarm fires
+     * even if the tab was in the background when the exact minute ticked over.
+     * ----------------------------------------------------------- */
+
+    var alarms        = [];   /* array of alarm objects */
+    var alarmChecker  = null; /* setInterval reference for the clock-check loop */
+
+    /* FORMAT 24H TO 12H — converts "14:30" to "2:30 PM"
+       The <input type="time"> always gives 24-hour strings internally.
+       We convert for display so it matches the 12-hour format preference. */
+    function format12h(timeStr) {
+      /* timeStr is always "HH:MM" from the input element */
+      var parts = timeStr.split(':');         /* split on the colon → ["14", "30"] */
+      var h     = parseInt(parts[0], 10);    /* parseInt converts string to integer; 10 = decimal base */
+      var m     = parts[1];                  /* minutes string, already padded ("30") */
+      var ampm  = h >= 12 ? 'PM' : 'AM';    /* ternary: condition ? value-if-true : value-if-false */
+      var h12   = h % 12 || 12;             /* % 12 converts to 12-hour; || 12 handles midnight (0 → 12) */
+      return h12 + ':' + m + ' ' + ampm;    /* e.g. "2:30 PM" */
+    }
+
+    /* ADD ALARM — reads the three select inputs, converts to 24-hour HH:MM, and
+       pushes a new alarm object into alarms[].
+       Three separate selects replace the native <input type="time"> so that
+       clicking anywhere opens the picker without fiddly segment-clicking. */
+    function addAlarm() {
+      /* read the three select values */
+      var h    = parseInt(document.getElementById("alarm-hour").value,   10);
+      var m    = document.getElementById("alarm-minute").value;   /* already "00"-"59" */
+      var ampm = document.getElementById("alarm-ampm").value;     /* "AM" or "PM" */
+
+      /* convert 12-hour to 24-hour for storage and comparison.
+         12 AM = midnight = 00, 12 PM = noon = 12.
+         All other hours: add 12 for PM, keep as-is for AM. */
+      var h24;
+      if (ampm === "AM") {
+        h24 = (h === 12) ? 0 : h;   /* 12 AM → 00, 1-11 AM → 1-11 */
+      } else {
+        h24 = (h === 12) ? 12 : h + 12;  /* 12 PM → 12, 1-11 PM → 13-23 */
+      }
+      var timeVal  = pad(h24) + ":" + m;  /* e.g. "14:30" — pad() zero-pads to 2 digits */
+      var labelVal = document.getElementById("alarm-label-input").value.trim();
+
+      /* check for an exact duplicate time */
+      var duplicate = alarms.some(function(a) { return a.timeStr === timeVal; });
+      if (duplicate) {
+        alert("An alarm is already set for " + format12h(timeVal) + ".");
+        return;
+      }
+
+      alarms.push({
+        id:          Date.now(),
+        timeStr:     timeVal,   /* "HH:MM" 24-hour — used for clock comparison */
+        label:       labelVal,
+        firing:      false,
+        interval:    null,
+        firedMinute: ""         /* records "HH:MM" when alarm last fired;
+                                   prevents re-firing within the same minute
+                                   after the user manually stops the sound */
+      });
+
+      /* reset selects back to defaults (1, 00, AM) */
+      document.getElementById("alarm-hour").selectedIndex   = 0;
+      document.getElementById("alarm-minute").selectedIndex = 0;
+      document.getElementById("alarm-ampm").selectedIndex   = 0;
+      document.getElementById("alarm-label-input").value    = "";
+
+      startAlarmChecker();
+      renderAlarms();
+    }
+
+    /* DELETE ALARM — removes one alarm by id and stops it if it was firing */
+    function deleteAlarm(id) {
+      var alarm = alarms.find(function(a) { return a.id === id; });
+      /* Array.find() returns the first item that passes the test, or undefined */
+      if (alarm && alarm.firing) {
+        stopAlarmSound(id);  /* silence before removing */
+      }
+      alarms = alarms.filter(function(a) { return a.id !== id; });
+      /* Array.filter() returns a new array containing only items that pass the test.
+         a.id !== id keeps everything EXCEPT the one we are deleting. */
+
+      /* if no alarms remain, stop the clock-check loop to save resources */
+      if (alarms.length === 0) stopAlarmChecker();
+
+      renderAlarms();
+    }
+
+    /* STOP ALARM SOUND — silences a specific firing alarm without deleting it.
+       The alarm stays in the list but goes quiet and loses the firing state. */
+    function stopAlarmSound(id) {
+      var alarm = alarms.find(function(a) { return a.id === id; });
+      if (!alarm) return;
+      clearInterval(alarm.interval);  /* stop the repeating sound */
+      alarm.interval = null;
+      alarm.firing   = false;
+      renderAlarms();
+    }
+
+    /* FIRE ALARM — called when the clock matches an alarm's time.
+       Plays the selected sound every 3 seconds (same cadence as the timer alert),
+       and auto-stops after 60 seconds if the user does not dismiss it manually. */
+    function fireAlarm(id) {
+      var alarm = alarms.find(function(a) { return a.id === id; });
+      if (!alarm || alarm.firing) return;
+
+      /* record which minute this alarm fired on.
+         checkAlarms() checks alarm.firedMinute !== nowStr before firing,
+         so if the user stops the sound manually, the alarm will not
+         re-trigger on the next 10-second check within the same minute. */
+      var now = new Date();
+      alarm.firedMinute = pad(now.getHours()) + ":" + pad(now.getMinutes());
+
+      alarm.firing = true;
+
+      var c = document.getElementById("sound-select").value;
+      if (c !== "mute") {
+        playOnce(c);
+
+        alarm.interval = setInterval(function() {
+          playOnce(c);
+        }, 3000);
+
+        setTimeout(function() {
+          stopAlarmSound(id);
+        }, 60000);
+      }
+
+      renderAlarms();
+    }
+
+    /* START ALARM CHECKER — begins the periodic clock-check loop.
+       Checks every 10 seconds rather than every second to be lightweight.
+       A 10-second window means we catch alarms even if the tab was briefly
+       in the background when the exact minute boundary crossed. */
+    function startAlarmChecker() {
+      if (alarmChecker) return;  /* already running — do not create a second loop */
+      alarmChecker = setInterval(checkAlarms, 10000);
+      checkAlarms();  /* also check immediately so a just-set alarm works right away */
+    }
+
+    /* STOP ALARM CHECKER — clears the loop when no alarms remain */
+    function stopAlarmChecker() {
+      clearInterval(alarmChecker);
+      alarmChecker = null;
+    }
+
+    /* CHECK ALARMS — compares the current time against every alarm's timeStr.
+       Called every 10 seconds by alarmChecker, and once immediately when an alarm is added. */
+    function checkAlarms() {
+      /* Get the current time as "HH:MM" in 24-hour format.
+         new Date() creates an object representing the current moment.
+         getHours() returns 0-23; getMinutes() returns 0-59.
+         pad() zero-pads to two digits so "9:05" becomes "09:05". */
+      var now   = new Date();
+      var nowHH = pad(now.getHours());
+      var nowMM = pad(now.getMinutes());
+      var nowStr = nowHH + ':' + nowMM;  /* e.g. "14:30" */
+
+      alarms.forEach(function(alarm) {
+        /* Fire if the current minute matches and this alarm is not already firing.
+           String comparison works here because both sides are always "HH:MM". */
+        /* Three conditions must ALL be true before firing:
+           1. timeStr matches the current minute
+           2. not already firing (avoids double-start)
+           3. firedMinute differs from now — this is the re-fire fix.
+              After the user manually stops the sound, firing becomes false
+              but firedMinute still holds the current minute string.
+              The mismatch check prevents checkAlarms from re-triggering
+              the alarm on subsequent 10-second ticks within the same minute. */
+        if (alarm.timeStr === nowStr && !alarm.firing && alarm.firedMinute !== nowStr) {
+          fireAlarm(alarm.id);
+        }
+      });
+    }
+
+    /* RENDER ALARMS — rebuilds the alarm list in the DOM from the alarms[] array.
+       Same wipe-and-rebuild pattern used by renderAll() for the timer list. */
+    function renderAlarms() {
+      var list  = document.getElementById('alarm-list');
+      var empty = document.getElementById('alarm-empty');
+      list.innerHTML = '';  /* wipe before rebuilding */
+
+      if (alarms.length === 0) {
+        empty.style.display = '';   /* show the empty message */
+        return;
+      }
+      empty.style.display = 'none'; /* hide it — we have rows to show */
+
+      /* sort alarms by time so they always appear in chronological order */
+      var sorted = alarms.slice().sort(function(a, b) {
+        return a.timeStr < b.timeStr ? -1 : a.timeStr > b.timeStr ? 1 : 0;
+        /* string comparison works for "HH:MM" because the format is zero-padded and fixed-width */
+      });
+
+      sorted.forEach(function(alarm) {
+        var row = document.createElement('div');
+        row.className = 'alarm-row' + (alarm.firing ? ' firing' : '');
+        /* CSS .alarm-row.firing adds the amber pulsing border */
+
+        /* build inner HTML for the row:
+             .alarm-time  — the 12-hour formatted time
+             .alarm-label — optional user label (hidden if empty)
+             .alarm-firing-badge — "Firing!" text shown only while sounding
+             buttons — Stop (when firing) or Delete */
+        var labelHtml  = alarm.label
+          ? '<span class="alarm-label">' + escapeHtmlAlarm(alarm.label) + '</span>'
+          : '<span class="alarm-label"></span>';
+          /* escapeHtmlAlarm prevents user-typed label text from breaking the HTML */
+
+        var badgeHtml  = alarm.firing
+          ? '<span class="alarm-firing-badge">Sounding…</span>'
+          : '';
+
+        var stopBtn    = alarm.firing
+          ? '<button class="btn-secondary" onclick="stopAlarmSound(' + alarm.id + ')">Stop</button>'
+          : '';
+
+        row.innerHTML =
+          '<span class="alarm-time">'  + format12h(alarm.timeStr) + '</span>' +
+          labelHtml +
+          badgeHtml +
+          stopBtn +
+          '<button class="btn-secondary" onclick="deleteAlarm(' + alarm.id + ')">Delete</button>';
+
+        list.appendChild(row);
+      });
+    }
+
+    /* ESCAPE HTML — prevents user-typed label text from injecting HTML into the DOM.
+       Same safety function used in the flashcard app; duplicated here to keep this
+       file self-contained. */
+    function escapeHtmlAlarm(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+
+    /* -----------------------------------------------------------
+     * STOPWATCH STATE AND FUNCTIONS
+     * -----------------------------------------------------------
+     * The stopwatch is independent from the timers array.
+     * It counts UP from zero rather than down from a set duration.
+     * State lives in three simple variables rather than an object
+     * because there is only ever one stopwatch.
+     * ----------------------------------------------------------- */
+
+    /* STOPWATCH STATE
+       Two variables replace the old single swElapsed integer:
+
+       swElapsedMs  — accumulated milliseconds banked from completed runs.
+                      When you pause, we add the just-completed run's duration here.
+                      When you resume, we start a fresh run on top of this total.
+                      This lets the display pick up exactly where it left off after pausing.
+
+       swStartTime  — the wall-clock timestamp (from Date.now()) recorded the moment
+                      the stopwatch was last started or resumed.
+                      Date.now() returns the current time as milliseconds since
+                      Jan 1 1970 — a large integer like 1700000000000.
+
+       Why track wall-clock time instead of counting ticks?
+       setInterval is not perfectly precise — the browser can delay a tick by a few ms
+       if the tab is busy. If we incremented a counter on every tick, those small delays
+       would accumulate into visible drift over minutes.
+       Instead, on every tick we compute:
+         live total = swElapsedMs + (Date.now() - swStartTime)
+       This always reflects the actual real-world time elapsed, regardless of
+       how many ticks fired or how late they were. */
+
+    var swRunning   = false; /* true when stopwatch is actively ticking */
+    var swElapsedMs = 0;     /* banked milliseconds from completed runs */
+    var swStartTime = null;  /* Date.now() snapshot taken when last started */
+    var swInterval  = null;  /* setInterval reference — null when not running */
+
+    /* TOGGLE STOPWATCH — start or pause */
+    function toggleStopwatch() {
+      if (swRunning) {
+        /* PAUSING — bank how long this run lasted into swElapsedMs.
+           Date.now() - swStartTime = how many ms have passed since we last started.
+           Adding that to swElapsedMs gives the running total so far. */
+        swElapsedMs += Date.now() - swStartTime;
+        clearInterval(swInterval);
+        swInterval = null;
+        swRunning  = false;
+        document.getElementById('btn-sw').textContent = 'Resume';
+      } else {
+        /* STARTING or RESUMING — snapshot the current wall-clock time.
+           swTick() will subtract this from Date.now() on each tick to get
+           how long the current run has been going. */
+        swStartTime = Date.now();
+        swRunning   = true;
+        document.getElementById('btn-sw').textContent = 'Pause';
+        /* Fire every 10ms — gives us centisecond (1/100 second) precision.
+           10ms is fast enough to look smooth without taxing the CPU. */
+        swInterval = setInterval(swTick, 10);
+      }
+    }
+
+    /* STOPWATCH TICK — recomputes elapsed time from wall clock and updates the display */
+    function swTick() {
+      /* total milliseconds elapsed across all runs including the current one */
+      var now = swElapsedMs + (Date.now() - swStartTime);
+
+      /* break the total ms down into display units.
+         Math.floor() truncates to integer (no rounding up).
+         % is the modulo operator — gives the remainder after division.
+           now % 1000         = ms within the current second  (0–999)
+           Math.floor(x / 10) = convert to centiseconds       (0–99)
+           now / 1000 % 60    = seconds within the minute     (0–59)
+           now / 60000 % 60   = minutes within the hour       (0–59)
+           now / 3600000      = whole hours                   (0+)   */
+      var cs = Math.floor((now % 1000) / 10);   /* centiseconds: 0–99 */
+      var s  = Math.floor(now / 1000)  % 60;    /* seconds:       0–59 */
+      var m  = Math.floor(now / 60000) % 60;    /* minutes:       0–59 */
+      var h  = Math.floor(now / 3600000);        /* hours:         0+  */
+
+      /* build the display string.
+         pad() is already defined in the file — it zero-pads a number to 2 digits:
+           pad(5)  → "05"
+           pad(12) → "12"
+         The centiseconds column also gets zero-padded via pad().
+         Hours are only shown when the stopwatch has reached 1 hour or more. */
+      var display = (h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s))
+                    + '.' + pad(cs);
+      /* example outputs:
+           "00:00.00"  — just started
+           "01:23.45"  — 1 minute 23.45 seconds
+           "1:00:00.00" — exactly 1 hour  */
+
+      document.getElementById('sw-display').textContent = display;
+
+      /* update progress bar — fills over a 60-minute (3,600,000 ms) window.
+         % 3600000 gives the remainder so the bar cycles visually every hour
+         rather than stopping at 100% and staying there. */
+      document.getElementById('sw-fill').style.width =
+        ((now % 3600000) / 3600000 * 100) + '%';
+    }
+
+    /* RESET STOPWATCH — stops and clears everything back to zero */
+    function resetStopwatch() {
+      clearInterval(swInterval);
+      swInterval  = null;
+      swRunning   = false;
+      swElapsedMs = 0;      /* clear banked time */
+      swStartTime = null;   /* clear the wall-clock snapshot */
+      document.getElementById('sw-display').textContent = '00:00.00';
+      document.getElementById('sw-fill').style.width    = '0%';
+      document.getElementById('btn-sw').textContent     = 'Start';
+    }
+
+
+    /* -----------------------------------------------------------
+
+    /* -----------------------------------------------------------
+     * BUILD ALARM SELECTS
+     * -----------------------------------------------------------
+     * Populates the hour (1-12) and minute (00-59) option lists
+     * for the custom alarm time picker.
+     * Called once at startup — the elements exist in the HTML by
+     * the time this script runs (script is at bottom of body). */
+    function buildAlarmSelects() {
+      var hourSel = document.getElementById("alarm-hour");
+      var minSel  = document.getElementById("alarm-minute");
+
+      /* add options 1 through 12 for the hour column */
+      for (var h = 1; h <= 12; h++) {
+        var opt = document.createElement("option");
+        opt.value       = h;      /* integer stored as select value */
+        opt.textContent = h;      /* displayed without zero-padding */
+        hourSel.appendChild(opt);
+      }
+
+      /* add options 00 through 59 for the minute column.
+         pad() zero-pads single digits so 5 becomes "05". */
+      for (var m = 0; m < 60; m++) {
+        var opt = document.createElement("option");
+        opt.value       = pad(m);
+        opt.textContent = pad(m);
+        minSel.appendChild(opt);
+      }
+    }
+
+
+    /* -----------------------------------------------------------
+     * STARTUP
+     * -----------------------------------------------------------
+     * Runs once on page load after all functions are defined. */
+    renderAll();
+    buildAlarmSelects();  /* populate the hour and minute dropdowns */
+
+    /* -----------------------------------------------------------
+     * SESSIONS — data, builder, and execution
+     * -----------------------------------------------------------
+     * A session is a named sequence of timed segments.
+     * Builder mode: user adds/edits/reorders segments.
+     * Execution mode: overlay modal runs through them in order.
+     * ----------------------------------------------------------- */
+
+    /* SEGMENT COLOR PALETTE — 5 curated colors from the app palette */
+    var SESS_COLORS = {
+      blue:   { bg: '#B5D4F4', text: '#0C447C', fill: '#378ADD' },
+      teal:   { bg: '#9FE1CB', text: '#085041', fill: '#1D9E75' },
+      amber:  { bg: '#FAC775', text: '#633806', fill: '#BA7517' },
+      coral:  { bg: '#F5C4B3', text: '#712B13', fill: '#D85A30' },
+      purple: { bg: '#CECBF6', text: '#3C3489', fill: '#534AB7' }
+    };
+
+    var SESS_COLOR_KEYS = ['blue', 'teal', 'amber', 'coral', 'purple'];
+
+    /* Builder state */
+    var sessionSegments   = [];   /* array of segment objects */
+    var sessColorPopupOpen = null; /* id of segment whose popup is open, or null */
+
+    /* Execution state */
+    var sessRunning       = false;
+    var sessPaused        = false;
+    var sessCurrentIdx    = 0;
+    var sessSegRemaining  = 0;   /* seconds left in current segment */
+    var sessTotalRemaining = 0;  /* seconds left in entire session */
+    var sessInterval      = null;
+    var sessAlertActive   = false;
+    var sessAlertInterval = null;
+
+
+    /* -----------------------------------------------------------
+     * ADD SEGMENT
+     * ----------------------------------------------------------- */
+    function addSegment() {
+      var colorKey = SESS_COLOR_KEYS[sessionSegments.length % SESS_COLOR_KEYS.length];
+      sessionSegments.push({
+        id:      Date.now(),
+        title:   '',
+        desc:    '',
+        minutes: 5,
+        seconds: 0,
+        color:   colorKey
+      });
+      renderSessionBuilder();
+    }
+
+
+    /* -----------------------------------------------------------
+     * REMOVE SEGMENT
+     * ----------------------------------------------------------- */
+    function removeSegment(id) {
+      sessionSegments = sessionSegments.filter(function(s) { return s.id !== id; });
+      renderSessionBuilder();
+    }
+
+
+    /* -----------------------------------------------------------
+     * SYNC SEGMENT FIELDS — called oninput/onchange on the inputs
+     * ----------------------------------------------------------- */
+    function syncSegTitle(id) {
+      var seg = getSegment(id);
+      if (!seg) return;
+      var el = document.getElementById('seg-title-' + id);
+      if (el) seg.title = el.value;
+      renderSessionTimeline();
+    }
+
+    function syncSegDesc(id) {
+      var seg = getSegment(id);
+      if (!seg) return;
+      var el = document.getElementById('seg-desc-' + id);
+      if (el) seg.desc = el.value;
+    }
+
+    function syncSegTime(id) {
+      var seg = getSegment(id);
+      if (!seg) return;
+      var mEl = document.getElementById('seg-min-' + id);
+      var sEl = document.getElementById('seg-sec-' + id);
+      seg.minutes = parseInt(mEl ? mEl.value : 0) || 0;
+      seg.seconds = parseInt(sEl ? sEl.value : 0) || 0;
+      renderSessionTimeline();
+    }
+
+    function setSegPreset(id, totalSecs) {
+      var seg = getSegment(id);
+      if (!seg) return;
+      seg.minutes = Math.floor(totalSecs / 60);
+      seg.seconds = totalSecs % 60;
+      var mEl = document.getElementById('seg-min-' + id);
+      var sEl = document.getElementById('seg-sec-' + id);
+      if (mEl) mEl.value = seg.minutes;
+      if (sEl) sEl.value = seg.seconds;
+      renderSessionTimeline();
+    }
+
+
+    /* -----------------------------------------------------------
+     * COLOR PICKER
+     * ----------------------------------------------------------- */
+    function toggleColorPopup(id) {
+      if (sessColorPopupOpen === id) {
+        sessColorPopupOpen = null;
+      } else {
+        sessColorPopupOpen = id;
+      }
+      renderSessionBuilder();
+    }
+
+    function setSegColor(id, colorKey) {
+      var seg = getSegment(id);
+      if (!seg) return;
+      seg.color = colorKey;
+      sessColorPopupOpen = null;
+      renderSessionBuilder();
+    }
+
+    /* Close popup when clicking outside */
+    document.addEventListener('click', function(e) {
+      if (sessColorPopupOpen !== null) {
+        if (!e.target.closest('.sess-color-btn')) {
+          sessColorPopupOpen = null;
+          renderSessionBuilder();
+        }
+      }
+    });
+
+
+    /* -----------------------------------------------------------
+     * GET SEGMENT — utility lookup
+     * ----------------------------------------------------------- */
+    function getSegment(id) {
+      for (var i = 0; i < sessionSegments.length; i++) {
+        if (sessionSegments[i].id === id) return sessionSegments[i];
+      }
+      return null;
+    }
+
+
+    /* -----------------------------------------------------------
+     * SEGMENT TOTAL SECONDS helper
+     * ----------------------------------------------------------- */
+    function segTotalSecs(seg) {
+      return seg.minutes * 60 + seg.seconds;
+    }
+
+
+    /* -----------------------------------------------------------
+     * SESSION TOTAL SECONDS
+     * ----------------------------------------------------------- */
+    function sessionTotalSecs() {
+      var total = 0;
+      sessionSegments.forEach(function(s) { total += segTotalSecs(s); });
+      return total;
+    }
+
+
+    /* -----------------------------------------------------------
+     * FORMAT SECONDS to m:ss or h:mm:ss
+     * ----------------------------------------------------------- */
+    function fmtSecs(sec) {
+      var h = Math.floor(sec / 3600);
+      var m = Math.floor((sec % 3600) / 60);
+      var s = sec % 60;
+      return h > 0
+        ? h + ':' + pad(m) + ':' + pad(s)
+        : m + ':' + pad(s);
+    }
+
+
+    /* -----------------------------------------------------------
+     * RENDER SESSION BUILDER — rebuilds the segment cards
+     * ----------------------------------------------------------- */
+    function renderSessionBuilder() {
+      var list = document.getElementById('sess-seg-list');
+      if (!list) return;
+      list.innerHTML = '';
+
+      sessionSegments.forEach(function(seg, idx) {
+        var c = SESS_COLORS[seg.color] || SESS_COLORS.blue;
+
+        var card = document.createElement('div');
+        card.className = 'sess-seg-card';
+
+        /* Build color popup HTML if this segment's popup is open */
+        var popupHtml = '';
+        if (sessColorPopupOpen === seg.id) {
+          popupHtml = '<div class="color-popup" onclick="event.stopPropagation()">';
+          SESS_COLOR_KEYS.forEach(function(key) {
+            var sc = SESS_COLORS[key];
+            var selected = seg.color === key ? ' selected' : '';
+            popupHtml += '<div class="color-swatch' + selected + '"'
+              + ' style="background:' + sc.bg + ';border-color:' + (selected ? sc.text : 'transparent') + '"'
+              + ' onclick="setSegColor(' + seg.id + ',\'' + key + '\')" title="' + key + '"></div>';
+          });
+          popupHtml += '</div>';
+        }
+
+        var presetHtml = '';
+        [[1,60],[2,120],[5,300],[10,600],[15,900]].forEach(function(p) {
+          presetHtml += '<button class="btn-preset" onclick="setSegPreset(' + seg.id + ',' + p[1] + ')">' + p[0] + ' min</button>';
+        });
+
+        card.innerHTML =
+          '<div class="sess-seg-head">'
+          + '<button class="sess-color-btn" style="background:' + c.bg + ';color:' + c.text + '"'
+          +   ' onclick="toggleColorPopup(' + seg.id + ');event.stopPropagation();"'
+          +   ' title="Change color">'
+          +   (idx + 1)
+          +   popupHtml
+          + '</button>'
+          + '<input class="sess-seg-title-input" id="seg-title-' + seg.id + '"'
+          +   ' type="text" value="' + escA(seg.title) + '"'
+          +   ' placeholder="Segment name..." maxlength="50"'
+          +   ' oninput="syncSegTitle(' + seg.id + ')" />'
+          + '<button class="sess-seg-remove" onclick="removeSegment(' + seg.id + ')">Remove</button>'
+          + '</div>'
+          + '<textarea class="sess-seg-desc-input" id="seg-desc-' + seg.id + '"'
+          +   ' rows="2" placeholder="Describe what students should do during this segment..."'
+          +   ' oninput="syncSegDesc(' + seg.id + ')">' + escA(seg.desc) + '</textarea>'
+          + '<div class="sess-seg-foot">'
+          +   '<div class="sess-dur-label">Duration</div>'
+          +   '<div class="sess-dur-inputs">'
+          +     '<input type="number" id="seg-min-' + seg.id + '" value="' + seg.minutes + '" min="0" max="99"'
+          +       ' onchange="syncSegTime(' + seg.id + ')" onfocus="this.select()" />'
+          +     '<span class="sess-dur-sep">m</span>'
+          +     '<input type="number" id="seg-sec-' + seg.id + '" value="' + pad(seg.seconds) + '" min="0" max="59"'
+          +       ' onchange="syncSegTime(' + seg.id + ')" onfocus="this.select()" />'
+          +     '<span class="sess-dur-sep">s</span>'
+          +   '</div>'
+          +   '<div class="sess-presets">' + presetHtml + '</div>'
+          + '</div>';
+
+        list.appendChild(card);
+      });
+
+      renderSessionTimeline();
+      renderSessionValidation();
+    }
+
+
+    /* -----------------------------------------------------------
+     * RENDER TIMELINE PREVIEW
+     * ----------------------------------------------------------- */
+    function renderSessionTimeline() {
+      var track   = document.getElementById('sess-tl-track');
+      var markers = document.getElementById('sess-tl-markers');
+      var pill    = document.getElementById('sess-total-pill');
+      if (!track) return;
+
+      var total = sessionTotalSecs();
+
+      /* Update total pill */
+      if (pill) pill.innerHTML = 'Total — <span>' + fmtSecs(total) + '</span>';
+
+      if (sessionSegments.length === 0 || total === 0) {
+        track.innerHTML = '<div class="sess-tl-empty">Add segments to see the timeline</div>';
+        if (markers) markers.innerHTML = '';
+        return;
+      }
+
+      var trackHtml   = '';
+      var markersHtml = '';
+      var elapsed     = 0;
+
+      /* Start marker */
+      markersHtml += '<span>0:00</span>';
+
+      sessionSegments.forEach(function(seg) {
+        var c   = SESS_COLORS[seg.color] || SESS_COLORS.blue;
+        var dur = segTotalSecs(seg);
+        var pct = total > 0 ? (dur / total * 100) : 0;
+        var label = seg.title || ('Seg ' + (sessionSegments.indexOf(seg) + 1));
+
+        trackHtml += '<div class="sess-tl-seg"'
+          + ' style="width:' + pct.toFixed(2) + '%;background:' + c.bg + ';color:' + c.text + '">'
+          + label
+          + '</div>';
+
+        elapsed += dur;
+        markersHtml += '<span>' + fmtSecs(elapsed) + '</span>';
+      });
+
+      track.innerHTML   = trackHtml;
+      if (markers) markers.innerHTML = markersHtml;
+    }
+
+
+    /* -----------------------------------------------------------
+     * RENDER VALIDATION
+     * ----------------------------------------------------------- */
+    function renderSessionValidation() {
+      var el  = document.getElementById('sess-validation');
+      var btn = document.getElementById('sess-start-btn');
+      if (!el) return;
+
+      var total = sessionTotalSecs();
+
+      if (sessionSegments.length === 0) {
+        el.textContent = 'Add at least one segment to begin.';
+        el.className   = 'sess-validation';
+      } else if (total === 0) {
+        el.textContent = 'Set a duration for at least one segment.';
+        el.className   = 'sess-validation warn';
+      } else {
+        el.textContent = 'Segments total ' + fmtSecs(total) + ' — ready to start.';
+        el.className   = 'sess-validation ok';
+      }
+    }
+
+
+    /* -----------------------------------------------------------
+     * CLEAR SESSION
+     * ----------------------------------------------------------- */
+    function clearSession() {
+      sessionSegments = [];
+      var nameEl = document.getElementById('sess-name');
+      if (nameEl) nameEl.value = '';
+      renderSessionBuilder();
+    }
+
+
+    /* -----------------------------------------------------------
+     * START SESSION — switches to execution modal
+     * ----------------------------------------------------------- */
+    function startSession() {
+      if (sessionSegments.length === 0 || sessionTotalSecs() === 0) return;
+
+      sessCurrentIdx     = 0;
+      sessTotalRemaining = sessionTotalSecs();
+      sessSegRemaining   = segTotalSecs(sessionSegments[0]);
+      sessRunning        = true;
+      sessPaused         = false;
+
+      /* Show the name in the modal */
+      var nameEl = document.getElementById('sess-name');
+      var execName = document.getElementById('sess-exec-name');
+      if (execName) execName.textContent = (nameEl && nameEl.value) ? nameEl.value : 'Session';
+
+      renderSessionExecModal();
+      document.getElementById('sess-overlay').style.display = 'flex';
+
+      sessInterval = setInterval(sessTickFn, 1000);
+    }
+
+
+    /* -----------------------------------------------------------
+     * TICK — called every second during execution
+     * ----------------------------------------------------------- */
+    function sessTickFn() {
+      if (sessPaused || !sessRunning) return;
+
+      sessSegRemaining--;
+      sessTotalRemaining--;
+
+      if (sessSegRemaining <= 0) {
+        /* Segment finished */
+        sessSegRemaining = 0;
+        playSessionAlert();
+
+        sessCurrentIdx++;
+
+        if (sessCurrentIdx >= sessionSegments.length) {
+          /* All segments done */
+          sessRunning = false;
+          clearInterval(sessInterval);
+          sessInterval = null;
+          renderSessionExecModal();
+          return;
+        }
+
+        /* Advance to next segment */
+        sessSegRemaining = segTotalSecs(sessionSegments[sessCurrentIdx]);
+      }
+
+      renderSessionExecModal();
+    }
+
+
+    /* -----------------------------------------------------------
+     * TOGGLE PAUSE
+     * ----------------------------------------------------------- */
+    function toggleSessionPause() {
+      sessPaused = !sessPaused;
+      var btn = document.getElementById('sess-exec-pause-btn');
+      if (btn) btn.textContent = sessPaused ? 'Resume' : 'Pause';
+      var banner = document.getElementById('sess-paused-banner');
+      if (banner) banner.style.display = sessPaused ? '' : 'none';
+    }
+
+
+    /* -----------------------------------------------------------
+     * END SESSION
+     * ----------------------------------------------------------- */
+    function endSession() {
+      clearInterval(sessInterval);
+      sessInterval  = null;
+      sessRunning   = false;
+      sessPaused    = false;
+      silenceSessionAlert();
+      document.getElementById('sess-overlay').style.display = 'none';
+    }
+
+
+    /* -----------------------------------------------------------
+     * PLAY SESSION ALERT
+     * ----------------------------------------------------------- */
+    function playSessionAlert() {
+      var c = document.getElementById('sound-select') ? document.getElementById('sound-select').value : 'chime';
+      if (c === 'mute') return;
+
+      sessAlertActive = true;
+      renderSessionExecModal();
+      playOnce(c);
+
+      sessAlertInterval = setInterval(function() {
+        playOnce(c);
+      }, 3000);
+
+      setTimeout(function() {
+        silenceSessionAlert();
+      }, 15000);
+    }
+
+
+    /* -----------------------------------------------------------
+     * SILENCE SESSION ALERT
+     * ----------------------------------------------------------- */
+    function silenceSessionAlert() {
+      clearInterval(sessAlertInterval);
+      sessAlertInterval = null;
+      sessAlertActive   = false;
+      var btn = document.getElementById('sess-silence-btn');
+      if (btn) btn.style.display = 'none';
+    }
+
+
+    /* -----------------------------------------------------------
+     * RENDER EXECUTION MODAL — updates all live elements
+     * ----------------------------------------------------------- */
+    function renderSessionExecModal() {
+      var seg = sessionSegments[sessCurrentIdx];
+      if (!seg && sessRunning) return;
+
+      var isFinished = !sessRunning && sessCurrentIdx >= sessionSegments.length;
+
+      /* Total remaining */
+      var totalEl = document.getElementById('sess-exec-total');
+      if (totalEl) totalEl.textContent = fmtSecs(Math.max(sessTotalRemaining, 0));
+
+      /* Segment label */
+      var labelEl = document.getElementById('sess-exec-seg-label');
+      if (labelEl) labelEl.textContent = isFinished
+        ? 'Session complete'
+        : 'Segment ' + (sessCurrentIdx + 1) + ' of ' + sessionSegments.length;
+
+      /* Badge */
+      var badgeEl = document.getElementById('sess-exec-seg-badge');
+      if (badgeEl) {
+        if (isFinished) {
+          badgeEl.textContent = 'done';
+          badgeEl.style.background = '#E1F5EE';
+          badgeEl.style.color      = '#085041';
+        } else if (sessPaused) {
+          badgeEl.textContent = 'paused';
+          badgeEl.style.background = '#F1EFE8';
+          badgeEl.style.color      = '#9e9080';
+        } else {
+          badgeEl.textContent = 'now running';
+          badgeEl.style.background = '#E1F5EE';
+          badgeEl.style.color      = '#085041';
+        }
+      }
+
+      if (!isFinished && seg) {
+        var c = SESS_COLORS[seg.color] || SESS_COLORS.blue;
+        var segTotal = segTotalSecs(seg);
+        var isWarning = sessSegRemaining <= 30 && sessSegRemaining > 0;
+
+        /* Countdown */
+        var cdEl = document.getElementById('sess-exec-countdown');
+        if (cdEl) {
+          cdEl.textContent = fmtSecs(sessSegRemaining);
+          cdEl.className   = 'sess-exec-countdown' + (isWarning ? ' warning' : '');
+        }
+
+        /* Name + desc */
+        var nameEl2 = document.getElementById('sess-exec-seg-name');
+        var descEl  = document.getElementById('sess-exec-seg-desc');
+        if (nameEl2) nameEl2.textContent = seg.title || ('Segment ' + (sessCurrentIdx + 1));
+        if (descEl)  descEl.textContent  = seg.desc || '';
+
+        /* Progress fill */
+        var fillEl = document.getElementById('sess-exec-fill');
+        if (fillEl) {
+          var pct = segTotal > 0 ? (sessSegRemaining / segTotal * 100) : 0;
+          fillEl.style.width      = pct + '%';
+          fillEl.style.background = c.fill;
+          fillEl.className        = 'sess-exec-fill' + (isWarning ? ' warning' : '');
+        }
+
+        /* Segment total label */
+        var segTotalLbl = document.getElementById('sess-exec-seg-total-label');
+        if (segTotalLbl) segTotalLbl.textContent = fmtSecs(segTotal) + ' total';
+      }
+
+      /* Timeline bar */
+      var tlTrack   = document.getElementById('sess-exec-tl-track');
+      var tlMarkers = document.getElementById('sess-exec-tl-markers');
+      if (tlTrack) {
+        var total2 = sessionTotalSecs();
+        var tlHtml = '';
+        var mkHtml = '<span>0:00</span>';
+        var elapsed2 = 0;
+        sessionSegments.forEach(function(s, i) {
+          var sc  = SESS_COLORS[s.color] || SESS_COLORS.blue;
+          var dur = segTotalSecs(s);
+          var pct = total2 > 0 ? (dur / total2 * 100) : 0;
+          var stateClass = i < sessCurrentIdx
+            ? 'done'
+            : i === sessCurrentIdx ? 'current' : 'upcoming';
+          tlHtml += '<div class="sess-exec-tl-seg ' + stateClass + '"'
+            + ' style="width:' + pct.toFixed(2) + '%;background:' + sc.bg + ';color:' + sc.text + '">'
+            + (s.title || 'Seg ' + (i + 1))
+            + '</div>';
+          elapsed2 += dur;
+          mkHtml += '<span>' + fmtSecs(elapsed2) + '</span>';
+        });
+        tlTrack.innerHTML = tlHtml;
+        if (tlMarkers) tlMarkers.innerHTML = mkHtml;
+      }
+
+      /* Mini segment list */
+      var miniList = document.getElementById('sess-exec-seg-list');
+      if (miniList) {
+        var miniHtml = '';
+        sessionSegments.forEach(function(s, i) {
+          var sc        = SESS_COLORS[s.color] || SESS_COLORS.blue;
+          var rowState  = i < sessCurrentIdx ? 'done' : i === sessCurrentIdx ? 'current' : 'upcoming';
+          var nameState = i < sessCurrentIdx ? 'done-text' : '';
+          var pill      = i < sessCurrentIdx
+            ? '<span class="sess-exec-mini-pill" style="background:#F1EFE8;color:#888780;">done</span>'
+            : i === sessCurrentIdx
+              ? '<span class="sess-exec-mini-pill" style="background:#E1F5EE;color:#085041;">now</span>'
+              : '<span class="sess-exec-mini-pill" style="background:#F1EFE8;color:#9e9080;">next</span>';
+
+          miniHtml +=
+            '<div class="sess-exec-mini-row ' + rowState + '">'
+            + '<div class="sess-exec-mini-dot" style="background:' + sc.fill + '"></div>'
+            + '<div class="sess-exec-mini-name ' + nameState + '">' + (escA(s.title) || 'Segment ' + (i + 1)) + '</div>'
+            + '<div class="sess-exec-mini-dur">' + fmtSecs(segTotalSecs(s)) + '</div>'
+            + pill
+            + '</div>';
+        });
+        miniList.innerHTML = miniHtml;
+      }
+
+      /* Silence button */
+      var silenceBtn = document.getElementById('sess-silence-btn');
+      if (silenceBtn) silenceBtn.style.display = sessAlertActive ? 'flex' : 'none';
+    }
+
+  </script>  <!-- closes the JS block -->
+
+</body>
+</html>
