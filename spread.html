@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Center & Spread</title>
+<style>
+
+  /* =====================================================================
+     PARCHMENT PALETTE — shared with FlashCards / Timer / Percentages
+     ===================================================================== */
+  :root {
+    --bg:        #f7f2e8;
+    --surface:   #fffdf8;
+    --border:    #d8cebc;
+    --ink:       #2e2416;
+    --ink-light: #9e9080;
+    --accent:    #e0d5c2;
+    --accent2:   #c8bfb0;
+    --shadow:    0 2px 12px rgba(0,0,0,0.08);
+    --radius:    10px;
+
+    /* Chart-specific colors. Picked from the percentages palette so the
+       whole suite feels coherent, but chosen to stay visible on top of
+       random palette-colored bars. */
+    --mean-color:    #cc8543;   /* navy   — mean line + marker */
+    --median-color:  #8aab8a;   /* maroon — median line + marker */
+    --mode-color:    #bd8ceb;   /* teal   — mode block outline + marker */
+    --range-color:   #474747;   /* slate  — range bracket + marker */
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* =====================================================================
+     HEADER + NAV
+     ===================================================================== */
+  header {
+    width: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+    border-bottom: 1px solid var(--border);
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    letter-spacing: 0.08em;
+    font-weight: normal;
+  }
+
+  header h1 span { color: var(--ink-light); }
+
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  nav button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 7px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    transition: background 0.2s;
+  }
+
+  nav button:hover { background: var(--accent); }
+
+  nav button.active {
+    background: var(--accent);
+    border-color: var(--accent2);
+  }
+
+  /* =====================================================================
+     MAIN CONTENT
+     ===================================================================== */
+  main {
+    width: 100%;
+    max-width: 1100px;
+    padding: 28px 20px;
+  }
+
+  .description {
+    color: var(--ink-light);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    padding-left: 4px;
+  }
+
+  /* =====================================================================
+     STATS ROW — Mean / Median / Mode / Range readouts
+     ===================================================================== */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;       /* anchors the absolutely-positioned info icon in the corner */
+  }
+
+  /* The colored legend marker above each readout that ties visually
+     to the matching element on the chart. */
+  .stat-marker {
+    width: 32px;
+    height: 6px;
+    margin-bottom: 2px;
+  }
+  .mean-marker {
+    background: var(--mean-color);
+    border-radius: 2px;
+  }
+  .median-marker {
+    height: 0;
+    border-top: 3px dashed var(--median-color);
+  }
+  .mode-marker {
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    box-shadow: inset 0 0 0 3px var(--mode-color);
+    border-radius: 3px;
+  }
+  .range-marker {
+    width: 12px;
+    height: 22px;
+    border: 2px solid var(--range-color);
+    border-left: none;
+    border-radius: 0 2px 2px 0;
+    background: transparent;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: var(--ink-light);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: normal;
+    color: var(--ink);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    min-height: 2rem;       /* keeps card height stable when value is "—" */
+  }
+
+  /* ---------- INFO ICON ----------
+     Small circled "i" in the top-right corner of each card. Replaces
+     the previous text-hover trigger with an explicit, visible affordance
+     that signals "hover me for a definition". */
+  .info-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-light);
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    cursor: help;                    /* the "help" cursor — signals hover-for-info */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .info-icon:hover {
+    background: var(--accent);
+    border-color: var(--accent2);
+    color: var(--ink);
+  }
+
+  /* ---------- TOOLTIP ----------
+     Triggered by JS adding .show-tooltip to the .info-icon after a 1s
+     hover delay. Anchored to the icon's RIGHT edge (right: -2px) so the
+     220px-wide tooltip extends leftward into the card area instead of
+     overflowing off the right side. */
+  .info-icon.show-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 14px);
+    right: -2px;
+    width: 220px;
+    background: var(--ink);
+    color: var(--surface);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    text-align: left;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    white-space: normal;
+  }
+
+  /* The little triangle arrow pointing down from the tooltip toward the icon */
+  .info-icon.show-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 4px);
+    right: 3px;
+    border: 6px solid transparent;
+    border-top-color: var(--ink);
+    z-index: 101;
+    pointer-events: none;
+  }
+
+  /* ---------- STAT CALCULATION ----------
+     Small line below each stat value showing how the number was derived
+     (e.g. "46 ÷ 8 = 5.75"). Sits muted underneath the bold value so the
+     value stays the primary readout. min-height keeps card heights stable
+     when the calculation is empty (no-data state). */
+  .stat-calc {
+    font-size: 0.72rem;
+    color: var(--ink-light);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    min-height: 1rem;
+  }
+
+  /* =====================================================================
+     SORTED CARD — full-width card under the stats row showing the dataset
+     sorted ascending as chips. Values used in the median calculation get
+     a maroon highlight that matches the median line/marker color, so the
+     visual link "these maroon chips become the median" is unmistakable.
+     ===================================================================== */
+  .sorted-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;            /* anchors the info icon in the corner */
+    margin-bottom: 24px;
+  }
+
+  /* The flex container that holds each value chip. flex-wrap means many
+     values will wrap onto a second line rather than overflow horizontally. */
+  .sorted-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+    min-height: 1.8rem;
+    width: 100%;
+  }
+
+  /* One value chip — small rounded pill containing a single number */
+  .sorted-val {
+    padding: 3px 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  /* The chip(s) at the middle of the sorted list — what the median uses.
+     Filled maroon to match the median line color on the chart. */
+  .sorted-val.uses-median {
+    background: var(--median-color);
+    color: var(--surface);
+    border-color: var(--median-color);
+    font-weight: bold;
+  }
+
+  /* Placeholder text shown when there's no data yet */
+  .sorted-empty {
+    font-size: 0.85rem;
+    color: var(--ink-light);
+    font-style: italic;
+  }
+
+  /* =====================================================================
+     CHART CARD
+     ===================================================================== */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+    overflow: visible;            /* tooltips and popups can spill out cleanly */
+  }
+
+  /* Grid layout: [ Y-axis labels ] [ Chart plotting area  ]
+                                   [ Editable bar footers   ] */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 6px;
+    row-gap: 12px;
+  }
+
+  .y-axis {
+    grid-column: 1; grid-row: 1;
+    position: relative;
+    font-size: 0.72rem;
+    color: var(--ink-light);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    transition: height 0.3s;       /* smooth animation when the y-max changes */
+  }
+
+  .y-label {
+    position: absolute;
+    right: 6px;
+    transform: translateY(50%);    /* center the text vertically on its line */
+    pointer-events: none;
+  }
+
+  /* The plotting area — bars and stat lines positioned inside.
+     Its height is set inline by JS based on yMax. */
+  .chart-area {
+    grid-column: 2; grid-row: 1;
+    position: relative;
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: height 0.3s;       /* smooth grow/shrink when the chart re-scales */
+  }
+
+  /* Faint horizontal gridlines at each y-axis tick value */
+  .gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* The flex row holding the bar columns inside the chart area */
+  .bars-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: stretch;          /* bar columns stretch full height */
+    justify-content: space-around;
+    padding: 0 8px;
+    z-index: 1;
+  }
+
+  /* One bar column — the entire vertical strip including empty space above
+     the blocks. The whole strip is clickable (left-click adds, right-click
+     removes) so students can keep adding blocks even when their stack is short. */
+  .bar-column {
+    flex: 1;
+    max-width: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;     /* blocks pin to the bottom */
+    align-items: center;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s;
+    user-select: none;             /* prevent text selection on rapid clicks */
+  }
+
+  .bar-column:hover { background: rgba(0,0,0,0.025); }
+
+  /* Stack of blocks inside one bar column.
+     column-reverse means the first DOM child sits at the bottom — perfect
+     for stacking up as we push new block objects into the array. */
+  .block-stack {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+
+  /* Each block — discrete tile, 24px tall (including its 2px top border
+     which doubles as the visual separator between adjacent blocks). */
+  .block {
+    width: 38px;
+    height: 24px;
+    border-radius: 3px;
+    border-top: 2px solid rgba(0,0,0,0.18);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset;
+    transition: box-shadow 0.2s;
+    /* background color is set inline based on the bar's chosen color */
+  }
+
+  /* The bottommost block (first DOM child in the column-reverse stack)
+     has nothing under it, so no separator border is needed there. */
+  .block-stack > .block:first-child {
+    border-top: none;
+    height: 22px;                  /* keep the visible color block consistent at 22px */
+  }
+
+  /* Mode block — gets a teal "inner outline" via inset box-shadow.
+     Inset shadow stays within the block's box so the layout doesn't shift. */
+  .block.is-mode {
+    box-shadow: inset 0 0 0 3px var(--mode-color);
+  }
+
+  /* =====================================================================
+     STAT LINES — Mean (solid) and Median (dashed) crossing the chart
+     =====================================================================
+     Both are 3px-tall divs positioned with bottom: Npx based on each
+     statistic's value × the block-unit pixel height (24). A subtle white
+     halo via box-shadow makes them stay visible regardless of the bar
+     colors underneath. */
+  .stat-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 2;
+    transition: bottom 0.3s ease;
+    pointer-events: none;
+  }
+
+  .stat-line.mean {
+    background: var(--mean-color);
+    box-shadow: 0 0 0 1px rgba(255,253,248,0.85);
+  }
+
+  /* Dashed median made with a repeating gradient instead of border-dashed
+     so the 3px line height and halo both work cleanly. */
+  .stat-line.median {
+    background: repeating-linear-gradient(
+      to right,
+      var(--median-color) 0 9px,
+      transparent 9px 15px
+    );
+    box-shadow: 0 0 0 1px rgba(255,253,248,0.85);
+  }
+
+  .stat-line-label {
+    position: absolute;
+    top: -11px;
+    background: var(--surface);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    color: var(--ink);
+    border: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    z-index: 3;
+  }
+
+  /* Labels on opposite sides so they never overlap each other */
+  .stat-line.mean   .stat-line-label { right: 6px; }
+  .stat-line.median .stat-line-label { left:  6px; }
+
+  /* =====================================================================
+     RANGE BRACKET — vertical bracket on the right edge of the chart
+     spanning min → max. Visually answers "how spread out is the data?".
+     ===================================================================== */
+  .range-bracket {
+    position: absolute;
+    right: 6px;
+    width: 8px;
+    border-right: 2.5px solid var(--range-color);
+    border-top:   2.5px solid var(--range-color);
+    border-bottom:2.5px solid var(--range-color);
+    opacity: 0.7;
+    z-index: 1;
+    transition: bottom 0.3s ease, height 0.3s ease;
+    pointer-events: none;
+  }
+
+  /* =====================================================================
+     BAR LABELS ROW — editable label + color swatch + count controls
+     under each bar. Lives in grid row 2.
+     ===================================================================== */
+  .bar-labels-row {
+    grid-column: 2; grid-row: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding: 4px 8px 0;
+  }
+
+  .bar-label-cell {
+    flex: 1;
+    max-width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Top line under each bar: swatch + editable label */
+  .label-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Mini swatch — click to open the same 20-color palette popup */
+  .color-swatch-mini {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid var(--accent2);
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;            /* anchors the popup */
+  }
+
+  .color-picker-popup {
+    display: none;
+    position: absolute;
+    top: 22px;
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    box-shadow: var(--shadow);
+    z-index: 50;
+    width: 220px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .color-picker-popup.open { display: grid; }
+
+  .color-option {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid var(--accent2);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .color-option:hover { transform: scale(1.1); }
+
+  /* Editable label input — same dashed-underline pattern as percentages */
+  .bar-label-input {
+    flex: 1;
+    min-width: 0;                  /* allow shrink inside flex parent */
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--border);
+    padding: 2px 0;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--ink);
+    outline: none;
+    text-align: center;
+    max-width: 60px;
+  }
+  .bar-label-input:focus { border-bottom-color: var(--accent2); }
+
+  /* Bottom line: − count + */
+  .count-controls-mini {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .btn-count-mini {
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border: 1px solid var(--accent2);
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--ink);
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+  }
+  .btn-count-mini:hover { background: var(--accent2); }
+  .btn-count-mini:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .count-mini {
+    font-size: 0.82rem;
+    color: var(--ink);
+    min-width: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* =====================================================================
+     CONTROLS ROW — Bars adjustment + Randomize + Reset
+     ===================================================================== */
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    padding: 0 6px;
+  }
+
+  .control-label {
+    font-size: 0.74rem;
+    color: var(--ink-light);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .btn-count {
+    width: 30px;
+    height: 30px;
+    background: var(--accent);
+    border: 1px solid var(--accent2);
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1.1rem;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: background 0.2s;
+  }
+  .btn-count:hover { background: var(--accent2); }
+  .btn-count:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .count-display {
+    font-size: 1rem;
+    min-width: 28px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.04em;
+    transition: background 0.2s;
+  }
+  .btn-secondary:hover { background: var(--border); }
+
+  footer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    padding: 20px;
+    margin-top: 12px;
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER — title + suite nav placeholder
+       ============================================================ -->
+  <header>
+  <h1>Center &amp; <span>Spread</span></h1>
+</header>
+  <main>
+
+    <!-- ============================================================
+    <!-- ============================================================
+         STATS ROW — live readouts. Each card has an info icon (ⓘ) in
+         its upper-right corner that opens a definition tooltip on hover.
+         A small calculation line under each value shows the math
+         (e.g. "46 ÷ 8 = 5.75") so students see how the number is built.
+         ============================================================ -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <button type="button" class="info-icon tooltip-trigger"
+                data-tooltip="Add all the values, then divide by how many there are. Also called the average.">i</button>
+        <div class="stat-marker mean-marker"></div>
+        <div class="stat-label">Mean</div>
+        <div class="stat-value" id="stat-mean">—</div>
+        <div class="stat-calc"  id="calc-mean"></div>
+      </div>
+      <div class="stat-card">
+        <button type="button" class="info-icon tooltip-trigger"
+                data-tooltip="The middle value when the data is sorted from smallest to largest. Half the data is below, half is above.">i</button>
+        <div class="stat-marker median-marker"></div>
+        <div class="stat-label">Median</div>
+        <div class="stat-value" id="stat-median">—</div>
+        <div class="stat-calc"  id="calc-median"></div>
+      </div>
+      <div class="stat-card">
+        <button type="button" class="info-icon tooltip-trigger"
+                data-tooltip="The value that appears most often. If no value repeats, there is no mode.">i</button>
+        <div class="stat-marker mode-marker"></div>
+        <div class="stat-label">Mode</div>
+        <div class="stat-value" id="stat-mode">—</div>
+        <div class="stat-calc"  id="calc-mode"></div>
+      </div>
+      <div class="stat-card">
+        <button type="button" class="info-icon tooltip-trigger"
+                data-tooltip="The largest value minus the smallest value. Shows how spread out the data is.">i</button>
+        <div class="stat-marker range-marker"></div>
+        <div class="stat-label">Range</div>
+        <div class="stat-value" id="stat-range">—</div>
+        <div class="stat-calc"  id="calc-range"></div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         SORTED CARD — full-width strip showing every data value as a
+         chip in ascending order. Values that contribute to the median
+         calculation get a maroon highlight matching the median color.
+         ============================================================ -->
+    <div class="sorted-card">
+      <button type="button" class="info-icon tooltip-trigger"
+              data-tooltip="The data values arranged from smallest to largest. Values used by the median calculation are highlighted in maroon.">i</button>
+      <div class="stat-label">Sorted Data</div>
+      <div class="sorted-display" id="sorted-display"></div>
+    </div>
+
+
+        <div class="description">
+      Click a bar to add a block. Right-click (or use the −) to remove one. Each bar is a data point — rename or recolor it below.
+    </div>
+    
+    <!-- ============================================================
+         CHART CARD — Y-axis | plotting area | bar footers
+         ============================================================ -->
+    <div class="chart-card">
+      <div class="chart-grid">
+        <div class="y-axis" id="y-axis"></div>
+        <div class="chart-area" id="chart-area">
+          <!-- Bars container, gridlines, stat lines, and range bracket
+               are all built dynamically by JS. -->
+        </div>
+        <div class="bar-labels-row" id="bar-labels-row"></div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         CONTROLS ROW
+         ============================================================ -->
+    <div class="controls-row">
+      <span class="control-label">Bars</span>
+      <button class="btn-count" id="btn-remove-bar" onclick="removeBar()">−</button>
+      <span class="count-display" id="bar-count-display">6</span>
+      <button class="btn-count" id="btn-add-bar" onclick="addBar()">+</button>
+      <button class="btn-secondary" onclick="randomize()">↻ Randomize</button>
+      <button class="btn-secondary" onclick="resetAll()">Reset</button>
+    </div>
+
+  </main>
+
+  <footer>
+    A Simple Ed Tool — runs entirely in your browser, no data leaves this page.
+  </footer>
+
+
+  <script>
+
+    /* ============================================================
+       CENTER & SPREAD — JavaScript
+       ============================================================
+       The model is intentionally simple. State holds an array of
+       "bars" (data points), each with a count of blocks stacked
+       on it. Stats are computed from those counts on every render.
+       ============================================================ */
+
+
+    /* -----------------------------------------------------------
+       THE 20-COLOR PALETTE — same as Percentages
+       Each new bar grabs a random color from here on creation.
+       ----------------------------------------------------------- */
+    var PALETTE = [
+      '#e4c14a','#c84a3a','#e8ddb8','#5fa05f','#e89c45',
+      '#4a7ab8','#8e57a8','#d873a8','#4ab0a0','#8b6541',
+      '#d04a82','#a5c93d','#2e4870','#e88574','#b59ed4',
+      '#828b4a','#4dabb8','#8a3242','#d4a747','#7a7a78'
+    ];
+
+    /* The block-unit pixel height. Every block in the chart is exactly
+       this many pixels tall, INCLUDING its top-border separator.
+       Used everywhere we convert between data values and screen pixels:
+         chart height  = yMax × BLOCK_UNIT
+         stat-line top = value × BLOCK_UNIT  (from chart-area bottom)
+         y-label top   = value × BLOCK_UNIT  (from y-axis bottom) */
+    var BLOCK_UNIT = 24;
+
+    /* Hard caps — keep things at a manipulative scale rather than data-viz scale */
+    var MAX_BLOCKS_PER_BAR = 20;
+    var MIN_BARS = 1;
+    var MAX_BARS = 10;
+    var DEFAULT_BARS = 6;
+
+    /* The hover delay before a tooltip appears, in milliseconds */
+    var TOOLTIP_DELAY_MS = 1000;
+
+
+    /* -----------------------------------------------------------
+       STATE — single source of truth for the whole app
+       ----------------------------------------------------------- */
+    var state = {
+      bars:   [],   /* array of {id, label, color, count} */
+      nextId: 1     /* incrementing id assigned to each new bar */
+    };
+
+
+    /* -----------------------------------------------------------
+       getRandomColor — pick a palette color at random
+       Math.random() returns 0..<1; multiplying by length and
+       Math.floor() gives us a valid array index 0..length-1.
+       ----------------------------------------------------------- */
+    function getRandomColor() {
+      return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    }
+
+
+    /* -----------------------------------------------------------
+       init — runs once on page load
+       Builds DEFAULT_BARS starter bars at count=0 with random colors,
+       then does an initial render and wires up the tooltip handlers.
+       ----------------------------------------------------------- */
+    function init() {
+      for (var i = 0; i < DEFAULT_BARS; i++) {
+        state.bars.push({
+          id:    state.nextId++,
+          label: 'P' + (i + 1),
+          color: getRandomColor(),
+          count: 0
+        });
+      }
+      renderAll();
+      setupTooltips();
+    }
+
+
+    /* -----------------------------------------------------------
+       findBar — get a bar object by id
+       ----------------------------------------------------------- */
+    function findBar(id) {
+      for (var i = 0; i < state.bars.length; i++) {
+        if (state.bars[i].id === id) return state.bars[i];
+      }
+      return null;
+    }
+
+
+    /* =============================================================
+       STATS COMPUTATION
+       =============================================================
+       computeStats returns everything needed for the readouts AND
+       the visual overlays in one pass. Returning a single object
+       avoids re-walking the data multiple times.
+       ============================================================= */
+    function computeStats() {
+      var counts = state.bars.map(function(b) { return b.count; });
+      var n = counts.length;
+      var sum = counts.reduce(function(a, b) { return a + b; }, 0);
+
+      /* "hasData" distinguishes "empty grid" from "all bars happen to be 0".
+         When the grid has never been touched, stats display as "—" rather
+         than as 0.000s — those zeros would be technically correct but
+         pedagogically empty. */
+      var hasData = sum > 0;
+
+      /* MEAN — average of the counts.
+         Guarded for n=0 (no bars at all), but n is always >= MIN_BARS so
+         this is mostly defensive. */
+      var mean = n > 0 ? sum / n : 0;
+
+      /* MEDIAN — the middle value(s) of the sorted data.
+         For odd n: the single middle element.
+         For even n: the average of the two middle elements.
+         slice() before sort() makes a copy so we don't reorder the
+         original `counts` array (which is used elsewhere). */
+      var sorted = counts.slice().sort(function(a, b) { return a - b; });
+      var median = 0;
+      if (n > 0) {
+        if (n % 2 === 1) {
+          median = sorted[Math.floor(n / 2)];
+        } else {
+          median = (sorted[n/2 - 1] + sorted[n/2]) / 2;
+        }
+      }
+
+      /* MODE — the value(s) that appear most often.
+         Build a frequency map, find the max frequency, then collect
+         every value with that frequency. Empty array means no mode
+         (every value is unique). */
+      var freq = {};
+      counts.forEach(function(c) { freq[c] = (freq[c] || 0) + 1; });
+      var maxFreq = 0;
+      Object.keys(freq).forEach(function(k) {
+        if (freq[k] > maxFreq) maxFreq = freq[k];
+      });
+      var modes = [];
+      if (maxFreq > 1) {
+        Object.keys(freq).forEach(function(k) {
+          if (freq[k] === maxFreq) modes.push(parseInt(k, 10));
+        });
+        modes.sort(function(a, b) { return a - b; });
+      }
+
+      /* RANGE — max minus min. Spread Math operators across the counts. */
+      var min = n > 0 ? Math.min.apply(null, counts) : 0;
+      var max = n > 0 ? Math.max.apply(null, counts) : 0;
+      var range = max - min;
+
+      return {
+        mean:    mean,
+        median:  median,
+        modes:   modes,
+        range:   range,
+        min:     min,
+        max:     max,
+        sum:     sum,      /* total of all values — used for the mean calculation line */
+        n:       n,        /* number of data points — used for mean and median calc lines */
+        sorted:  sorted,   /* sorted copy of counts — used to show "(a + b) ÷ 2" for even n median */
+        maxFreq: maxFreq,  /* mode's frequency — used to show "X appears N times" */
+        hasData: hasData
+      };
+    }
+
+
+    /* -----------------------------------------------------------
+       computeYMax — pick the smallest y-axis max that fits the data
+       Snaps to multiples of 5 so the y-axis labels are clean.
+       Bottom of the staircase is 5 so an empty chart still has a
+       visible height. Top is the hard cap (20).
+       ----------------------------------------------------------- */
+    function computeYMax() {
+      var maxCount = 0;
+      state.bars.forEach(function(b) {
+        if (b.count > maxCount) maxCount = b.count;
+      });
+      if (maxCount <= 5)  return 5;
+      if (maxCount <= 10) return 10;
+      if (maxCount <= 15) return 15;
+      return 20;
+    }
+
+
+    /* =============================================================
+       RENDERING — broken into small functions so each one is easy
+       to reason about. renderAll calls them all in order.
+       ============================================================= */
+
+    function renderAll() {
+      var yMax  = computeYMax();
+      var stats = computeStats();
+
+      /* Set both the chart-area and y-axis to the same pixel height
+         so they line up perfectly in the grid. */
+      var chartHeight = yMax * BLOCK_UNIT;
+      document.getElementById('chart-area').style.height = chartHeight + 'px';
+      document.getElementById('y-axis').style.height     = chartHeight + 'px';
+
+      renderYAxis(yMax);
+      renderBars(stats);
+      renderStatLines(stats);
+      renderLabelsRow();
+      renderStats(stats);
+
+      updateBarCountControls();
+    }
+
+
+    /* -----------------------------------------------------------
+       renderYAxis — labels and faint gridlines at each multiple of 5
+       ----------------------------------------------------------- */
+    function renderYAxis(yMax) {
+      var yAxis = document.getElementById('y-axis');
+      var chartArea = document.getElementById('chart-area');
+
+      /* Wipe any previous labels and gridlines.
+         For chart-area we have to leave the bars/stat-lines untouched
+         since those are managed separately — so we filter the gridline
+         children specifically. */
+      yAxis.innerHTML = '';
+      Array.prototype.slice.call(chartArea.querySelectorAll('.gridline'))
+        .forEach(function(g) { g.remove(); });
+
+      /* Always show 0, then each subsequent multiple of 5 up to yMax */
+      for (var v = 0; v <= yMax; v += 5) {
+        /* Y-axis tick label */
+        var label = document.createElement('span');
+        label.className = 'y-label';
+        label.textContent = v;
+        label.style.bottom = (v * BLOCK_UNIT) + 'px';
+        yAxis.appendChild(label);
+
+        /* Matching faint gridline across the chart */
+        if (v > 0) {
+          var line = document.createElement('div');
+          line.className = 'gridline';
+          line.style.bottom = (v * BLOCK_UNIT) + 'px';
+          chartArea.appendChild(line);
+        }
+      }
+    }
+
+
+    /* -----------------------------------------------------------
+       renderBars — rebuild the bar columns and their block stacks
+       -----------------------------------------------------------
+       Full rebuild on every call. Cheap (max 10 columns × 20 blocks =
+       200 elements) and avoids a lot of fragile surgical-update code.
+       ----------------------------------------------------------- */
+    function renderBars(stats) {
+      var chartArea = document.getElementById('chart-area');
+
+      /* Remove any existing bars container without touching gridlines/lines */
+      var existingBars = chartArea.querySelector('.bars-container');
+      if (existingBars) existingBars.remove();
+
+      var container = document.createElement('div');
+      container.className = 'bars-container';
+
+      state.bars.forEach(function(bar) {
+        container.appendChild(buildBarColumn(bar, stats));
+      });
+
+      chartArea.appendChild(container);
+    }
+
+
+    /* -----------------------------------------------------------
+       buildBarColumn — one bar's clickable column + block stack
+       -----------------------------------------------------------
+       The whole column is the click target. That way students can
+       click "in the air" above their existing blocks to add more,
+       even when the stack is short — which feels natural and avoids
+       the frustration of trying to land a click on a tiny topmost block.
+       ----------------------------------------------------------- */
+    function buildBarColumn(bar, stats) {
+      var col = document.createElement('div');
+      col.className = 'bar-column';
+      col.dataset.barId = bar.id;
+
+      /* Left-click anywhere in the column → +1 block */
+      col.onclick = function() { changeCount(bar.id, 1); };
+
+      /* Right-click anywhere in the column → -1 block.
+         preventDefault stops the browser's normal context menu from popping up. */
+      col.oncontextmenu = function(e) {
+        e.preventDefault();
+        changeCount(bar.id, -1);
+      };
+
+      var stack = document.createElement('div');
+      stack.className = 'block-stack';
+
+      /* Is this bar a mode bar? (Its count appears in stats.modes.)
+         Only flag as mode if there IS a mode — when modes is empty, no
+         highlighting happens at all. */
+      var isModeBar = stats.modes.length > 0 &&
+                      stats.modes.indexOf(bar.count) !== -1;
+
+      /* Build one block element per unit of count.
+         column-reverse on .block-stack means the first DOM child sits
+         at the bottom — so pushing in array order fills bottom-up. */
+      for (var i = 0; i < bar.count; i++) {
+        var block = document.createElement('div');
+        block.className = 'block';
+        block.style.background = bar.color;
+        if (isModeBar) block.classList.add('is-mode');
+        stack.appendChild(block);
+      }
+
+      col.appendChild(stack);
+      return col;
+    }
+
+
+    /* -----------------------------------------------------------
+       renderStatLines — position the mean line, median line,
+       and the range bracket inside the chart area
+       ----------------------------------------------------------- */
+    function renderStatLines(stats) {
+      var chartArea = document.getElementById('chart-area');
+
+      /* Remove any existing overlays before rebuilding */
+      Array.prototype.slice.call(
+        chartArea.querySelectorAll('.stat-line, .range-bracket')
+      ).forEach(function(el) { el.remove(); });
+
+      /* No data → no overlay lines. The chart is empty so there's
+         nothing meaningful to mark. */
+      if (!stats.hasData) return;
+
+      /* MEAN line — solid 3px navy across the chart */
+      var meanLine = document.createElement('div');
+      meanLine.className = 'stat-line mean';
+      meanLine.style.bottom = (stats.mean * BLOCK_UNIT) + 'px';
+      var meanLabel = document.createElement('span');
+      meanLabel.className = 'stat-line-label';
+      meanLabel.textContent = 'Mean ' + stats.mean.toFixed(2);
+      meanLine.appendChild(meanLabel);
+      chartArea.appendChild(meanLine);
+
+      /* MEDIAN line — dashed 3px maroon across the chart */
+      var medianLine = document.createElement('div');
+      medianLine.className = 'stat-line median';
+      medianLine.style.bottom = (stats.median * BLOCK_UNIT) + 'px';
+      var medianLabel = document.createElement('span');
+      medianLabel.className = 'stat-line-label';
+      medianLabel.textContent = 'Median ' + formatNum(stats.median);
+      medianLine.appendChild(medianLabel);
+      chartArea.appendChild(medianLine);
+
+      /* RANGE bracket — vertical bracket on the right edge from min to max.
+         Only show if there's actually a range (max > min). */
+      if (stats.max > stats.min) {
+        var bracket = document.createElement('div');
+        bracket.className = 'range-bracket';
+        bracket.style.bottom = (stats.min * BLOCK_UNIT) + 'px';
+        bracket.style.height = ((stats.max - stats.min) * BLOCK_UNIT) + 'px';
+        chartArea.appendChild(bracket);
+      }
+    }
+
+
+    /* -----------------------------------------------------------
+       renderLabelsRow — editable labels + swatches + count controls
+       -----------------------------------------------------------
+       Rebuilt on add/remove of bars, color changes, and randomize/reset.
+       NOT rebuilt on count changes alone — we surgically update just
+       the count number to avoid stealing focus from the label input
+       while the teacher is typing.
+       ----------------------------------------------------------- */
+    function renderLabelsRow() {
+      var row = document.getElementById('bar-labels-row');
+      row.innerHTML = '';
+      state.bars.forEach(function(bar) {
+        row.appendChild(buildLabelCell(bar));
+      });
+    }
+
+
+    function buildLabelCell(bar) {
+      var cell = document.createElement('div');
+      cell.className = 'bar-label-cell';
+      cell.dataset.barId = bar.id;
+
+      /* ----- Line 1: small color swatch + editable label ----- */
+      var line1 = document.createElement('div');
+      line1.className = 'label-line';
+
+      /* COLOR SWATCH (mini) — clicking opens the 20-color picker */
+      var swatch = document.createElement('div');
+      swatch.className = 'color-swatch-mini';
+      swatch.style.background = bar.color;
+      swatch.onclick = function(e) {
+        e.stopPropagation();
+        toggleColorPicker(bar.id);
+      };
+
+      var popup = document.createElement('div');
+      popup.className = 'color-picker-popup';
+      popup.id = 'color-picker-' + bar.id;
+      PALETTE.forEach(function(color) {
+        var option = document.createElement('div');
+        option.className = 'color-option';
+        option.style.background = color;
+        option.onclick = function(e) {
+          e.stopPropagation();
+          changeColor(bar.id, color);
+        };
+        popup.appendChild(option);
+      });
+      swatch.appendChild(popup);
+
+      /* EDITABLE LABEL — text input with dashed underline */
+      var labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.className = 'bar-label-input';
+      labelInput.value = bar.label;
+      /* Keep state in sync as the user types — no rerender needed
+         because the input already shows the current text. */
+      labelInput.oninput = function() {
+        bar.label = labelInput.value;
+      };
+
+      line1.appendChild(swatch);
+      line1.appendChild(labelInput);
+
+      /* ----- Line 2: −  count  + ----- */
+      var line2 = document.createElement('div');
+      line2.className = 'count-controls-mini';
+
+      var btnMinus = document.createElement('button');
+      btnMinus.className = 'btn-count-mini';
+      btnMinus.textContent = '−';
+      btnMinus.onclick = function() { changeCount(bar.id, -1); };
+
+      var countSpan = document.createElement('span');
+      countSpan.className = 'count-mini';
+      countSpan.id = 'count-mini-' + bar.id;
+      countSpan.textContent = bar.count;
+
+      var btnPlus = document.createElement('button');
+      btnPlus.className = 'btn-count-mini';
+      btnPlus.textContent = '+';
+      btnPlus.onclick = function() { changeCount(bar.id, 1); };
+
+      line2.appendChild(btnMinus);
+      line2.appendChild(countSpan);
+      line2.appendChild(btnPlus);
+
+      cell.appendChild(line1);
+      cell.appendChild(line2);
+
+      return cell;
+    }
+
+
+    /* -----------------------------------------------------------
+       renderStats — update the four stat-card readouts AND the
+       calculation line under each one
+       -----------------------------------------------------------
+       Each card has two pieces of text we update:
+         • stat-value — the big number (or em-dash when empty)
+         • stat-calc  — small line showing how that number was built
+       formatNum trims trailing .00 so "5" shows as "5" not "5.00"
+       but "5.5" still shows two decimals worth when needed.
+       ----------------------------------------------------------- */
+    function renderStats(stats) {
+      var meanEl     = document.getElementById('stat-mean');
+      var medianEl   = document.getElementById('stat-median');
+      var modeEl     = document.getElementById('stat-mode');
+      var rangeEl    = document.getElementById('stat-range');
+
+      var meanCalc   = document.getElementById('calc-mean');
+      var medianCalc = document.getElementById('calc-median');
+      var modeCalc   = document.getElementById('calc-mode');
+      var rangeCalc  = document.getElementById('calc-range');
+
+      var sortedDisplay = document.getElementById('sorted-display');
+
+      if (!stats.hasData) {
+        /* Empty grid → placeholder dashes and blank calcs.
+           Card heights stay stable because .stat-calc has min-height. */
+        meanEl.textContent     = '—';
+        medianEl.textContent   = '—';
+        modeEl.textContent     = '—';
+        rangeEl.textContent    = '—';
+        meanCalc.textContent   = '';
+        medianCalc.textContent = '';
+        modeCalc.textContent   = '';
+        rangeCalc.textContent  = '';
+        /* Sorted card shows a quiet placeholder until data exists */
+        sortedDisplay.innerHTML = '<span class="sorted-empty">click bars to add blocks</span>';
+        return;
+      }
+
+      /* MEAN — value + "sum ÷ n = mean" */
+      meanEl.textContent   = formatNum(stats.mean);
+      meanCalc.textContent = stats.sum + ' ÷ ' + stats.n + ' = ' + formatNum(stats.mean);
+
+      /* MEDIAN — value + a calculation that depends on whether n is odd or even.
+         Odd n → just describe "middle of n values".
+         Even n → "(a + b) ÷ 2 = median" using the two middle elements
+                  of the sorted array. With 0-based indexing, those are
+                  at positions n/2 - 1 and n/2. */
+      medianEl.textContent = formatNum(stats.median);
+      if (stats.n % 2 === 1) {
+        medianCalc.textContent = 'middle of ' + stats.n + ' values';
+      } else {
+        var a = stats.sorted[stats.n / 2 - 1];
+        var b = stats.sorted[stats.n / 2];
+        medianCalc.textContent = '(' + a + ' + ' + b + ') ÷ 2 = ' + formatNum(stats.median);
+      }
+
+      /* MODE — value + a frequency-style explanation.
+         []           → "—" with "no value repeats"
+         [5]          → "5" with "5 appears 3 times"
+         [3, 5, ...]  → "3, 5" with "each appears 2 times" */
+      if (stats.modes.length === 0) {
+        modeEl.textContent   = '—';
+        modeCalc.textContent = 'no value repeats';
+      } else if (stats.modes.length === 1) {
+        modeEl.textContent   = stats.modes[0];
+        modeCalc.textContent = stats.modes[0] + ' appears ' + stats.maxFreq + ' times';
+      } else {
+        modeEl.textContent   = stats.modes.join(', ');
+        modeCalc.textContent = 'each appears ' + stats.maxFreq + ' times';
+      }
+
+      /* RANGE — value + "max − min = range" */
+      rangeEl.textContent   = formatNum(stats.range);
+      rangeCalc.textContent = stats.max + ' − ' + stats.min + ' = ' + formatNum(stats.range);
+
+      /* SORTED CARD — build a chip for each value in stats.sorted, and
+         mark the middle one (or two) with `uses-median` so they highlight
+         in maroon. This is the visual connection between the sorted data
+         and the median calculation on the median card. */
+      renderSortedCard(stats);
+    }
+
+
+    /* -----------------------------------------------------------
+       renderSortedCard — populate the full-width sorted card
+       -----------------------------------------------------------
+       Builds one chip per value in stats.sorted. Chips at the
+       middle position(s) get the `uses-median` class, which CSS
+       fills with the maroon median-color so students can see
+       exactly which values become the median.
+
+         Odd  n  → the single chip at index Math.floor(n/2) is the median
+         Even n  → both chips at indices n/2 - 1 and n/2 are averaged
+       ----------------------------------------------------------- */
+    function renderSortedCard(stats) {
+      var sortedDisplay = document.getElementById('sorted-display');
+      sortedDisplay.innerHTML = '';   /* wipe whatever was there */
+
+      /* Work out which indices in the sorted array contribute to median */
+      var medianIdxs = [];
+      if (stats.n % 2 === 1) {
+        medianIdxs.push(Math.floor(stats.n / 2));
+      } else {
+        medianIdxs.push(stats.n / 2 - 1);
+        medianIdxs.push(stats.n / 2);
+      }
+
+      /* Build a chip for each value */
+      stats.sorted.forEach(function(val, idx) {
+        var chip = document.createElement('span');
+        chip.className = 'sorted-val';
+        if (medianIdxs.indexOf(idx) !== -1) {
+          chip.classList.add('uses-median');   /* maroon fill ties it to the median card */
+        }
+        chip.textContent = val;
+        sortedDisplay.appendChild(chip);
+      });
+    }
+
+
+    /* -----------------------------------------------------------
+       formatNum — show whole numbers without decimal noise
+       -----------------------------------------------------------
+       5      → "5"
+       5.5    → "5.5"
+       5.7333 → "5.73"
+       The "+" cast strips trailing zeros that toFixed adds.
+       ----------------------------------------------------------- */
+    function formatNum(n) {
+      if (n === Math.floor(n)) return String(n);
+      return String(+n.toFixed(2));
+    }
+
+
+    /* =============================================================
+       INTERACTIVITY — count changes, bar add/remove, color, etc.
+       ============================================================= */
+
+    /* -----------------------------------------------------------
+       changeCount — +1 / -1 / arbitrary delta with cap enforcement
+       Calls renderAll because a count change may bump the y-axis
+       max to a new bracket (e.g., 5 → 10) which requires resizing
+       the chart and re-laying-out everything.
+       ----------------------------------------------------------- */
+    function changeCount(barId, delta) {
+      var bar = findBar(barId);
+      if (!bar) return;
+
+      bar.count += delta;
+      if (bar.count < 0) bar.count = 0;
+      if (bar.count > MAX_BLOCKS_PER_BAR) bar.count = MAX_BLOCKS_PER_BAR;
+
+      /* Mirror the new count into its display span without re-rendering
+         the whole labels row (which would steal input focus). */
+      var countSpan = document.getElementById('count-mini-' + barId);
+      if (countSpan) countSpan.textContent = bar.count;
+
+      /* The chart and stats both depend on every bar's count. */
+      var yMax  = computeYMax();
+      var stats = computeStats();
+      var chartHeight = yMax * BLOCK_UNIT;
+      document.getElementById('chart-area').style.height = chartHeight + 'px';
+      document.getElementById('y-axis').style.height     = chartHeight + 'px';
+      renderYAxis(yMax);
+      renderBars(stats);
+      renderStatLines(stats);
+      renderStats(stats);
+    }
+
+
+    /* -----------------------------------------------------------
+       addBar / removeBar — bump the data-point count up or down
+       New bars start empty with a fresh random color and a default
+       label. Removed bars come off the right end. Confirms before
+       discarding a bar that already has blocks.
+       ----------------------------------------------------------- */
+    function addBar() {
+      if (state.bars.length >= MAX_BARS) return;
+      state.bars.push({
+        id:    state.nextId++,
+        label: 'P' + (state.bars.length + 1),
+        color: getRandomColor(),
+        count: 0
+      });
+      renderAll();
+    }
+
+    function removeBar() {
+      if (state.bars.length <= MIN_BARS) return;
+      var last = state.bars[state.bars.length - 1];
+      if (last.count > 0 &&
+          !confirm('Remove this bar and its ' + last.count + ' block(s)?')) {
+        return;
+      }
+      state.bars.pop();
+      renderAll();
+    }
+
+
+    /* -----------------------------------------------------------
+       updateBarCountControls — show the current bar count and
+       enable/disable the +/- buttons at the caps
+       ----------------------------------------------------------- */
+    function updateBarCountControls() {
+      document.getElementById('bar-count-display').textContent = state.bars.length;
+      document.getElementById('btn-remove-bar').disabled = state.bars.length <= MIN_BARS;
+      document.getElementById('btn-add-bar').disabled    = state.bars.length >= MAX_BARS;
+    }
+
+
+    /* -----------------------------------------------------------
+       randomize — assign a random count (0–15) to every bar
+       Pedagogically useful for "now look — what's the mean of THIS dataset?"
+       ----------------------------------------------------------- */
+    function randomize() {
+      state.bars.forEach(function(bar) {
+        bar.count = Math.floor(Math.random() * 16); /* 0..15 inclusive */
+      });
+      renderAll();
+    }
+
+
+    /* -----------------------------------------------------------
+       resetAll — zero every bar's count
+       Keeps the bars, labels, and colors. Just wipes the data.
+       ----------------------------------------------------------- */
+    function resetAll() {
+      var anyHasBlocks = state.bars.some(function(b) { return b.count > 0; });
+      if (anyHasBlocks && !confirm('Reset all blocks to zero?')) return;
+      state.bars.forEach(function(bar) { bar.count = 0; });
+      renderAll();
+    }
+
+
+    /* -----------------------------------------------------------
+       changeColor — recolor one bar, refresh its swatch + blocks
+       ----------------------------------------------------------- */
+    function changeColor(barId, color) {
+      var bar = findBar(barId);
+      if (!bar) return;
+      bar.color = color;
+
+      /* Update the swatch in the footer */
+      var cell = document.querySelector('.bar-label-cell[data-bar-id="' + barId + '"]');
+      if (cell) {
+        cell.querySelector('.color-swatch-mini').style.background = color;
+      }
+
+      /* Repaint the blocks in this bar */
+      var stats = computeStats();
+      renderBars(stats);
+
+      /* Close the picker */
+      var popup = document.getElementById('color-picker-' + barId);
+      if (popup) popup.classList.remove('open');
+    }
+
+
+    /* -----------------------------------------------------------
+       toggleColorPicker — open the picker for one swatch
+       Closes any other open popup first so only one is visible at a time.
+       ----------------------------------------------------------- */
+    function toggleColorPicker(barId) {
+      var target = document.getElementById('color-picker-' + barId);
+      var wasOpen = target.classList.contains('open');
+
+      document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
+        p.classList.remove('open');
+      });
+
+      if (!wasOpen) target.classList.add('open');
+    }
+
+    /* Clicks anywhere outside a swatch or its popup close any open popup */
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.color-swatch-mini') &&
+          !e.target.closest('.color-picker-popup')) {
+        document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
+          p.classList.remove('open');
+        });
+      }
+    });
+
+
+    /* =============================================================
+       TOOLTIPS — appear 2.5 seconds after the cursor enters a
+       .tooltip-trigger element. Cancelled if the cursor leaves
+       before the delay elapses.
+       =============================================================
+       Why 2.5s? An instant tooltip on hover is noisy and triggers
+       every time the cursor crosses the element by accident. A
+       slight delay communicates "you can hover for help" without
+       getting in the way during normal use.
+
+       Each trigger tracks its own timeout id so multiple triggers
+       on the page never step on each other.
+       ============================================================= */
+    function setupTooltips() {
+      document.querySelectorAll('.tooltip-trigger').forEach(function(el) {
+        var timeoutId = null;
+
+        el.addEventListener('mouseenter', function() {
+          /* Cancel any existing pending tooltip (defensive) */
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(function() {
+            el.classList.add('show-tooltip');
+          }, TOOLTIP_DELAY_MS);
+        });
+
+        el.addEventListener('mouseleave', function() {
+          clearTimeout(timeoutId);
+          el.classList.remove('show-tooltip');
+        });
+      });
+    }
+
+
+    /* ============================================================
+       STARTUP
+       ============================================================ */
+    init();
+
+  </script>
+
+</body>
+</html>
