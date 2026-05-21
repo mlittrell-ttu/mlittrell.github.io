@@ -1355,12 +1355,11 @@
            JS: showView() hides all view sections then shows the matching one,
                and moves the active class to the matching button -->
       <nav>
-        <button class="active" id="tab-timers"    onclick="showView('timers')">Timers</button>
-        <button               id="tab-stopwatch" onclick="showView('stopwatch')">Stopwatch</button>
-        <button               id="tab-alarms"    onclick="showView('alarms')">Alarms</button>
-        <button               id="tab-sessions"  onclick="showView('sessions')">Sessions</button>
-      </nav>
-
+  <button hidden class="active" id="tab-timers"    onclick="showView('timers')">Timers</button>
+  <button hidden                id="tab-stopwatch" onclick="showView('stopwatch')">Stopwatch</button>
+  <button hidden                id="tab-alarms"    onclick="showView('alarms')">Alarms</button>
+  <button        class="active" id="tab-sessions"  onclick="showView('sessions')">Sessions</button>
+</nav>
     </div>
   </header>
 
@@ -1374,7 +1373,7 @@
          Visible by default (has class "active")
          CSS: .view-section.active — display:flex
          ===================================================================== -->
-    <div class="view-section active" id="view-timers">
+    <div class="view-section" id="view-timers">
 
       <!-- TOOLBAR — timer count label and Add Timer button
            CSS: .toolbar — flex row, space-between pushes count left and button right -->
@@ -1497,7 +1496,7 @@
          Builder mode: create/edit segments before starting.
          Execution mode: full-page overlay modal runs the session.
          ===================================================================== -->
-    <div class="view-section" id="view-sessions">
+    <div class="view-section active" id="view-sessions">
       <div class="sessions-wrap">
 
         <!-- Session name -->
