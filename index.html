@@ -163,6 +163,15 @@
       text-transform: uppercase;  /* all caps reinforces it as a label */
     }
 
+
+       /* When a section heading follows a tool grid, push it down to
+       create visible separation between sections.
+       The "+" is the adjacent-sibling combinator: it targets a
+       .main-header that comes immediately after a .tool-grid. */
+    .tool-grid + .main-header {
+      margin-top: 48px;
+    }
+
     /* The grid that holds all the tool cards.
        auto-fill + minmax means cards are as wide as possible but never narrower than 260px —
        the grid automatically decides how many columns fit on the current screen width. */
