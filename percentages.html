@@ -1,0 +1,1303 @@
+<!DOCTYPE html>                        <!-- HTML5 document declaration -->
+<html lang="en">                       <!-- Root element, lang="en" helps screen readers -->
+<head>                                 <!-- Head section: invisible setup -->
+  <meta charset="UTF-8" />             <!-- UTF-8 character encoding -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Mobile scaling -->
+  <title>Percentages</title>           <!-- Browser tab text -->
+  <style>
+
+    /* =====================================================================
+       CSS CUSTOM PROPERTIES — parchment palette shared with FlashCards/Timer
+       ===================================================================== */
+    :root {
+      --bg:        #f7f2e8;   /* warm parchment cream — page background */
+      --surface:   #fffdf8;   /* near-white — card/panel backgrounds */
+      --border:    #d8cebc;   /* tan — borders and dividing lines */
+      --ink:       #2e2416;   /* dark brown-black — primary text */
+      --ink-light: #9e9080;   /* muted brown — secondary/label text */
+      --accent:    #e0d5c2;   /* medium cream — hover/active fills */
+      --accent2:   #c8bfb0;   /* slightly darker cream — accented borders */
+      --green:     #8aab8a;   /* muted sage — Calculate button */
+      --warn:      #c8844a;   /* warm orange — kept available for future use */
+      --shadow:    0 2px 12px rgba(0,0,0,0.08);
+      --radius:    10px;
+    }
+
+    /* CSS RESET — strips browser defaults so we control all spacing */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* =====================================================================
+       HEADER
+       ===================================================================== */
+    header {
+      width: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      letter-spacing: 0.08em;
+      font-weight: normal;
+    }
+
+    header h1 span { color: var(--ink-light); }
+
+    /* =====================================================================
+       MAIN CONTENT AREA
+       ===================================================================== */
+    main {
+      width: 100%;
+      max-width: 1100px;
+      padding: 32px 20px;
+    }
+
+    /* =====================================================================
+       TOTAL DISPLAY — the big prominent running total
+       =====================================================================
+       This used to be a settings bar with editable Total/Rows/Columns
+       inputs. In v3 the total is computed from the cells, not entered,
+       so this card now does just one thing: show that running number
+       clearly and prominently, like the "Total" cell on the worksheet.
+       ===================================================================== */
+    .total-display {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      text-align: center;            /* center the label and number horizontally */
+      margin-bottom: 12px;
+    }
+
+    .total-label {
+      font-size: 0.78rem;
+      color: var(--ink-light);
+      letter-spacing: 0.1em;          /* generous letter spacing for an "uppercase label" feel */
+      text-transform: uppercase;      /* automatically convert text to caps regardless of how it was typed */
+      margin-bottom: 4px;
+    }
+
+    .total-number {
+      font-size: 2.4rem;              /* much larger than body text — this is THE primary readout */
+      font-weight: normal;
+      color: var(--ink);
+      letter-spacing: 0.04em;
+      line-height: 1;                 /* tight line height so the big number doesn't push the card unnecessarily tall */
+      font-variant-numeric: tabular-nums;  /* makes digits equal-width so the number doesn't jitter as it changes */
+    }
+
+    /* =====================================================================
+       GRID SETTINGS — small secondary row with Rows and Columns inputs
+       =====================================================================
+       Less prominent than the total display since teachers typically
+       set these once at the start of an activity and then leave alone.
+       ===================================================================== */
+    .grid-settings {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 24px;
+      padding: 0 6px;
+      flex-wrap: wrap;
+    }
+
+    .grid-settings-label {
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .setup-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .setup-field label {
+      font-size: 0.8rem;
+      color: var(--ink-light);
+      letter-spacing: 0.04em;
+    }
+
+    .setup-field input[type="number"] {
+      width: 60px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--ink);
+      outline: none;
+      text-align: center;
+    }
+
+    /* =====================================================================
+       CATEGORY LIST
+       ===================================================================== */
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .category-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Top line of a category row: swatch | name | controls | × */
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* COLOR SWATCH — click opens the 20-color palette popup */
+    .color-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--accent2);
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;          /* anchors the absolutely-positioned popup below */
+    }
+
+    /* The hidden popup grid of 20 color choices */
+    .color-picker-popup {
+      display: none;
+      position: absolute;
+      top: 36px;                   /* sits just below the swatch */
+      left: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px;
+      box-shadow: var(--shadow);
+      z-index: 10;
+      width: 220px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .color-picker-popup.open { display: grid; }
+
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid var(--accent2);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .color-option:hover { transform: scale(1.1); }
+
+    /* Editable category name */
+    .category-name-input {
+      flex: 1;
+      min-width: 120px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed var(--border);
+      padding: 4px 0;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .category-name-input:focus { border-bottom-color: var(--accent2); }
+
+    /* Count controls: − / number input / + */
+    .count-controls { display: flex; align-items: center; gap: 4px; }
+
+    .btn-count {
+      width: 30px;
+      height: 30px;
+      background: var(--accent);
+      border: 1px solid var(--accent2);
+      border-radius: 50%;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.1rem;
+      color: var(--ink);
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .btn-count:hover { background: var(--accent2); }
+
+    .count-input {
+      width: 60px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 6px;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+      text-align: center;
+      outline: none;
+    }
+
+    /* The "X / 23" capacity badge shown right of the count controls */
+    .cap-badge {
+      font-size: 0.72rem;
+      color: var(--ink-light);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2px 8px;
+      margin-left: 4px;
+    }
+
+    .btn-remove-category {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink-light);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+      margin-left: auto;
+    }
+
+    .btn-remove-category:hover {
+      background: #f5ede0;
+      color: var(--warn);
+    }
+
+    /* =====================================================================
+       CELL GRID — the worksheet-style row of cells per category
+       =====================================================================
+       Uses CSS Grid to lay out fixed-width cells in a single horizontal row.
+       The number of columns is set inline by JS since it depends on state.
+       Wraps with overflow-x:auto so wide grids scroll within their card.
+       ===================================================================== */
+    .cell-grid-wrapper {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .cell-grid {
+      display: grid;
+      gap: 3px;
+      cursor: pointer;
+      width: max-content;            /* hug the cells exactly, no stretching */
+    }
+
+    .cell-grid.full { cursor: not-allowed; }  /* row at capacity — clicking is a no-op */
+
+    /* Each cell — fixed 22×28 rectangle. Background set inline by JS. */
+    .cell {
+      width: 22px;
+      height: 28px;
+      border-radius: 2px;
+      border: 1px solid rgba(0,0,0,0.10);
+      transition: background 0.15s;   /* smooth flip from empty tint → full color */
+    }
+
+    /* =====================================================================
+       ACTION BUTTONS
+       ===================================================================== */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .actions-left { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+      letter-spacing: 0.04em;
+    }
+
+    .btn-secondary:hover { background: var(--border); }
+
+    .btn-secondary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-calculate {
+      background: var(--green);
+      color: white;
+      border: 1px solid #6a8a6a;
+      padding: 12px 40px;
+      border-radius: 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      transition: opacity 0.2s;
+    }
+
+    .btn-calculate:hover { opacity: 0.85; }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      padding: 7px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+    }
+
+    .btn-reset:hover { background: var(--accent); }
+
+    /* =====================================================================
+       RESULTS PANEL
+       ===================================================================== */
+    .results-panel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .results-panel.show { display: block; }
+
+    .results-panel h2 {
+      font-size: 1.2rem;
+      font-weight: normal;
+      color: var(--ink-light);
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+
+    .results-table th {
+      font-weight: normal;
+      color: var(--ink-light);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .results-table td.category-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .swatch-mini {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid var(--accent2);
+      flex-shrink: 0;
+    }
+
+    .results-table tr:last-child td { border-bottom: none; }
+
+    .results-table tr.total-row td {
+      font-weight: bold;
+      border-top: 2px solid var(--ink-light);
+      padding-top: 14px;
+      border-bottom: none;
+    }
+
+    .num-cell { font-variant-numeric: tabular-nums; }
+
+    /* Horizontal bar chart at the bottom of the results panel */
+    .bar-chart-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-light);
+      margin-bottom: 10px;
+    }
+
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bar-label {
+      width: 130px;
+      font-size: 0.85rem;
+      text-align: right;
+      color: var(--ink);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 22px;
+      background: var(--bg);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.6s ease;
+    }
+
+    .bar-value {
+      width: 60px;
+      font-size: 0.85rem;
+      color: var(--ink-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      padding: 20px;
+      margin-top: 12px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER — title + Reset button
+       ============================================================ -->
+  <header>
+    <h1>Percent<span>ages</span></h1>
+    <button class="btn-reset" onclick="resetAll()">↺ Reset Counts</button>
+  </header>
+
+  <main>
+
+    <!-- ============================================================
+         TOTAL DISPLAY — large running total of all filled cells
+         No input here in v3; the number is computed from the grid.
+         ============================================================ -->
+    <div class="total-display">
+      <div class="total-label">Total</div>
+      <div class="total-number" id="total-number">0</div>
+    </div>
+
+    <!-- ============================================================
+         GRID SETTINGS — small secondary row for Rows / Columns
+         Capped at 10 rows and 25 columns.
+         ============================================================ -->
+    <div class="grid-settings">
+      <span class="grid-settings-label">Grid Size</span>
+
+      <div class="setup-field">
+        <label for="rows-input">Rows</label>
+        <input type="number" id="rows-input" min="1" max="10" value="5" oninput="handleRowsChange()" />
+      </div>
+
+      <div class="setup-field">
+        <label for="cols-input">Columns</label>
+        <input type="number" id="cols-input" min="1" max="25" value="23" oninput="handleColumnsChange()" />
+      </div>
+    </div>
+
+    <!-- ============================================================
+         CATEGORY LIST — JS builds the rows
+         ============================================================ -->
+    <div class="category-list" id="category-list"></div>
+
+    <!-- ============================================================
+         ACTION BUTTONS
+         ============================================================ -->
+    <div class="actions">
+      <div class="actions-left">
+        <button class="btn-secondary" id="btn-add-category" onclick="addCategory()">+ Add Category</button>
+      </div>
+      <button class="btn-calculate" onclick="calculate()">Calculate Percentages</button>
+    </div>
+
+    <!-- ============================================================
+         RESULTS PANEL — hidden until Calculate is clicked
+         ============================================================ -->
+    <div class="results-panel" id="results-panel">
+      <h2>Results</h2>
+
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Count</th>
+            <th>Fraction</th>
+            <th>Decimal</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody"></tbody>
+      </table>
+
+      <div class="bar-chart-title">Visual Distribution</div>
+      <div class="bar-chart" id="bar-chart"></div>
+    </div>
+
+  </main>
+
+  <footer>
+    A Simple Ed Apps — All apps run entirely in your browser, and no data leaves your device.
+  </footer>
+
+  <script>
+
+    /* ============================================================
+       PERCENTAGES (v3) — JavaScript
+       ============================================================
+       What's new vs v2:
+         - The Total field is GONE. Total is now a computed value
+           equal to the sum of every category's count (the running
+           count of filled cells across the whole grid).
+         - Rows capped at 10 (was 20), Columns capped at 25 (was 50).
+         - Percentages are calculated using the dynamic total so
+           every percentage row always sums to 100% (except when
+           the grid is completely empty — see the renderResults
+           function for the 0/0 handling).
+       ============================================================ */
+
+
+    /* -----------------------------------------------------------
+       THE 20-COLOR PALETTE
+       The first 5 roughly match the Haribo Goldbears worksheet.
+       ----------------------------------------------------------- */
+    var PALETTE = [
+      '#e4c14a',  /* 0  yellow */
+      '#c84a3a',  /* 1  red */
+      '#e8ddb8',  /* 2  cream */
+      '#5fa05f',  /* 3  green */
+      '#e89c45',  /* 4  Orange */
+      '#4a7ab8',  /* 5  Blue */
+      '#8e57a8',  /* 6  Purple */
+      '#d873a8',  /* 7  Pink */
+      '#4ab0a0',  /* 8  Teal */
+      '#8b6541',  /* 9  Brown */
+      '#d04a82',  /* 10 Magenta */
+      '#a5c93d',  /* 11 Lime */
+      '#2e4870',  /* 12 Navy */
+      '#e88574',  /* 13 Coral */
+      '#b59ed4',  /* 14 Lavender */
+      '#828b4a',  /* 15 Olive */
+      '#4dabb8',  /* 16 Cyan */
+      '#8a3242',  /* 17 Maroon */
+      '#d4a747',  /* 18 Gold */
+      '#7a7a78'   /* 19 Slate gray */
+    ];
+
+    /* Hard caps — tightened in v3 to match the worksheet's scale. */
+    var MAX_ROWS = 10;
+    var MAX_COLS = 25;
+
+
+    /* -----------------------------------------------------------
+       STATE — single source of truth for the whole app
+       -----------------------------------------------------------
+       Note: state.total is GONE. The total is derived from the
+       categories themselves via getTotal() — see below.
+       ----------------------------------------------------------- */
+    var state = {
+      rows:       5,        /* how many categories exist (= state.categories.length) */
+      columns:    23,       /* max count any single category can hold (matches worksheet default) */
+      categories: [],       /* array of {id, name, color, count} */
+      calculated: false,    /* true once Calculate has been clicked */
+      nextId:     1         /* incrementing id given to each new category */
+    };
+
+
+    /* -----------------------------------------------------------
+       getTotal — compute the running total from every category's count
+       -----------------------------------------------------------
+       Array.reduce(callback, initialValue) walks every element of
+       the array, accumulating a single result. We start at 0 and
+       add each category's count to get the running sum.
+
+       This replaces the v1/v2 state.total stored value — total is
+       now a DERIVED value computed on demand whenever we need it.
+       ----------------------------------------------------------- */
+    function getTotal() {
+      return state.categories.reduce(function(sum, cat) {
+        return sum + cat.count;
+      }, 0);
+    }
+
+
+    /* -----------------------------------------------------------
+       hexToRgba — "#e4c14a" + alpha → "rgba(228,193,74,0.18)"
+       Used to render EMPTY cells as a faint tint of the category
+       color (matches the worksheet's pale color bands).
+       ----------------------------------------------------------- */
+    function hexToRgba(hex, alpha) {
+      var h = hex.replace('#', '');
+      if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+      var r = parseInt(h.substr(0, 2), 16);
+      var g = parseInt(h.substr(2, 2), 16);
+      var b = parseInt(h.substr(4, 2), 16);
+      return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+    }
+
+
+    /* -----------------------------------------------------------
+       init — runs once when the page loads
+       Builds state.rows starter categories with default names and
+       palette colors, then renders the page for the first time.
+       ----------------------------------------------------------- */
+    function init() {
+      for (var i = 0; i < state.rows; i++) {
+        state.categories.push({
+          id:    state.nextId++,
+          name:  'Category ' + (i + 1),
+          color: PALETTE[i % PALETTE.length],
+          count: 0
+        });
+      }
+      renderCategoryList();
+      renderTotal();
+      updateAddButton();
+    }
+
+
+    /* -----------------------------------------------------------
+       findCategory — look up a category object by id
+       Returns the live object so changes mutate state directly.
+       ----------------------------------------------------------- */
+    function findCategory(id) {
+      for (var i = 0; i < state.categories.length; i++) {
+        if (state.categories[i].id === id) return state.categories[i];
+      }
+      return null;
+    }
+
+
+    /* -----------------------------------------------------------
+       renderCategoryList — rebuild every category card
+       Used for whole-list changes (add/remove/columns changed).
+       Count changes use renderGrid instead so input focus survives.
+       ----------------------------------------------------------- */
+    function renderCategoryList() {
+      var container = document.getElementById('category-list');
+      container.innerHTML = '';
+      state.categories.forEach(function(cat) {
+        container.appendChild(buildCategoryRow(cat));
+      });
+    }
+
+
+    /* -----------------------------------------------------------
+       buildCategoryRow — construct one category card
+       Returns a DOM element with all inputs and buttons wired up.
+       ----------------------------------------------------------- */
+    function buildCategoryRow(cat) {
+      var row = document.createElement('div');
+      row.className = 'category-row';
+      row.dataset.categoryId = cat.id;
+
+      /* ---------- HEADER LINE: swatch | name | controls | × ---------- */
+      var header = document.createElement('div');
+      header.className = 'category-header';
+
+      /* COLOR SWATCH */
+      var swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.background = cat.color;
+      swatch.onclick = function(e) {
+        e.stopPropagation();
+        toggleColorPicker(cat.id);
+      };
+
+      /* Color-picker popup nested inside the swatch */
+      var popup = document.createElement('div');
+      popup.className = 'color-picker-popup';
+      popup.id = 'color-picker-' + cat.id;
+      PALETTE.forEach(function(color) {
+        var option = document.createElement('div');
+        option.className = 'color-option';
+        option.style.background = color;
+        option.onclick = function(e) {
+          e.stopPropagation();
+          changeColor(cat.id, color);
+        };
+        popup.appendChild(option);
+      });
+      swatch.appendChild(popup);
+
+      /* NAME INPUT */
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'category-name-input';
+      nameInput.value = cat.name;
+      nameInput.oninput = function() {
+        cat.name = nameInput.value;
+        if (state.calculated) renderResults();
+      };
+
+      /* COUNT CONTROLS — − / number input / + / cap badge */
+      var controls = document.createElement('div');
+      controls.className = 'count-controls';
+
+      var btnMinus = document.createElement('button');
+      btnMinus.className = 'btn-count';
+      btnMinus.textContent = '−';
+      btnMinus.onclick = function() { changeCount(cat.id, -1); };
+
+      var countInput = document.createElement('input');
+      countInput.type = 'number';
+      countInput.className = 'count-input';
+      countInput.min = '0';
+      countInput.max = String(state.columns);
+      countInput.value = cat.count;
+      countInput.id = 'count-input-' + cat.id;
+      countInput.oninput = function() {
+        var n = parseInt(countInput.value, 10);
+        if (isNaN(n) || n < 0) n = 0;
+        if (n > state.columns) n = state.columns;   /* clamp to column cap */
+        cat.count = n;
+        countInput.value = n;
+        renderGrid(cat.id);
+        renderTotal();
+        if (state.calculated) renderResults();
+      };
+
+      var btnPlus = document.createElement('button');
+      btnPlus.className = 'btn-count';
+      btnPlus.textContent = '+';
+      btnPlus.onclick = function() { changeCount(cat.id, 1); };
+
+      /* "X / 23" fullness badge */
+      var capBadge = document.createElement('span');
+      capBadge.className = 'cap-badge';
+      capBadge.id = 'cap-badge-' + cat.id;
+      capBadge.textContent = cat.count + ' / ' + state.columns;
+
+      controls.appendChild(btnMinus);
+      controls.appendChild(countInput);
+      controls.appendChild(btnPlus);
+      controls.appendChild(capBadge);
+
+      /* REMOVE BUTTON */
+      var btnRemove = document.createElement('button');
+      btnRemove.className = 'btn-remove-category';
+      btnRemove.textContent = '×';
+      btnRemove.title = 'Remove this category';
+      btnRemove.onclick = function() { removeCategory(cat.id); };
+
+      header.appendChild(swatch);
+      header.appendChild(nameInput);
+      header.appendChild(controls);
+      header.appendChild(btnRemove);
+
+      /* ---------- CELL GRID ---------- */
+      var gridWrap = document.createElement('div');
+      gridWrap.className = 'cell-grid-wrapper';
+
+      var grid = buildCellGrid(cat);
+      gridWrap.appendChild(grid);
+
+      row.appendChild(header);
+      row.appendChild(gridWrap);
+
+      return row;
+    }
+
+
+    /* -----------------------------------------------------------
+       buildCellGrid — create the row of cells for one category
+       Always renders exactly state.columns cells. First cat.count
+       are FILLED (full opacity), the rest are EMPTY (18% tint).
+       A single click handler on the grid does the +1.
+       ----------------------------------------------------------- */
+    function buildCellGrid(cat) {
+      var grid = document.createElement('div');
+      grid.className = 'cell-grid';
+      grid.id = 'grid-' + cat.id;
+
+      grid.style.gridTemplateColumns = 'repeat(' + state.columns + ', 22px)';
+
+      if (cat.count >= state.columns) grid.classList.add('full');
+
+      grid.onclick = function() { changeCount(cat.id, 1); };
+
+      for (var i = 0; i < state.columns; i++) {
+        var cell = document.createElement('div');
+        cell.className = 'cell';
+        if (i < cat.count) {
+          cell.style.background = cat.color;                          /* filled */
+        } else {
+          cell.style.background = hexToRgba(cat.color, 0.18);         /* empty tint */
+        }
+        grid.appendChild(cell);
+      }
+
+      return grid;
+    }
+
+
+    /* -----------------------------------------------------------
+       renderGrid — surgical update of one category's grid
+       Walks existing cells and just changes their backgrounds — no
+       DOM elements added or removed.
+       ----------------------------------------------------------- */
+    function renderGrid(catId) {
+      var cat = findCategory(catId);
+      if (!cat) return;
+      var grid = document.getElementById('grid-' + catId);
+      if (!grid) return;
+
+      grid.classList.toggle('full', cat.count >= state.columns);
+
+      var cells = grid.children;
+      for (var i = 0; i < cells.length; i++) {
+        if (i < cat.count) {
+          cells[i].style.background = cat.color;
+        } else {
+          cells[i].style.background = hexToRgba(cat.color, 0.18);
+        }
+      }
+
+      var badge = document.getElementById('cap-badge-' + catId);
+      if (badge) badge.textContent = cat.count + ' / ' + state.columns;
+    }
+
+
+    /* -----------------------------------------------------------
+       renderTotal — refresh the big running-total display
+       Replaces v2's renderRunningTotal. The number is computed
+       freshly via getTotal() — no stored state to keep in sync.
+       ----------------------------------------------------------- */
+    function renderTotal() {
+      document.getElementById('total-number').textContent = getTotal();
+    }
+
+
+    /* -----------------------------------------------------------
+       changeCount — +/- a category's count with cap enforcement
+       Every count change in the app routes through this function.
+       ----------------------------------------------------------- */
+    function changeCount(catId, delta) {
+      var cat = findCategory(catId);
+      if (!cat) return;
+
+      cat.count += delta;
+      if (cat.count < 0) cat.count = 0;
+      if (cat.count > state.columns) cat.count = state.columns;
+
+      var input = document.getElementById('count-input-' + catId);
+      if (input) input.value = cat.count;
+
+      renderGrid(catId);
+      renderTotal();
+      if (state.calculated) renderResults();
+    }
+
+
+    /* -----------------------------------------------------------
+       changeColor — pick a new color, refresh swatch + grid + results
+       ----------------------------------------------------------- */
+    function changeColor(catId, color) {
+      var cat = findCategory(catId);
+      if (!cat) return;
+      cat.color = color;
+
+      var row = document.querySelector('[data-category-id="' + catId + '"]');
+      if (row) {
+        row.querySelector('.color-swatch').style.background = color;
+        renderGrid(catId);
+      }
+
+      var popup = document.getElementById('color-picker-' + catId);
+      if (popup) popup.classList.remove('open');
+
+      if (state.calculated) renderResults();
+    }
+
+
+    /* -----------------------------------------------------------
+       toggleColorPicker — open / close one swatch's popup
+       Closes any other open pickers first.
+       ----------------------------------------------------------- */
+    function toggleColorPicker(catId) {
+      var target = document.getElementById('color-picker-' + catId);
+      var wasOpen = target.classList.contains('open');
+
+      document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
+        p.classList.remove('open');
+      });
+
+      if (!wasOpen) target.classList.add('open');
+    }
+
+    /* Global listener — clicks outside any swatch or popup close the popup */
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.color-swatch') && !e.target.closest('.color-picker-popup')) {
+        document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
+          p.classList.remove('open');
+        });
+      }
+    });
+
+
+    /* -----------------------------------------------------------
+       addCategory — append one new row, bump state.rows
+       Called by the "+ Add Category" button. Also kept in sync
+       with the Rows input via handleRowsChange.
+       ----------------------------------------------------------- */
+    function addCategory() {
+      if (state.categories.length >= MAX_ROWS) return;
+
+      var color = PALETTE[state.categories.length % PALETTE.length];
+      state.categories.push({
+        id:    state.nextId++,
+        name:  'Category ' + (state.categories.length + 1),
+        color: color,
+        count: 0
+      });
+      state.rows = state.categories.length;
+      document.getElementById('rows-input').value = state.rows;
+
+      renderCategoryList();
+      renderTotal();
+      updateAddButton();
+      if (state.calculated) renderResults();
+    }
+
+
+    /* -----------------------------------------------------------
+       removeCategory — drop one row, bump state.rows down by 1
+       Confirms before destroying a category with a non-zero count.
+       ----------------------------------------------------------- */
+    function removeCategory(catId) {
+      var cat = findCategory(catId);
+      if (cat && cat.count > 0) {
+        if (!confirm('Remove this category and its count of ' + cat.count + '?')) return;
+      }
+
+      var idx = state.categories.findIndex(function(c) { return c.id === catId; });
+      if (idx === -1) return;
+      state.categories.splice(idx, 1);
+      state.rows = state.categories.length;
+      document.getElementById('rows-input').value = state.rows;
+
+      renderCategoryList();
+      renderTotal();
+      updateAddButton();
+      if (state.calculated) renderResults();
+    }
+
+
+    /* -----------------------------------------------------------
+       updateAddButton — enable/disable + relabel the Add button
+       ----------------------------------------------------------- */
+    function updateAddButton() {
+      var btn = document.getElementById('btn-add-category');
+      btn.disabled = state.categories.length >= MAX_ROWS;
+      btn.textContent = state.categories.length >= MAX_ROWS
+        ? '+ Add Category (max reached)'
+        : '+ Add Category';
+    }
+
+
+    /* -----------------------------------------------------------
+       handleRowsChange — teacher edits the Rows field
+       Rows IS the number of categories — bumping it up appends,
+       bumping it down removes from the end (with confirmation).
+       ----------------------------------------------------------- */
+    function handleRowsChange() {
+      var input = document.getElementById('rows-input');
+      var n = parseInt(input.value, 10);
+      if (isNaN(n) || n < 1) n = 1;
+      if (n > MAX_ROWS) n = MAX_ROWS;
+      input.value = n;
+
+      var current = state.categories.length;
+
+      if (n > current) {
+        for (var i = current; i < n; i++) {
+          state.categories.push({
+            id:    state.nextId++,
+            name:  'Category ' + (i + 1),
+            color: PALETTE[i % PALETTE.length],
+            count: 0
+          });
+        }
+      } else if (n < current) {
+        var anyHasCount = false;
+        for (var j = n; j < current; j++) {
+          if (state.categories[j].count > 0) { anyHasCount = true; break; }
+        }
+        if (anyHasCount && !confirm('Removing these categories will delete their counts. Continue?')) {
+          input.value = current;
+          return;
+        }
+        state.categories.length = n;   /* truncate the array */
+      }
+
+      state.rows = n;
+      renderCategoryList();
+      renderTotal();
+      updateAddButton();
+      if (state.calculated) renderResults();
+    }
+
+
+    /* -----------------------------------------------------------
+       handleColumnsChange — teacher edits the Columns field
+       Clamps every count down to the new cap and rebuilds the grids.
+       ----------------------------------------------------------- */
+    function handleColumnsChange() {
+      var input = document.getElementById('cols-input');
+      var n = parseInt(input.value, 10);
+      if (isNaN(n) || n < 1) n = 1;
+      if (n > MAX_COLS) n = MAX_COLS;
+      input.value = n;
+
+      state.columns = n;
+
+      state.categories.forEach(function(cat) {
+        if (cat.count > n) cat.count = n;
+      });
+
+      renderCategoryList();
+      renderTotal();
+      if (state.calculated) renderResults();
+    }
+
+
+    /* -----------------------------------------------------------
+       calculate — show the results panel and scroll into view
+       Once shown, results auto-update as the student keeps clicking.
+       ----------------------------------------------------------- */
+    function calculate() {
+      state.calculated = true;
+      document.getElementById('results-panel').classList.add('show');
+      renderResults();
+      document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+
+    /* -----------------------------------------------------------
+       renderResults — rebuild the frequency table + bar chart
+       -----------------------------------------------------------
+       In v3 the denominator is getTotal() (sum of counts) rather
+       than a teacher-typed total. Because of that, each category's
+       percentage now represents its share of the actual placed
+       counters — and every percentage row will sum to 100%
+       (within rounding error) whenever any cells are filled.
+
+       Special case: when total is 0 (no cells filled yet), every
+       percentage is 0.0% — we guard against the 0/0 division by
+       checking total > 0 before computing decimal.
+       ----------------------------------------------------------- */
+    function renderResults() {
+      var tbody = document.getElementById('results-tbody');
+      var chart = document.getElementById('bar-chart');
+      tbody.innerHTML = '';
+      chart.innerHTML = '';
+
+      var total = getTotal();              /* compute once and reuse */
+      var sumCount = 0;
+      var sumPercent = 0;
+
+      state.categories.forEach(function(cat) {
+        /* GUARD against divide-by-zero when nothing is placed yet.
+           In JS, 0 / 0 returns NaN ("not a number"); checking total > 0
+           first and falling back to 0 keeps the output meaningful. */
+        var decimal = total > 0 ? cat.count / total : 0;
+        var percent = decimal * 100;
+        sumCount   += cat.count;
+        sumPercent += percent;
+
+        /* ---- TABLE ROW ---- */
+        var tr = document.createElement('tr');
+
+        var tdCat = document.createElement('td');
+        tdCat.className = 'category-cell';
+        var miniSwatch = document.createElement('div');
+        miniSwatch.className = 'swatch-mini';
+        miniSwatch.style.background = cat.color;
+        tdCat.appendChild(miniSwatch);
+        tdCat.appendChild(document.createTextNode(cat.name || '(unnamed)'));
+        tr.appendChild(tdCat);
+
+        var tdCount = document.createElement('td');
+        tdCount.className = 'num-cell';
+        tdCount.textContent = cat.count;
+        tr.appendChild(tdCount);
+
+        var tdFrac = document.createElement('td');
+        tdFrac.className = 'num-cell';
+        tdFrac.textContent = cat.count + ' / ' + total;
+        tr.appendChild(tdFrac);
+
+        var tdDec = document.createElement('td');
+        tdDec.className = 'num-cell';
+        tdDec.textContent = decimal.toFixed(3);
+        tr.appendChild(tdDec);
+
+        var tdPct = document.createElement('td');
+        tdPct.className = 'num-cell';
+        tdPct.textContent = percent.toFixed(1) + ' %';
+        tr.appendChild(tdPct);
+
+        tbody.appendChild(tr);
+
+        /* ---- BAR CHART ROW ---- */
+        var bar = document.createElement('div');
+        bar.className = 'bar-row';
+
+        var label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = cat.name || '(unnamed)';
+
+        var track = document.createElement('div');
+        track.className = 'bar-track';
+        var fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.background = cat.color;
+        fill.style.width = Math.min(percent, 100) + '%';
+        track.appendChild(fill);
+
+        var value = document.createElement('div');
+        value.className = 'bar-value';
+        value.textContent = percent.toFixed(1) + ' %';
+
+        bar.appendChild(label);
+        bar.appendChild(track);
+        bar.appendChild(value);
+        chart.appendChild(bar);
+      });
+
+      /* ---- TOTAL ROW ----
+         When total > 0, sumCount === total and sumPercent rounds to 100%.
+         The row mostly exists to make that invariant visible to students. */
+      var totalTr = document.createElement('tr');
+      totalTr.className = 'total-row';
+
+      var tdLabel = document.createElement('td');
+      tdLabel.textContent = 'Total';
+      totalTr.appendChild(tdLabel);
+
+      var tdSum = document.createElement('td');
+      tdSum.className = 'num-cell';
+      tdSum.textContent = sumCount;
+      totalTr.appendChild(tdSum);
+
+      var tdSumFrac = document.createElement('td');
+      tdSumFrac.className = 'num-cell';
+      tdSumFrac.textContent = sumCount + ' / ' + total;
+      totalTr.appendChild(tdSumFrac);
+
+      var tdSumDec = document.createElement('td');
+      tdSumDec.className = 'num-cell';
+      tdSumDec.textContent = total > 0 ? (sumCount / total).toFixed(3) : '0.000';
+      totalTr.appendChild(tdSumDec);
+
+      var tdSumPct = document.createElement('td');
+      tdSumPct.className = 'num-cell';
+      tdSumPct.textContent = sumPercent.toFixed(1) + ' %';
+      totalTr.appendChild(tdSumPct);
+
+      tbody.appendChild(totalTr);
+    }
+
+
+    /* -----------------------------------------------------------
+       resetAll — zero every count, hide the results panel
+       Keeps categories and grid dimensions intact.
+       ----------------------------------------------------------- */
+    function resetAll() {
+      if (!confirm('Reset all counts back to zero?')) return;
+
+      state.categories.forEach(function(cat) { cat.count = 0; });
+      state.calculated = false;
+      document.getElementById('results-panel').classList.remove('show');
+
+      renderCategoryList();
+      renderTotal();
+    }
+
+
+    /* ============================================================
+       STARTUP
+       ============================================================ */
+    init();
+
+  </script>
+
+</body>
+</html>
