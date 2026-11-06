@@ -1,422 +1,531 @@
-<!DOCTYPE html>                        <!-- Tells the browser this is an HTML5 document -->
-<html lang="en">                       <!-- Root element wrapping everything; lang="en" helps screen readers -->
-<head>                                 <!-- Head section: invisible setup instructions for the browser -->
-  <meta charset="UTF-8" />             <!-- Use UTF-8 encoding so all characters and emoji display correctly -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Makes the page scale properly on phones -->
-  <title>Simple Ed Tools</title>        <!-- Text shown in the browser tab -->
-  <style>  /* Opens the CSS block — everything here controls visual appearance */
+<!DOCTYPE html>
+<!--
+  TEACHER APPS: HOME PAGE
+  =================================================================
+  One self-contained file. Nothing is loaded from the internet:
+  fonts come from the computer, icons are drawn with inline SVG.
 
-    /* CSS custom properties (variables) defined on :root so they are available everywhere on the page.
-       These match the flashcard app exactly so both files share the same visual language. */
-    :root {
-      --bg:        #f7f2e8;   /* warm parchment cream — the page background */
-      --surface:   #fffdf8;   /* near-white — card and panel backgrounds */
-      --border:    #d8cebc;   /* tan — borders and dividing lines */
-      --ink:       #2e2416;   /* dark brown-black — primary text */
-      --ink-light: #9e9080;   /* muted brown — secondary text and labels */
-      --accent:    #e0d5c2;   /* medium cream — hover states and active fills */
-      --accent2:   #c8bfb0;   /* slightly darker cream — borders on accented elements */
-      --shadow:    0 2px 12px rgba(0,0,0,0.08); /* subtle drop shadow used on cards */
-      --radius:    10px;      /* standard corner rounding shared across all elements */
-      --sidebar:   240px;     /* fixed width of the sidebar — used in layout calculations */
-    }
+  How the file is laid out:
+    1. <style>  ... design tokens, then one block per page section
+    2. <body>   ... header, hero, "why" row, apps, download steps,
+                    about, footer
+  There is no JavaScript on this page.
 
-    /* CSS reset — strips all browser default spacing and switches to border-box sizing.
-       * = wildcard targeting every element; ::before/::after = generated content too.
-       border-box means padding and border are included in an element's stated width/height. */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  Adding a new app: copy one .app-card <li> in the APPS section,
+  change its colour variables, icon, text and the two links.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher Apps</title>
+<meta name="description" content="Free, offline, private apps for the classroom. No accounts, no ads, and nothing leaves your device.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
 
-    /* Body — the full visible page.
-       flex + row direction creates the two-column layout: sidebar on left, main on right.
-       min-height: 100vh ensures the sidebar stretches to fill the full screen height even
-       when there is very little content on the page. */
-    body {
-      font-family: 'Georgia', serif;  /* Georgia serif — matches the flashcard app */
-      background: var(--bg);          /* warm parchment page background */
-      color: var(--ink);              /* dark brown-black default text color */
-      min-height: 100vh;              /* at least full viewport height so sidebar fills the screen */
-      display: flex;                  /* flex container — sidebar and main sit side by side */
-      flex-direction: row;            /* children flow left to right */
-    }
+<style>
+/* =================================================================
+   1. DESIGN TOKENS
+   Shared with every Teacher Apps tool. Change a value here and it
+   changes across the whole page.
+   ================================================================= */
+:root {
+  --paper:      #F5F7F6;  /* page background, a cool whiteboard white */
+  --surface:    #FFFFFF;  /* cards */
+  --surface-2:  #EEF2F1;  /* subtle fills */
+  --ink:        #1C2730;  /* main text: dark slate */
+  --ink-2:      #4A5862;  /* secondary text (about 7:1 contrast) */
+  --rule:       #D3DBDA;  /* light dividing lines */
+  --field-edge: #85918F;  /* outline buttons */
+  --focus:      #1D5FD1;  /* keyboard focus ring */
 
-    /* =====================================================================
-       SIDEBAR
-       ===================================================================== */
+  /* Each app has a colour: a soft tint ("bg") and a stronger mark. */
+  --timer-bg:   #D7E5FA; --timer:   #3A6BCB;
+  --cards-bg:   #CDEBDD; --cards:   #2A8462;
+  --pct-bg:     #ECE7F5; --pct:     #73639F;
+  --spread-bg:  #F6E2BA; --spread:  #A86F14;
+  --noun-bg:    #F5D3D0; --noun:    #BE4A43;
+  --mwb-bg:     #CBE8EC; --mwb:     #26818F;
 
-    /* The fixed left sidebar — holds the site name, tagline, and navigation links.
-       position: fixed means it stays in place when the page scrolls.
-       height: 100vh pins it to the full viewport height.
-       The sidebar width is stored in --sidebar so main can use it for its left margin. */
-    .sidebar {
-      position: fixed;              /* stays put when page scrolls */
-      top: 0;                       /* flush with the top of the viewport */
-      left: 0;                      /* flush with the left edge */
-      width: var(--sidebar);        /* fixed width from our CSS variable */
-      height: 100vh;                /* full viewport height */
-      background: var(--surface);   /* near-white background — slightly lighter than the page */
-      border-right: 1px solid var(--border); /* thin tan line separating sidebar from main content */
-      display: flex;                /* flex container so we can stack children vertically */
-      flex-direction: column;       /* children stack top to bottom */
-      padding: 36px 24px;           /* 36px top/bottom, 24px left/right breathing room */
-    }
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
 
-    /* The "Simple Ed Tools" site name at the top of the sidebar */
-    .sidebar-title {
-      font-size: 1.15rem;           /* slightly larger than body text */
-      font-weight: normal;          /* override browser bold default — lighter feels more refined */
-      letter-spacing: 0.06em;       /* subtle letter spacing — makes it feel like a quiet logo */
-      color: var(--ink);            /* dark brown-black */
-      line-height: 1.3;             /* tighten line height for the two-word stacked title */
-      margin-bottom: 10px;          /* space between title and tagline below */
-    }
+/* =================================================================
+   2. BASICS
+   ================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
-    /* The "Privacy focused offline tools..." tagline sitting below the site name */
-    .sidebar-tagline {
-      font-size: 0.78rem;           /* small — secondary information, not the primary focus */
-      color: var(--ink-light);      /* muted brown — de-emphasised */
-      line-height: 1.6;             /* generous line height since this may wrap to two lines */
-      margin-bottom: 32px;          /* larger gap before the navigation links below */
-      padding-bottom: 24px;         /* inner space before the border */
-      border-bottom: 1px solid var(--border); /* thin line visually separates branding from nav */
-    }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.5;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: var(--ink); }
+a:hover { color: var(--focus); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-    /* The navigation list — holds all sidebar link items.
-       list-style: none removes the default browser bullet points. */
-    .sidebar-nav {
-      list-style: none;   /* remove default bullet points from the list */
-      display: flex;      /* flex container */
-      flex-direction: column; /* stack links vertically */
-      gap: 4px;           /* small gap between each nav item */
-    }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
 
-    /* Each navigation link in the sidebar.
-       display: block makes the link fill the full row width so the whole area is clickable.
-       The padding, radius, and transition set up the hover highlight effect. */
-    .sidebar-nav a {
-      display: block;                   /* fill the full row width — makes whole row clickable */
-      padding: 8px 12px;                /* comfortable click target */
-      border-radius: var(--radius);     /* rounded corners matching the rest of the app */
-      color: var(--ink-light);          /* muted by default — highlights on hover */
-      text-decoration: none;            /* remove browser default underline */
-      font-size: 0.88rem;               /* slightly smaller than body text */
-      letter-spacing: 0.03em;           /* subtle letter spacing */
-      transition: background 0.15s, color 0.15s; /* smooth background and color change on hover */
-    }
+/* Pill-shaped buttons (they are links styled as buttons). */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px;
+  border-radius: 999px; border: 1px solid var(--field-edge);
+  background: var(--surface); color: var(--ink);
+  font-weight: 600; text-decoration: none;
+}
+.btn:hover { background: var(--surface-2); color: var(--ink); }
+.btn-primary { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.btn-primary:hover { background: #2C3A45; color: #FFFFFF; }
+.btn-big { min-height: 52px; padding: 0 26px; font-size: 1.0625rem; }
 
-    /* Navigation link on hover — fills with accent cream and darkens the text */
-    .sidebar-nav a:hover {
-      background: var(--accent);  /* medium cream fill on hover */
-      color: var(--ink);          /* darken text on hover for contrast */
-    }
+/* The Teacher Apps logo: four tiles on a slate square. */
+.logo-mark {
+  width: 40px; height: 40px; padding: 8px; border-radius: 11px;
+  background: var(--ink);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  flex: none;
+}
+.logo-mark span:nth-child(1) { background: #7FA6F0; border-radius: 4px 4px 4px 2px; }
+.logo-mark span:nth-child(2) { background: #5FC49A; border-radius: 50%; }
+.logo-mark span:nth-child(3) { background: #E2AB4C; border-radius: 4px; }
+.logo-mark span:nth-child(4) { background: #EEF2F1; border-radius: 4px 2px 4px 4px; }
 
-    /* The active/current page link — always highlighted so user knows where they are */
-    .sidebar-nav a.active {
-      background: var(--accent);    /* same cream fill as hover */
-      color: var(--ink);            /* dark text */
-      border: 1px solid var(--accent2); /* slightly darker border defines the active pill */
-    }
+/* =================================================================
+   3. HEADER
+   ================================================================= */
+.site-header { border-bottom: 1px solid var(--rule); }
+.site-header .wrap {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px 24px; padding-top: 18px; padding-bottom: 18px;
+}
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.brand-name { font-size: 1.1875rem; font-weight: 700; letter-spacing: -0.02em; }
+.site-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.site-nav a {
+  padding: 10px 14px; border-radius: 999px;
+  color: var(--ink-2); font-weight: 500; text-decoration: none;
+}
+.site-nav a:hover { background: var(--surface-2); color: var(--ink); }
 
-    /* Small footer text at the very bottom of the sidebar.
-       margin-top: auto pushes it to the bottom regardless of how much nav content is above it —
-       auto margin in flex consumes all available free space in the flex direction. */
-    .sidebar-footer {
-      margin-top: auto;           /* push to bottom of the sidebar */
-      font-size: 0.72rem;         /* very small — quiet footnote */
-      color: var(--ink-light);    /* muted */
-      line-height: 1.6;           /* generous spacing for readability at small size */
-    }
+/* =================================================================
+   4. HERO: headline, buttons and a picture of the timer in action
+   ================================================================= */
+.hero { padding-top: 88px; padding-bottom: 72px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.badge {
+  display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;
+  padding: 6px 14px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--rule);
+  font-size: 0.875rem; font-weight: 600; color: var(--ink-2);
+}
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cards); }
+.hero h1 {
+  font-size: clamp(2.5rem, 5.5vw, 4rem); line-height: 1.05;
+  font-weight: 750; letter-spacing: -0.03em; max-width: 16ch;
+}
+.hero .lede { margin-top: 24px; font-size: 1.25rem; line-height: 1.55; color: var(--ink-2); max-width: 40ch; }
+.hero-actions { margin-top: 36px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 
-    /* =====================================================================
-       MAIN CONTENT
-       ===================================================================== */
+/* The browser-window picture. It is decoration only (aria-hidden),
+   built from plain boxes so it stays sharp and needs no image file. */
+.shot { margin: 64px 0 0; width: 100%; max-width: 980px; text-align: left; }
+.shot-window {
+  border-radius: 20px; background: var(--ink); padding: 10px;
+  box-shadow: 0 2px 4px rgba(28,39,48,0.08), 0 48px 96px -40px rgba(28,39,48,0.55);
+}
+.shot-bar { display: flex; align-items: center; gap: 14px; padding: 6px 8px 14px; }
+.shot-dots { display: flex; gap: 7px; }
+.shot-dots span { width: 11px; height: 11px; border-radius: 50%; }
+.shot-url {
+  flex: 1; max-width: 360px; margin: 0 auto; padding: 5px 14px; border-radius: 8px;
+  background: #232D34; color: #B6C1C4; font-size: 0.8125rem; text-align: center;
+}
+.shot-screen { border-radius: 12px; background: var(--paper); padding: clamp(16px, 3vw, 32px); display: flex; flex-direction: column; gap: 16px; }
+.shot-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.shot-title { font-size: clamp(1.125rem, 2.2vw, 1.5rem); font-weight: 700; }
+.shot-total { color: var(--ink-2); }
+.shot-total strong { color: var(--ink); font-size: 1.5rem; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.shot-timeline { display: flex; gap: 4px; height: 10px; }
+.shot-timeline span { flex: 1; border-radius: 999px; }
+.shot-body { display: flex; flex-wrap: wrap; gap: 20px; }
+.shot-now {
+  flex: 999 1 420px; min-width: 0;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 16px;
+  padding: clamp(18px, 3vw, 32px);
+}
+.shot-meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; color: var(--ink-2); font-size: 0.9375rem; }
+.shot-state { display: inline-flex; align-items: center; gap: 7px; padding: 4px 13px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-weight: 700; }
+.shot-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--timer); }
+.shot-seg { margin-top: 18px; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 750; letter-spacing: -0.015em; line-height: 1.05; }
+.shot-desc { margin-top: 8px; font-size: clamp(1rem, 1.8vw, 1.25rem); color: var(--ink-2); }
+.shot-count { margin-top: 22px; font-size: clamp(4.5rem, 12vw, 8.5rem); font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.shot-progress { margin-top: 18px; height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.shot-progress span { display: block; width: 49%; height: 100%; border-radius: 999px; background: var(--timer); }
+.shot-labels { margin-top: 6px; display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.shot-plan { flex: 1 1 240px; min-width: 0; }
+.shot-plan-title { margin-bottom: 10px; font-weight: 700; color: var(--ink-2); }
+.shot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.shot-list li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px; border: 2px solid transparent; font-size: 0.9375rem;
+}
+.shot-list .dot { width: 10px; height: 10px; border-radius: 50%; }
+.shot-list .time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.shot-list .tag { font-size: 0.75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); }
+.shot-list .is-now { background: var(--surface); border-color: var(--timer); font-weight: 700; }
+.shot-list .is-now .tag { background: var(--timer-bg); }
+.shot-buttons { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
+.shot-buttons span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px; border-radius: 999px; font-weight: 600; font-size: 0.9375rem; border: 1px solid var(--field-edge); }
+.shot-buttons span:first-child { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.shot figcaption { margin-top: 16px; text-align: center; font-size: 0.9375rem; color: var(--ink-2); }
 
-    /* The main content area to the right of the sidebar.
-       margin-left: var(--sidebar) offsets it exactly by the sidebar width so content
-       doesn't slide under the fixed sidebar.
-       flex: 1 makes it grow to fill all remaining horizontal space. */
-    .main {
-      margin-left: var(--sidebar);  /* push right by exactly the sidebar width */
-      flex: 1;                      /* fill all remaining horizontal space */
-      padding: 48px 48px;           /* generous breathing room on all sides */
-      max-width: 860px;             /* cap width so cards don't stretch too wide on large screens */
-    }
+/* =================================================================
+   5. "WHY" ROW: three short promises
+   ================================================================= */
+.why {
+  list-style: none; margin: 0; padding: 28px 32px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 24px 32px;
+}
+.why li { display: flex; gap: 14px; align-items: flex-start; }
+.why-icon { flex: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.why strong { display: block; }
+.why span span { font-size: 0.9375rem; color: var(--ink-2); }
 
-    /* The page heading row — "Tools" label and eventually a count or filter */
-    .main-header {
-      margin-bottom: 32px;              /* space between heading and the card grid below */
-      padding-bottom: 20px;             /* inner space before the border */
-      border-bottom: 1px solid var(--border); /* thin line separates heading from card grid */
-    }
+/* =================================================================
+   6. SECTIONS AND APP CARDS
+   ================================================================= */
+.section { padding-top: 72px; padding-bottom: 24px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; margin-bottom: 28px; }
+.section h2 { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; }
+.section-sub { margin-top: 8px; font-size: 1.0625rem; color: var(--ink-2); max-width: 60ch; }
 
-    .main-header p {
-      font-size: 0.85rem;
-      color: var(--ink-light);
-      margin-top: 6px;
-    }
+.app-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 20px;
+}
+.app-card {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+  padding: 28px; display: flex; flex-direction: column; gap: 16px;
+}
+.app-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+/* Each card sets --tint and --mark to its app's colours. */
+.app-icon { width: 52px; height: 52px; border-radius: 16px; background: var(--tint); display: flex; align-items: center; justify-content: center; }
+.app-icon svg { stroke: var(--mark); }
+.pill { padding: 4px 12px; border-radius: 999px; font-size: 0.8125rem; font-weight: 600; }
+.pill-new { background: var(--ink); color: #FFFFFF; }
+.pill-soon { background: var(--surface-2); color: var(--ink-2); }
+.app-kind { font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+.app-card h3 { margin-top: 4px; font-size: 1.375rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-card p.desc { margin-top: 8px; color: var(--ink-2); }
+.app-actions { margin-top: auto; padding-top: 8px; display: flex; gap: 10px; }
+.app-actions .btn { flex: 1; }
+/* Apps that aren't ready yet: no buttons, softer look. */
+.app-card.is-soon { background: transparent; border-style: dashed; }
+.app-card.is-soon .app-icon { opacity: 0.75; }
+.soon-note { margin-top: auto; padding-top: 8px; font-size: 0.9375rem; color: var(--ink-2); }
 
-    /* The "Tools" heading on the main content area */
-    .main-header h2 {
-      font-size: 1.1rem;          /* modest size — this is a label not a hero headline */
-      font-weight: normal;        /* override browser bold */
-      color: var(--ink-light);    /* muted — the cards themselves are the focus */
-      letter-spacing: 0.08em;     /* wider spacing gives it a quiet section-label feel */
-      text-transform: uppercase;  /* all caps reinforces it as a label */
-    }
+/* =================================================================
+   7. HOW TO DOWNLOAD
+   ================================================================= */
+.steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px;
+}
+.steps li { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 28px; }
+.step-num { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.0625rem; }
+.steps h3 { margin-top: 18px; font-size: 1.1875rem; font-weight: 700; }
+.steps p { margin-top: 6px; color: var(--ink-2); }
+.tip { margin-top: 20px; padding: 20px 24px; border-radius: 16px; background: var(--surface-2); display: flex; gap: 14px; align-items: flex-start; }
+.tip svg { flex: none; margin-top: 2px; }
 
+/* =================================================================
+   8. ABOUT AND FOOTER
+   ================================================================= */
+.about { padding-bottom: 88px; }
+.about-box {
+  background: var(--ink); color: #B6C1C4; border-radius: 24px; padding: 48px;
+  display: flex; flex-wrap: wrap; gap: 32px 56px;
+}
+.about-box h2 { flex: 1 1 300px; min-width: 0; color: #FFFFFF; font-size: 2rem; }
+.about-text { flex: 2 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 14px; font-size: 1.0625rem; line-height: 1.6; }
+.about-text a { color: #FFFFFF; font-weight: 600; }
+.about-text a:focus-visible { outline-color: #7EA9FF; }
 
-       /* When a section heading follows a tool grid, push it down to
-       create visible separation between sections.
-       The "+" is the adjacent-sibling combinator: it targets a
-       .main-header that comes immediately after a .tool-grid. */
-    .tool-grid + .main-header {
-      margin-top: 48px;
-    }
+.site-footer { border-top: 1px solid var(--rule); }
+.site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-top: 28px; padding-bottom: 28px; font-size: 0.875rem; color: var(--ink-2); }
+.site-footer a { color: var(--ink-2); }
 
-    /* The grid that holds all the tool cards.
-       auto-fill + minmax means cards are as wide as possible but never narrower than 260px —
-       the grid automatically decides how many columns fit on the current screen width. */
-    .tool-grid {
-      display: grid;                                    /* CSS grid layout */
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* responsive columns */
-      gap: 20px;                                        /* 20px between every card */
-    }
-
-    /* Each individual tool card — a flat raised panel summarising one tool.
-       display: flex + column stacks the card content vertically with space-between
-       pushing the bottom action row to the bottom of the card regardless of content height. */
-    .tool-card {
-      background: var(--surface);          /* near-white card surface */
-      border: 1px solid var(--border);     /* thin tan border */
-      border-radius: var(--radius);        /* rounded corners */
-      box-shadow: var(--shadow);           /* subtle drop shadow lifts card off the page */
-      padding: 24px;                       /* breathing room inside the card */
-      display: flex;                       /* flex container */
-      flex-direction: column;              /* stack children vertically */
-      gap: 10px;                           /* space between each child inside the card */
-      transition: box-shadow 0.2s, border-color 0.2s; /* animate shadow and border on hover */
-    }
-
-    /* Tool card on hover — slightly more prominent shadow and darker border */
-    .tool-card:hover {
-      box-shadow: 0 4px 20px rgba(0,0,0,0.12); /* deeper shadow on hover */
-      border-color: var(--accent2);             /* slightly darker border on hover */
-    }
-  
-
-    /* The tool name at the top of each card — e.g. "FlashCards" */
-    .tool-name {
-      font-size: 1.1rem;      /* larger than body text — primary label on the card */
-      font-weight: normal;    /* override browser bold */
-      color: var(--ink);      /* dark text */
-      letter-spacing: 0.04em; /* subtle spacing */
-    }
-
-    /* The one-sentence description below the tool name */
-    .tool-desc {
-      font-size: 0.85rem;     /* smaller than body text — supporting information */
-      color: var(--ink-light); /* muted — de-emphasised */
-      line-height: 1.6;        /* generous line height for readability across two lines */
-      flex: 1;                 /* flex: 1 makes this grow to fill available space,
-                                  pushing the action row to the bottom of the card */
-    }
-
-    /* The row of action buttons at the bottom of each card — "Open" and "Download" */
-    .tool-actions {
-  display: flex;
-  justify-content: flex-end;  /* push buttons to the right edge of the card */
-  gap: 8px;
-  margin-top: 6px;
-    }
-
-    /* The "Open" button — takes the user to the live tool */
-    .btn-open {
-      background: var(--accent);        /* medium cream — primary action */
-      color: var(--ink);                /* dark text — high contrast on cream */
-      border: 1px solid var(--accent2); /* slightly darker cream border */
-      padding: 8px 20px;                /* comfortable click target */
-      border-radius: 20px;              /* pill shape */
-      font-size: 0.82rem;               /* small — secondary to the card content */
-      cursor: pointer;                  /* hand cursor on hover */
-      font-family: inherit;             /* copy Georgia from parent */
-      text-decoration: none;            /* remove underline — this is a link styled as a button */
-      letter-spacing: 0.03em;           /* subtle spacing */
-      transition: background 0.15s;     /* smooth background change on hover */
-    }
-
-    /* "Open" button on hover */
-    .btn-open:hover {
-      background: var(--border);  /* slightly darker cream on hover */
-    }
-
-    /* The "Download" button — downloads the raw HTML file */
-    .btn-download {
-      background: var(--surface);        /* lightest cream — secondary action */
-      color: var(--ink-light);           /* muted text — less prominent than Open */
-      border: 1px solid var(--border);   /* standard tan border */
-      padding: 8px 20px;                 /* same sizing as Open for visual alignment */
-      border-radius: 20px;               /* pill shape */
-      font-size: 0.82rem;                /* small */
-      cursor: pointer;                   /* hand cursor */
-      font-family: inherit;              /* copy Georgia from parent */
-      text-decoration: none;             /* remove underline */
-      letter-spacing: 0.03em;            /* subtle spacing */
-      transition: background 0.15s;      /* smooth background change on hover */
-    }
-
-    /* "Download" button on hover */
-    .btn-download:hover {
-      background: var(--accent);  /* fills with accent cream on hover */
-      color: var(--ink);          /* darken text on hover */
-    }
-
-    /* A small badge on each card showing what kind of tool it is — e.g. "Study" */
-    .tool-tag {
-      display: inline-block;
-      align-self: flex-start;  /* prevents the flex column from stretching it to full width */
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2px 10px;
-    }
-
-
-    /* The footer sitting below the tool grid in the main content area */
-    .main-footer {
-      margin-top: 48px;                       /* push it well below the last card */
-      padding-top: 20px;                      /* inner space above the text */
-       border-top: 1px solid var(--border);    /* thin tan line separates footer from cards above */
-      font-size: 0.78rem;                     /* small — quiet, not competing with the cards */
-      color: var(--ink-light);                /* muted brown */
-      letter-spacing: 0.04em;                 /* subtle spacing */
-    }
-
-  </style>  <!-- closes the CSS block -->
+@media (max-width: 600px) {
+  .hero { padding-top: 56px; }
+  .about-box { padding: 32px 24px; }
+  .section h2 { font-size: 1.875rem; }
+}
+</style>
 </head>
 
-<body>  <!-- everything from here is visible on screen -->
+<body>
 
-  <!-- =====================================================================
-       SIDEBAR
-       The fixed left panel containing the site identity and navigation.
-       CSS: .sidebar ruleset — fixed positioning, full height, flex column
-       ===================================================================== -->
-  <aside class="sidebar">  <!-- aside = semantic HTML for supplementary/navigation content -->
-
-    <!-- Site identity — name and tagline -->
-    <div class="sidebar-brand">  <!-- generic wrapper grouping the title and tagline -->
-      <h1 class="sidebar-title">Simple<br>Ed Tools</h1>  <!-- <br> forces "Ed Tools" onto a second line -->
-      <p class="sidebar-tagline">Privacy focused offline tools for teaching and learning.</p>
-    </div>
-
-    <!-- Navigation links -->
-    <!-- nav = semantic HTML element meaning "this is a group of navigation controls"
-         The ul/li pattern is the standard HTML structure for navigation lists:
-         ul = unordered list (the container), li = list item (each link) -->
-    <nav>
-      <ul class="sidebar-nav">
-        <li><a href="index.html" class="active">Tools</a></li>  <!-- current page — has active class -->
-        <li><a href="about.html">About</a></li>
-        <li><a href="downloads.html">Downloads</a></li>
-      </ul>
+<!-- =================================================================
+     HEADER
+     ================================================================= -->
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      <span class="brand-name">Teacher Apps</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#apps">Apps</a>
+      <a href="#download">How to download</a>
+      <a href="#about">About</a>
     </nav>
+  </div>
+</header>
 
+<main id="top">
 
-  </aside>  <!-- closes the sidebar -->
-
-
-  <!-- =====================================================================
-       MAIN CONTENT
-       The scrollable right panel containing the tool cards.
-       CSS: .main ruleset — margin-left offsets it by the sidebar width
-       ===================================================================== -->
-  <main class="main">
-
-    <!-- Page heading row -->
-    <div class="main-header">
-      <h2>Tools</h2>
-      <p>All tools run entirely in your browser. No data is collected or leaves your device.</p>
+  <!-- =================================================================
+       HERO
+       ================================================================= -->
+  <section class="wrap hero">
+    <p class="badge">Free, offline and private</p>
+    <h1>Small, friendly apps for your classroom.</h1>
+    <p class="lede">Each one opens right in your browser. No accounts, no ads, and nothing you type ever leaves your device.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-big" href="#apps">Browse the apps</a>
+      <a class="btn btn-big" href="#download">How to download</a>
     </div>
 
-    <!-- The grid of tool cards — one card per app.
-         CSS: .tool-grid uses auto-fill minmax so cards are responsive.
-         Add new cards here as new tools are built. -->
-    <div class="tool-grid">
-
-      <!-- FlashCards tool card -->
-      <div class="tool-card">
-        <span class="tool-tag">Study</span>   <!-- category label -->
-        <h3 class="tool-name">FlashCards</h3>  <!-- tool name -->
-        <p class="tool-desc">
-          Create and study flashcards quickly. Export and import your cards as a single file.
-        </p>
-        <!-- Action buttons — href values point to the actual HTML files in the same repo.
-             Update the href on btn-download to point to the raw file download URL on GitHub. -->
-        <div class="tool-actions">
-          <a class="btn-download" href="flashcards.html" download>Download</a>
-          <a class="btn-open"     href="flashcards.html">Open</a>
+    <figure class="shot">
+      <div class="shot-window" aria-hidden="true">
+        <div class="shot-bar">
+          <span class="shot-dots"><span style="background:#EC847D"></span><span style="background:#E2AB4C"></span><span style="background:#5FC49A"></span></span>
+          <span class="shot-url">timer.html</span>
+          <span style="width:47px"></span>
+        </div>
+        <div class="shot-screen">
+          <div class="shot-top">
+            <span class="shot-title">Essay Brainstorm</span>
+            <span class="shot-total">Total left <strong>12:32</strong></span>
+          </div>
+          <div class="shot-timeline">
+            <span style="background:var(--timer)"></span>
+            <span style="background:var(--cards);opacity:.45"></span>
+            <span style="background:var(--spread);opacity:.45"></span>
+          </div>
+          <div class="shot-body">
+            <div class="shot-now">
+              <div class="shot-meta"><span>Segment 1 of 3</span><span class="shot-state">Running</span></div>
+              <p class="shot-seg">Silent brainstorm</p>
+              <p class="shot-desc">Write down every idea you have. No talking yet.</p>
+              <p class="shot-count">2:32</p>
+              <div class="shot-progress"><span></span></div>
+              <div class="shot-labels"><span>2:28 elapsed</span><span>5:00 total</span></div>
+            </div>
+            <div class="shot-plan">
+              <p class="shot-plan-title">Today's plan</p>
+              <ol class="shot-list">
+                <li class="is-now"><span class="dot" style="background:var(--timer)"></span><span>Silent brainstorm</span><span class="time">5:00</span><span class="tag">Now</span></li>
+                <li><span class="dot" style="background:var(--cards)"></span><span>Pair share</span><span class="time">5:00</span><span class="tag">Next</span></li>
+                <li><span class="dot" style="background:var(--spread)"></span><span>Class discussion</span><span class="time">5:00</span><span class="tag">Later</span></li>
+              </ol>
+              <div class="shot-buttons"><span>Pause</span><span>End session</span></div>
+            </div>
+          </div>
         </div>
       </div>
+      <figcaption>Classroom Timer, ready to put up on the projector.</figcaption>
+    </figure>
+  </section>
 
-      <!-- Timer tool card -->
-      <div class="tool-card">
-        <span class="tool-tag">Tempo</span>
-        <h3 class="tool-name">Timer</h3>
-        <p class="tool-desc">
-          Connected session timers can be created to segment each phase of your class.
-        </p>
-        <div class="tool-actions">
-          <a class="btn-download" href="timer.html" download>Download</a>
-          <a class="btn-open"     href="timer.html">Open</a>
-        </div>
+  <!-- =================================================================
+       WHY ROW
+       ================================================================= -->
+  <section class="wrap" aria-label="Why Teacher Apps">
+    <ul class="why">
+      <li>
+        <span class="why-icon" style="background:var(--timer-bg)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg>
+        </span>
+        <span><strong>Works offline</strong><span>Download once and use it with no internet at all.</span></span>
+      </li>
+      <li>
+        <span class="why-icon" style="background:var(--cards-bg)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </span>
+        <span><strong>Private by design</strong><span>Nothing is collected, tracked or sent anywhere.</span></span>
+      </li>
+      <li>
+        <span class="why-icon" style="background:var(--spread-bg)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+        </span>
+        <span><strong>One simple file</strong><span>Each app is a single file you can keep, share or open anywhere.</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- =================================================================
+       APPS
+       Live apps have Open and Download links. "Coming soon" apps have
+       the is-soon class and no links.
+       ================================================================= -->
+  <section id="apps" class="wrap section" aria-labelledby="apps-heading">
+    <div class="section-head">
+      <div>
+        <h2 id="apps-heading">The apps</h2>
+        <p class="section-sub">Open one to use it now, or download it to keep.</p>
       </div>
-
-      <!-- Add more tool cards here as new tools are created -->
-    
-
-
-    </div>  <!-- closes .tool-grid -->
-
-
-<!-- Learn section heading -->
-    <div class="main-header">
-      <h2>Learn</h2>
-      <p>Interactive manipulatives for teaching.</p>
     </div>
 
-    <!-- Learn section grid of cards -->
-    <div class="tool-grid">
+    <ul class="app-grid">
 
-      <!-- Percentages tool card -->
-      <div class="tool-card">
-        <span class="tool-tag">Data</span>
-        <h3 class="tool-name">Percentages</h3>
-        <p class="tool-desc">
-          Visualize how counts become fractions, decimals, and percentages by filling a grid with colored cells.
-        </p>
-        <div class="tool-actions">
-          <a class="btn-download" href="percentages.html" download>Download</a>
-          <a class="btn-open"     href="percentages.html">Open</a>
+      <li class="app-card" style="--tint:var(--timer-bg);--mark:var(--timer)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
+          <span class="pill pill-new">New</span>
         </div>
+        <div>
+          <p class="app-kind">Classroom</p>
+          <h3>Classroom Timer</h3>
+          <p class="desc">Plan a lesson in timed segments, then project a big countdown students can follow from the back row.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="timer.html" aria-label="Open Classroom Timer">Open</a>
+          <a class="btn" href="timer.html" download="classroom-timer.html" aria-label="Download Classroom Timer">Download</a>
+        </div>
+      </li>
+
+      <li class="app-card" style="--tint:var(--cards-bg);--mark:var(--cards)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="14" height="13" rx="2.5"/><path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v11"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Study</p>
+          <h3>Flashcards</h3>
+          <p class="desc">Make a deck in minutes and study it right away. Save your cards as one file to share or reuse.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="flashcards.html" aria-label="Open Flashcards">Open</a>
+          <a class="btn" href="flashcards.html" download="flashcards.html" aria-label="Download Flashcards">Download</a>
+        </div>
+      </li>
+
+      <li class="app-card" style="--tint:var(--pct-bg);--mark:var(--pct)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Math and data</p>
+          <h3>Percentages</h3>
+          <p class="desc">Count things into colored rows and watch the counts become fractions, decimals and percentages.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="percentages.html" aria-label="Open Percentages">Open</a>
+          <a class="btn" href="percentages.html" download="percentages.html" aria-label="Download Percentages">Download</a>
+        </div>
+      </li>
+
+      <li class="app-card is-soon" style="--tint:var(--spread-bg);--mark:var(--spread)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 16v-4M10 16V8M14 16V5M18 16v-6"/></svg></span>
+          <span class="pill pill-soon">Coming soon</span>
+        </div>
+        <div>
+          <p class="app-kind">Math and data</p>
+          <h3>Center and Spread</h3>
+          <p class="desc">Explore mean, median and spread with live readouts that show the math behind each number.</p>
+        </div>
+        <p class="soon-note">Being redesigned. Check back soon.</p>
+      </li>
+
+      <li class="app-card is-soon" style="--tint:var(--noun-bg);--mark:var(--noun)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><circle cx="17.25" cy="6.75" r="3.75"/><path d="M6.75 13.5l3.75 7H3z"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></span>
+          <span class="pill pill-soon">Coming soon</span>
+        </div>
+        <div>
+          <p class="app-kind">Language</p>
+          <h3>Noun Match</h3>
+          <p class="desc">Students sort words into person, place and thing. Upload your own word list to fit your class.</p>
+        </div>
+        <p class="soon-note">Being redesigned. Check back soon.</p>
+      </li>
+
+      <li class="app-card is-soon" style="--tint:var(--mwb-bg);--mark:var(--mwb)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15.5c0-3-2.5-5.5-7-5.5 0 3 2.5 5.5 7 5.5z"/></svg></span>
+          <span class="pill pill-soon">Coming soon</span>
+        </div>
+        <div>
+          <p class="app-kind">Classroom</p>
+          <h3>Well-Being Tracker</h3>
+          <p class="desc">Record quick, private observations of how students are doing and look back at patterns over time.</p>
+        </div>
+        <p class="soon-note">Being redesigned. Check back soon.</p>
+      </li>
+
+    </ul>
+  </section>
+
+  <!-- =================================================================
+       HOW TO DOWNLOAD
+       ================================================================= -->
+  <section id="download" class="wrap section" aria-labelledby="download-heading">
+    <h2 id="download-heading">How to download</h2>
+    <p class="section-sub" style="margin-bottom:28px">Keep any app on your computer so it works even when the Wi-Fi doesn't. Nothing to install.</p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num" style="background:var(--timer-bg)" aria-hidden="true">1</span>
+        <h3>Press Download</h3>
+        <p>Pick an app above and press its Download button. One small file saves to your Downloads folder.</p>
+      </li>
+      <li>
+        <span class="step-num" style="background:var(--cards-bg)" aria-hidden="true">2</span>
+        <h3>Put it somewhere handy</h3>
+        <p>Move the file to your desktop, a class folder or a USB drive. You can rename it if you like.</p>
+      </li>
+      <li>
+        <span class="step-num" style="background:var(--spread-bg)" aria-hidden="true">3</span>
+        <h3>Double-click to open</h3>
+        <p>It opens in your web browser and works right away, with or without internet.</p>
+      </li>
+    </ol>
+
+    <div class="tip">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      <p><strong>Download blocked on a school computer?</strong> Open the app instead, then press Ctrl+S (Cmd+S on a Mac) and save it as "Webpage, HTML only". You can also share the file with colleagues by email or a shared drive.</p>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       ABOUT
+       ================================================================= -->
+  <section id="about" class="wrap section about" aria-labelledby="about-heading">
+    <div class="about-box">
+      <h2 id="about-heading">Made by a teacher, for teachers.</h2>
+      <div class="about-text">
+        <p>Teacher Apps grew out of a need for simple tools that work in any classroom, whatever the network or the budget. Every app is free, has no ads and needs no account.</p>
+        <p>They're built and maintained by Michael Littrell, an educator and professor at Tennessee Tech University.</p>
+        <p><a href="https://github.com/mlittrell-ttu/mlittrell.github.io">See the code on GitHub</a></p>
       </div>
+    </div>
+  </section>
 
-      <!-- Add more Learn cards here as new lessons are built -->
+</main>
 
-    </div>  <!-- closes the Learn .tool-grid -->
-
-
-
-
-
-    <!-- Footer — sits at the bottom of the main content area -->
-<footer class="main-footer">  <!-- footer = semantic HTML element for page footer content -->
-  <p>&copy; 2026 Simple Ed Tools &mdash; <a href="https://opensource.org/licenses/MIT">MIT License</a>. Free to use and share.</p>
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Teacher Apps. Free to use and share under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+    <p>No data collected. Ever.</p>
+  </div>
 </footer>
-
-  </main>  <!-- closes .main -->
 
 </body>
 </html>

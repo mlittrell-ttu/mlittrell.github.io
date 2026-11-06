@@ -1,623 +1,309 @@
-<!DOCTYPE html>                        <!-- HTML5 document declaration -->
-<html lang="en">                       <!-- Root element, lang="en" helps screen readers -->
-<head>                                 <!-- Head section: invisible setup -->
-  <meta charset="UTF-8" />             <!-- UTF-8 character encoding -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Mobile scaling -->
-  <title>Percentages</title>           <!-- Browser tab text -->
-  <style>
-
-    /* =====================================================================
-       CSS CUSTOM PROPERTIES — parchment palette shared with FlashCards/Timer
-       ===================================================================== */
-    :root {
-      --bg:        #f7f2e8;   /* warm parchment cream — page background */
-      --surface:   #fffdf8;   /* near-white — card/panel backgrounds */
-      --border:    #d8cebc;   /* tan — borders and dividing lines */
-      --ink:       #2e2416;   /* dark brown-black — primary text */
-      --ink-light: #9e9080;   /* muted brown — secondary/label text */
-      --accent:    #e0d5c2;   /* medium cream — hover/active fills */
-      --accent2:   #c8bfb0;   /* slightly darker cream — accented borders */
-      --green:     #8aab8a;   /* muted sage — Calculate button */
-      --warn:      #c8844a;   /* warm orange — kept available for future use */
-      --shadow:    0 2px 12px rgba(0,0,0,0.08);
-      --radius:    10px;
-    }
-
-    /* CSS RESET — strips browser defaults so we control all spacing */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Georgia', serif;
-      background: var(--bg);
-      color: var(--ink);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* =====================================================================
-       HEADER
-       ===================================================================== */
-    header {
-      width: 100%;
-      background: var(--bg);
-      color: var(--ink);
-      padding: 18px 40px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: var(--shadow);
-      border-bottom: 1px solid var(--border);
-    }
-
-    header h1 {
-      font-size: 1.6rem;
-      letter-spacing: 0.08em;
-      font-weight: normal;
-    }
-
-    header h1 span { color: var(--ink-light); }
-
-    /* =====================================================================
-       MAIN CONTENT AREA
-       ===================================================================== */
-    main {
-      width: 100%;
-      max-width: 1100px;
-      padding: 32px 20px;
-    }
-
-    /* =====================================================================
-       TOTAL DISPLAY — the big prominent running total
-       =====================================================================
-       This used to be a settings bar with editable Total/Rows/Columns
-       inputs. In v3 the total is computed from the cells, not entered,
-       so this card now does just one thing: show that running number
-       clearly and prominently, like the "Total" cell on the worksheet.
-       ===================================================================== */
-    .total-display {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 22px 24px;
-      box-shadow: var(--shadow);
-      text-align: center;            /* center the label and number horizontally */
-      margin-bottom: 12px;
-    }
-
-    .total-label {
-      font-size: 0.78rem;
-      color: var(--ink-light);
-      letter-spacing: 0.1em;          /* generous letter spacing for an "uppercase label" feel */
-      text-transform: uppercase;      /* automatically convert text to caps regardless of how it was typed */
-      margin-bottom: 4px;
-    }
-
-    .total-number {
-      font-size: 2.4rem;              /* much larger than body text — this is THE primary readout */
-      font-weight: normal;
-      color: var(--ink);
-      letter-spacing: 0.04em;
-      line-height: 1;                 /* tight line height so the big number doesn't push the card unnecessarily tall */
-      font-variant-numeric: tabular-nums;  /* makes digits equal-width so the number doesn't jitter as it changes */
-    }
-
-    /* =====================================================================
-       GRID SETTINGS — small secondary row with Rows and Columns inputs
-       =====================================================================
-       Less prominent than the total display since teachers typically
-       set these once at the start of an activity and then leave alone.
-       ===================================================================== */
-    .grid-settings {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      margin-bottom: 24px;
-      padding: 0 6px;
-      flex-wrap: wrap;
-    }
-
-    .grid-settings-label {
-      font-size: 0.72rem;
-      color: var(--ink-light);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .setup-field {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .setup-field label {
-      font-size: 0.8rem;
-      color: var(--ink-light);
-      letter-spacing: 0.04em;
-    }
-
-    .setup-field input[type="number"] {
-      width: 60px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      color: var(--ink);
-      outline: none;
-      text-align: center;
-    }
-
-    /* =====================================================================
-       CATEGORY LIST
-       ===================================================================== */
-    .category-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .category-row {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    /* Top line of a category row: swatch | name | controls | × */
-    .category-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    /* COLOR SWATCH — click opens the 20-color palette popup */
-    .color-swatch {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      border: 1px solid var(--accent2);
-      cursor: pointer;
-      flex-shrink: 0;
-      position: relative;          /* anchors the absolutely-positioned popup below */
-    }
-
-    /* The hidden popup grid of 20 color choices */
-    .color-picker-popup {
-      display: none;
-      position: absolute;
-      top: 36px;                   /* sits just below the swatch */
-      left: 0;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 8px;
-      box-shadow: var(--shadow);
-      z-index: 10;
-      width: 220px;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-    }
-
-    .color-picker-popup.open { display: grid; }
-
-    .color-option {
-      width: 32px;
-      height: 32px;
-      border-radius: 4px;
-      border: 1px solid var(--accent2);
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-
-    .color-option:hover { transform: scale(1.1); }
-
-    /* Editable category name */
-    .category-name-input {
-      flex: 1;
-      min-width: 120px;
-      background: transparent;
-      border: none;
-      border-bottom: 1px dashed var(--border);
-      padding: 4px 0;
-      font-family: inherit;
-      font-size: 1rem;
-      color: var(--ink);
-      outline: none;
-    }
-
-    .category-name-input:focus { border-bottom-color: var(--accent2); }
-
-    /* Count controls: − / number input / + */
-    .count-controls { display: flex; align-items: center; gap: 4px; }
-
-    .btn-count {
-      width: 30px;
-      height: 30px;
-      background: var(--accent);
-      border: 1px solid var(--accent2);
-      border-radius: 50%;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 1.1rem;
-      color: var(--ink);
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      line-height: 1;
-    }
-
-    .btn-count:hover { background: var(--accent2); }
-
-    .count-input {
-      width: 60px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 5px 6px;
-      font-family: inherit;
-      font-size: 1rem;
-      color: var(--ink);
-      text-align: center;
-      outline: none;
-    }
-
-    /* The "X / 23" capacity badge shown right of the count controls */
-    .cap-badge {
-      font-size: 0.72rem;
-      color: var(--ink-light);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 2px 8px;
-      margin-left: 4px;
-    }
-
-    .btn-remove-category {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--ink-light);
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      line-height: 1;
-      margin-left: auto;
-    }
-
-    .btn-remove-category:hover {
-      background: #f5ede0;
-      color: var(--warn);
-    }
-
-    /* =====================================================================
-       CELL GRID — the worksheet-style row of cells per category
-       =====================================================================
-       Uses CSS Grid to lay out fixed-width cells in a single horizontal row.
-       The number of columns is set inline by JS since it depends on state.
-       Wraps with overflow-x:auto so wide grids scroll within their card.
-       ===================================================================== */
-    .cell-grid-wrapper {
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-
-    .cell-grid {
-      display: grid;
-      gap: 3px;
-      cursor: pointer;
-      width: max-content;            /* hug the cells exactly, no stretching */
-    }
-
-    .cell-grid.full { cursor: not-allowed; }  /* row at capacity — clicking is a no-op */
-
-    /* Each cell — fixed 22×28 rectangle. Background set inline by JS. */
-    .cell {
-      width: 22px;
-      height: 28px;
-      border-radius: 2px;
-      border: 1px solid rgba(0,0,0,0.10);
-      transition: background 0.15s;   /* smooth flip from empty tint → full color */
-    }
-
-    /* =====================================================================
-       ACTION BUTTONS
-       ===================================================================== */
-    .actions {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .actions-left { display: flex; gap: 12px; flex-wrap: wrap; }
-
-    .btn-secondary {
-      background: var(--surface);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      padding: 10px 22px;
-      border-radius: 24px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.2s;
-      letter-spacing: 0.04em;
-    }
-
-    .btn-secondary:hover { background: var(--border); }
-
-    .btn-secondary:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .btn-calculate {
-      background: var(--green);
-      color: white;
-      border: 1px solid #6a8a6a;
-      padding: 12px 40px;
-      border-radius: 24px;
-      font-size: 1rem;
-      cursor: pointer;
-      font-family: inherit;
-      letter-spacing: 0.06em;
-      transition: opacity 0.2s;
-    }
-
-    .btn-calculate:hover { opacity: 0.85; }
-
-    .btn-reset {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--ink);
-      padding: 7px 18px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.85rem;
-      letter-spacing: 0.04em;
-      transition: background 0.2s;
-    }
-
-    .btn-reset:hover { background: var(--accent); }
-
-    /* =====================================================================
-       RESULTS PANEL
-       ===================================================================== */
-    .results-panel {
-      display: none;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px 24px;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
-    }
-
-    .results-panel.show { display: block; }
-
-    .results-panel h2 {
-      font-size: 1.2rem;
-      font-weight: normal;
-      color: var(--ink-light);
-      letter-spacing: 0.05em;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .results-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
-    }
-
-    .results-table th,
-    .results-table td {
-      padding: 10px 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.95rem;
-    }
-
-    .results-table th {
-      font-weight: normal;
-      color: var(--ink-light);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .results-table td.category-cell {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .swatch-mini {
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-      border: 1px solid var(--accent2);
-      flex-shrink: 0;
-    }
-
-    .results-table tr:last-child td { border-bottom: none; }
-
-    .results-table tr.total-row td {
-      font-weight: bold;
-      border-top: 2px solid var(--ink-light);
-      padding-top: 14px;
-      border-bottom: none;
-    }
-
-    .num-cell { font-variant-numeric: tabular-nums; }
-
-    /* Horizontal bar chart at the bottom of the results panel */
-    .bar-chart-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--ink-light);
-      margin-bottom: 10px;
-    }
-
-    .bar-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .bar-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .bar-label {
-      width: 130px;
-      font-size: 0.85rem;
-      text-align: right;
-      color: var(--ink);
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    .bar-track {
-      flex: 1;
-      height: 22px;
-      background: var(--bg);
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      transition: width 0.6s ease;
-    }
-
-    .bar-value {
-      width: 60px;
-      font-size: 0.85rem;
-      color: var(--ink-light);
-      font-variant-numeric: tabular-nums;
-    }
-
-    footer {
-      text-align: center;
-      font-size: 0.75rem;
-      color: var(--ink-light);
-      padding: 20px;
-      margin-top: 12px;
-    }
-
-  </style>
+<!DOCTYPE html>
+<!--
+  PERCENTAGES  (part of Teacher Apps)
+  =================================================================
+  One self-contained file: structure (HTML), look (CSS) and
+  behaviour (JavaScript) all live here. Nothing is loaded from the
+  internet and nothing is saved or sent anywhere.
+
+  Students count things into coloured rows (one row per category).
+  "Calculate percentages" shows each count as a fraction, a decimal
+  and a percentage of the total, with bar charts.
+
+  How the file is laid out:
+    1. <style>  ... design tokens, then one block per part of the page
+    2. <body>   ... Teacher Apps header, total + grid size, category
+                    rows, buttons, results
+    3. <script> ... everything that makes it work
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Percentages · Teacher Apps</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
+
+<style>
+/* =================================================================
+   1. DESIGN TOKENS
+   Shared Teacher Apps colours, plus this app's own colour (purple).
+   ================================================================= */
+:root {
+  --paper:      #F5F7F6;
+  --surface:    #FFFFFF;
+  --surface-2:  #EEF2F1;
+  --ink:        #1C2730;
+  --ink-2:      #4A5862;
+  --rule:       #D3DBDA;
+  --field-edge: #85918F;
+  --focus:      #1D5FD1;
+
+  --app:        #73639F;  /* Percentages purple: stripe, main buttons */
+  --app-bg:     #ECE7F5;  /* soft purple tint */
+  --app-dark:   #5F5189;  /* hover for purple buttons */
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+/* =================================================================
+   2. BASICS
+   ================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--font); line-height: 1.5; }
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--field-edge); background: var(--surface); color: var(--ink);
+  font-size: 0.9375rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.btn-primary:hover { background: var(--app-dark); border-color: var(--app-dark); }
+.btn-big { min-height: 52px; padding: 0 24px; font-size: 1.0625rem; }
+.btn-dashed { min-height: 48px; border: 2px dashed var(--app); background: transparent; color: var(--app); }
+.btn-dashed:hover { background: var(--app-bg); }
+
+/* =================================================================
+   3. TEACHER APPS HEADER
+   ================================================================= */
+.app-stripe { height: 4px; background: var(--app); }
+.app-bar { border-bottom: 1px solid var(--rule); }
+.app-bar-inner {
+  max-width: 1060px; margin: 0 auto; padding: 14px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+}
+.app-id { display: flex; align-items: center; gap: 14px; }
+.home-link { display: inline-flex; border-radius: 10px; }
+.logo-mark { width: 32px; height: 32px; padding: 6px; border-radius: 9px; background: #1C2730; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.logo-mark span:nth-child(1) { background: #7FA6F0; border-radius: 3px 3px 3px 1.5px; }
+.logo-mark span:nth-child(2) { background: #5FC49A; border-radius: 50%; }
+.logo-mark span:nth-child(3) { background: #E2AB4C; border-radius: 3px; }
+.logo-mark span:nth-child(4) { background: #EEF2F1; border-radius: 3px 1.5px 3px 3px; }
+.bar-divider { width: 1px; height: 24px; background: var(--rule); }
+.app-name { display: inline-flex; align-items: center; gap: 10px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-icon { width: 32px; height: 32px; border-radius: 9px; background: var(--app-bg); display: inline-flex; align-items: center; justify-content: center; }
+.app-icon svg { stroke: var(--app); }
+
+/* =================================================================
+   4. TOP CARDS: total + grid size
+   ================================================================= */
+main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 20px; }
+.top-row { display: flex; flex-wrap: wrap; gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 20px 24px; }
+.total-panel { flex: 1 1 260px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.label { font-size: 0.875rem; font-weight: 600; color: var(--ink-2); }
+.total-number { margin-top: 2px; font-size: 3.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.total-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--app-bg); display: flex; align-items: center; justify-content: center; }
+.total-icon svg { stroke: var(--app); }
+.size-panel { flex: 2 1 420px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.size-fields { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.size-field { display: flex; align-items: center; gap: 10px; }
+.size-field small { color: var(--ink-2); font-size: 0.8125rem; }
+
+/* A − [number] + control, used for grid size and counts. */
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--field-edge); border-radius: 999px; background: var(--surface); overflow: hidden; }
+.stepper button { width: 40px; height: 40px; border: 0; background: transparent; font-size: 1.25rem; line-height: 1; cursor: pointer; }
+.stepper button:hover { background: var(--surface-2); }
+.stepper input {
+  width: 48px; height: 40px; border: 0; background: transparent;
+  text-align: center; font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* =================================================================
+   5. CATEGORY ROWS
+   ================================================================= */
+.category-list { display: grid; gap: 12px; }
+.category-row { background: var(--surface); border: 1px solid var(--rule); border-radius: 18px; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.category-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+
+/* Colour swatch and its pop-up palette. */
+.swatch-wrap { position: relative; flex: none; }
+.color-swatch { width: 36px; height: 36px; border-radius: 10px; border: 2px solid #FFFFFF; box-shadow: 0 0 0 1px var(--field-edge); cursor: pointer; display: block; }
+.color-picker-popup {
+  display: none; position: absolute; top: 46px; left: 0; z-index: 10;
+  width: 232px; padding: 12px; border-radius: 16px;
+  background: var(--surface); border: 1px solid var(--rule);
+  box-shadow: 0 20px 40px -16px rgba(28,39,48,0.35);
+  grid-template-columns: repeat(5, 1fr); gap: 8px;
+}
+.color-picker-popup.open { display: grid; }
+.color-option { width: 34px; height: 34px; border-radius: 9px; border: 2px solid #FFFFFF; box-shadow: 0 0 0 1px var(--rule); cursor: pointer; padding: 0; }
+.color-option[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+
+.category-name-input {
+  flex: 1 1 200px; min-width: 0;
+  font-size: 1.1875rem; font-weight: 700;
+  border: 0; border-bottom: 1px dashed var(--rule); padding: 4px 2px; background: transparent;
+}
+.category-name-input:hover { border-bottom-color: var(--field-edge); }
+.count-controls { display: flex; align-items: center; gap: 12px; }
+.count-controls .stepper button { width: 44px; height: 44px; font-size: 1.375rem; }
+.count-controls .stepper button.plus { background: var(--app-bg); }
+.count-controls .stepper button.plus:hover { background: #DDD5EE; }
+.count-controls .stepper input { height: 44px; font-size: 1.1875rem; font-weight: 750; }
+.cap-badge { min-width: 56px; font-size: 0.875rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.btn-remove-category {
+  width: 40px; height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.btn-remove-category:hover { background: var(--surface-2); color: var(--ink); }
+
+/* The row of cells. Clicking anywhere on it adds one. */
+.cell-grid { display: grid; gap: 4px; cursor: pointer; }
+.cell-grid.full { cursor: default; }
+.cell { aspect-ratio: 1; border-radius: 7px; }
+
+.actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* =================================================================
+   6. RESULTS
+   ================================================================= */
+.results-panel { display: none; background: var(--surface); border: 1px solid var(--rule); border-top: 6px solid var(--app); border-radius: 22px; padding: 28px 32px 32px; scroll-margin-top: 16px; }
+.results-panel.show { display: block; }
+.results-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
+.results-head h2 { font-size: 1.875rem; font-weight: 750; letter-spacing: -0.02em; }
+.results-head p { color: var(--ink-2); }
+.results-head strong { color: var(--ink); }
+.table-wrap { margin-top: 20px; overflow-x: auto; }
+.results-table { width: 100%; border-collapse: collapse; font-size: 1.0625rem; font-variant-numeric: tabular-nums; text-align: left; }
+.results-table th { padding: 8px 12px; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+.results-table td { padding: 14px 12px; border-top: 1px solid var(--rule); }
+.results-table td:last-child { font-weight: 700; }
+.category-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.swatch-mini { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+.results-table .total-row td { border-top: 2px solid var(--ink); background: var(--app-bg); font-weight: 750; }
+.chart-title { margin: 32px 0 14px; font-size: 1.125rem; font-weight: 700; }
+.stacked-bar { display: flex; height: 40px; gap: 3px; border-radius: 12px; overflow: hidden; background: var(--surface-2); }
+.stacked-bar span { min-width: 0; }
+.bar-chart { margin-top: 20px; display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: minmax(80px, 160px) minmax(0, 1fr) 64px; align-items: center; gap: 14px; }
+.bar-label { font-size: 0.9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.bar-track { height: 22px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+@media (prefers-reduced-motion: reduce) { .bar-fill { transition: none; } }
+.bar-value { font-size: 0.9375rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+footer { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; font-size: 0.875rem; color: var(--ink-2); }
+
+@media (max-width: 600px) {
+  .results-panel { padding: 22px 18px; }
+  .total-number { font-size: 2.75rem; }
+}
+</style>
 </head>
+
 <body>
 
-  <!-- ============================================================
-       HEADER — title + Reset button
-       ============================================================ -->
-  <header>
-    <h1>Percent<span>ages</span></h1>
-    <button class="btn-reset" onclick="resetAll()">↺ Reset Counts</button>
-  </header>
-
-  <main>
-
-    <!-- ============================================================
-         TOTAL DISPLAY — large running total of all filled cells
-         No input here in v3; the number is computed from the grid.
-         ============================================================ -->
-    <div class="total-display">
-      <div class="total-label">Total</div>
-      <div class="total-number" id="total-number">0</div>
+<!-- =================================================================
+     TEACHER APPS HEADER
+     ================================================================= -->
+<div class="app-stripe" aria-hidden="true"></div>
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <div class="app-id">
+      <a class="home-link" href="index.html" aria-label="Teacher Apps home">
+        <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      </a>
+      <span class="bar-divider" aria-hidden="true"></span>
+      <h1 class="app-name">
+        <span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
+        Percentages
+      </h1>
     </div>
+    <button type="button" class="btn" onclick="resetAll()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v6h6"/><path d="M5 15a8 8 0 1 0 2-8.5L4 10"/></svg>
+      Reset counts
+    </button>
+  </div>
+</header>
 
-    <!-- ============================================================
-         GRID SETTINGS — small secondary row for Rows / Columns
-         Capped at 10 rows and 25 columns.
-         ============================================================ -->
-    <div class="grid-settings">
-      <span class="grid-settings-label">Grid Size</span>
+<main>
 
-      <div class="setup-field">
-        <label for="rows-input">Rows</label>
-        <input type="number" id="rows-input" min="1" max="10" value="5" oninput="handleRowsChange()" />
+  <!-- =================================================================
+       TOTAL + GRID SIZE
+       The total is worked out from the rows; it can't be typed.
+       Rows = number of categories (max 10). Columns = most any one
+       category can hold (max 25).
+       ================================================================= -->
+  <div class="top-row">
+    <div class="panel total-panel">
+      <div>
+        <p class="label">Total counted</p>
+        <p class="total-number" id="total-number" aria-live="polite">0</p>
       </div>
-
-      <div class="setup-field">
-        <label for="cols-input">Columns</label>
-        <input type="number" id="cols-input" min="1" max="25" value="23" oninput="handleColumnsChange()" />
+      <span class="total-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
+    </div>
+    <div class="panel size-panel">
+      <p class="label">Grid size</p>
+      <div class="size-fields">
+        <div class="size-field">
+          <label for="rows-input" class="label">Rows</label>
+          <span class="stepper">
+            <button type="button" aria-label="Fewer rows" onclick="stepSize('rows-input', -1)">−</button>
+            <input type="number" id="rows-input" min="1" max="10" value="5" oninput="handleRowsChange()">
+            <button type="button" aria-label="More rows" onclick="stepSize('rows-input', 1)">+</button>
+          </span>
+          <small>up to 10</small>
+        </div>
+        <div class="size-field">
+          <label for="cols-input" class="label">Columns</label>
+          <span class="stepper">
+            <button type="button" aria-label="Fewer columns" onclick="stepSize('cols-input', -1)">−</button>
+            <input type="number" id="cols-input" min="1" max="25" value="23" oninput="handleColumnsChange()">
+            <button type="button" aria-label="More columns" onclick="stepSize('cols-input', 1)">+</button>
+          </span>
+          <small>up to 25</small>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- ============================================================
-         CATEGORY LIST — JS builds the rows
-         ============================================================ -->
-    <div class="category-list" id="category-list"></div>
+  <!-- CATEGORY ROWS: buildCategoryRow() makes one per category. -->
+  <div class="category-list" id="category-list"></div>
 
-    <!-- ============================================================
-         ACTION BUTTONS
-         ============================================================ -->
-    <div class="actions">
-      <div class="actions-left">
-        <button class="btn-secondary" id="btn-add-category" onclick="addCategory()">+ Add Category</button>
-      </div>
-      <button class="btn-calculate" onclick="calculate()">Calculate Percentages</button>
+  <div class="actions">
+    <button type="button" class="btn btn-dashed" id="btn-add-category" onclick="addCategory()">Add category</button>
+    <button type="button" class="btn btn-primary btn-big" onclick="calculate()">Calculate percentages</button>
+  </div>
+
+  <!-- =================================================================
+       RESULTS: hidden until Calculate is pressed, then kept up to date.
+       ================================================================= -->
+  <section class="results-panel" id="results-panel" aria-labelledby="results-heading">
+    <div class="results-head">
+      <h2 id="results-heading">Results</h2>
+      <p>Out of <strong id="results-total">0</strong> counted</p>
     </div>
-
-    <!-- ============================================================
-         RESULTS PANEL — hidden until Calculate is clicked
-         ============================================================ -->
-    <div class="results-panel" id="results-panel">
-      <h2>Results</h2>
-
+    <div class="table-wrap">
       <table class="results-table">
         <thead>
-          <tr>
-            <th>Category</th>
-            <th>Count</th>
-            <th>Fraction</th>
-            <th>Decimal</th>
-            <th>Percentage</th>
-          </tr>
+          <tr><th scope="col">Category</th><th scope="col">Count</th><th scope="col">Fraction</th><th scope="col">Decimal</th><th scope="col">Percentage</th></tr>
         </thead>
         <tbody id="results-tbody"></tbody>
       </table>
-
-      <div class="bar-chart-title">Visual Distribution</div>
-      <div class="bar-chart" id="bar-chart"></div>
     </div>
+    <h3 class="chart-title">How it splits up</h3>
+    <!-- One bar split into every category's share. -->
+    <div class="stacked-bar" id="stacked-bar" aria-hidden="true"></div>
+    <div class="bar-chart" id="bar-chart"></div>
+  </section>
 
-  </main>
+</main>
 
-  <footer>
-    A Simple Ed Apps — All apps run entirely in your browser, and no data leaves your device.
-  </footer>
+<footer>Teacher Apps · Runs entirely in your browser. No data leaves your device.</footer>
 
-  <script>
+<script>
+
 
     /* ============================================================
        PERCENTAGES (v3) — JavaScript
@@ -636,29 +322,30 @@
 
     /* -----------------------------------------------------------
        THE 20-COLOR PALETTE
-       The first 5 roughly match the Haribo Goldbears worksheet.
+       Soft, Teacher Apps tones. The first 5 still follow the
+       gummy bear worksheet order (yellow, red, clear, green, orange).
        ----------------------------------------------------------- */
     var PALETTE = [
-      '#e4c14a',  /* 0  yellow */
-      '#c84a3a',  /* 1  red */
-      '#e8ddb8',  /* 2  cream */
-      '#5fa05f',  /* 3  green */
-      '#e89c45',  /* 4  Orange */
-      '#4a7ab8',  /* 5  Blue */
-      '#8e57a8',  /* 6  Purple */
-      '#d873a8',  /* 7  Pink */
-      '#4ab0a0',  /* 8  Teal */
-      '#8b6541',  /* 9  Brown */
-      '#d04a82',  /* 10 Magenta */
-      '#a5c93d',  /* 11 Lime */
-      '#2e4870',  /* 12 Navy */
-      '#e88574',  /* 13 Coral */
-      '#b59ed4',  /* 14 Lavender */
-      '#828b4a',  /* 15 Olive */
-      '#4dabb8',  /* 16 Cyan */
-      '#8a3242',  /* 17 Maroon */
-      '#d4a747',  /* 18 Gold */
-      '#7a7a78'   /* 19 Slate gray */
+      '#EBC35C',  /* 0  yellow (honey) */
+      '#E07A6F',  /* 1  red (coral) */
+      '#E3D6B4',  /* 2  cream (sand) */
+      '#6FAF8B',  /* 3  green (sage) */
+      '#F0A066',  /* 4  orange (apricot) */
+      '#6E9BD9',  /* 5  blue */
+      '#9C86C9',  /* 6  purple */
+      '#E58BB5',  /* 7  pink */
+      '#5DB3A6',  /* 8  teal */
+      '#A8835F',  /* 9  brown */
+      '#D2679A',  /* 10 magenta */
+      '#A9C766',  /* 11 lime */
+      '#4E6A9A',  /* 12 navy */
+      '#EE9A88',  /* 13 salmon */
+      '#BCAAE0',  /* 14 lavender */
+      '#9AA163',  /* 15 olive */
+      '#6BBFCB',  /* 16 cyan */
+      '#A65866',  /* 17 maroon */
+      '#D9B25A',  /* 18 gold */
+      '#A9B8C6'   /* 19 mist grey */
     ];
 
     /* Hard caps — tightened in v3 to match the worksheet's scale. */
@@ -759,6 +446,28 @@
     }
 
 
+    /* Small helper: an inline SVG icon as an HTML string. */
+    function svgIcon(path, size) {
+      size = size || 18;
+      return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" ' +
+             'stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" ' +
+             'aria-hidden="true">' + path + '</svg>';
+    }
+    var TRASH_ICON = '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>';
+    var PLUS_ICON  = '<path d="M12 5v14M5 12h14"/>';
+
+    /* stepSize — the − and + buttons beside Rows and Columns.
+       They change the number box, then run the same handler as typing. */
+    function stepSize(inputId, delta) {
+      var input = document.getElementById(inputId);
+      var n = (parseInt(input.value, 10) || 0) + delta;
+      var max = parseInt(input.max, 10);
+      if (n < 1 || n > max) return;
+      input.value = n;
+      if (inputId === 'rows-input') handleRowsChange();
+      else handleColumnsChange();
+    }
+
     /* -----------------------------------------------------------
        buildCategoryRow — construct one category card
        Returns a DOM element with all inputs and buttons wired up.
@@ -768,52 +477,68 @@
       row.className = 'category-row';
       row.dataset.categoryId = cat.id;
 
-      /* ---------- HEADER LINE: swatch | name | controls | × ---------- */
+      /* ---------- HEADER LINE: swatch | name | − count + | "8 of 23" | delete ---------- */
       var header = document.createElement('div');
       header.className = 'category-header';
 
-      /* COLOR SWATCH */
-      var swatch = document.createElement('div');
+      /* COLOUR SWATCH (a button) with its pop-up palette beside it */
+      var swatchWrap = document.createElement('div');
+      swatchWrap.className = 'swatch-wrap';
+
+      var swatch = document.createElement('button');
+      swatch.type = 'button';
       swatch.className = 'color-swatch';
       swatch.style.background = cat.color;
+      swatch.setAttribute('aria-label', 'Change colour for ' + (cat.name || 'this category'));
+      swatch.setAttribute('aria-expanded', 'false');
       swatch.onclick = function(e) {
         e.stopPropagation();
         toggleColorPicker(cat.id);
       };
 
-      /* Color-picker popup nested inside the swatch */
       var popup = document.createElement('div');
       popup.className = 'color-picker-popup';
       popup.id = 'color-picker-' + cat.id;
-      PALETTE.forEach(function(color) {
-        var option = document.createElement('div');
+      popup.setAttribute('role', 'group');
+      popup.setAttribute('aria-label', 'Colours');
+      PALETTE.forEach(function(color, n) {
+        var option = document.createElement('button');
+        option.type = 'button';
         option.className = 'color-option';
         option.style.background = color;
+        option.setAttribute('aria-label', 'Colour ' + (n + 1));
+        option.setAttribute('aria-pressed', color === cat.color ? 'true' : 'false');
         option.onclick = function(e) {
           e.stopPropagation();
           changeColor(cat.id, color);
         };
         popup.appendChild(option);
       });
-      swatch.appendChild(popup);
+      swatchWrap.appendChild(swatch);
+      swatchWrap.appendChild(popup);
 
       /* NAME INPUT */
       var nameInput = document.createElement('input');
       nameInput.type = 'text';
       nameInput.className = 'category-name-input';
       nameInput.value = cat.name;
+      nameInput.setAttribute('aria-label', 'Category name');
       nameInput.oninput = function() {
         cat.name = nameInput.value;
         if (state.calculated) renderResults();
       };
 
-      /* COUNT CONTROLS — − / number input / + / cap badge */
+      /* COUNT CONTROLS — − / number / + and the "8 of 23" badge */
       var controls = document.createElement('div');
       controls.className = 'count-controls';
 
+      var stepper = document.createElement('span');
+      stepper.className = 'stepper';
+
       var btnMinus = document.createElement('button');
-      btnMinus.className = 'btn-count';
+      btnMinus.type = 'button';
       btnMinus.textContent = '−';
+      btnMinus.setAttribute('aria-label', 'One fewer');
       btnMinus.onclick = function() { changeCount(cat.id, -1); };
 
       var countInput = document.createElement('input');
@@ -823,6 +548,7 @@
       countInput.max = String(state.columns);
       countInput.value = cat.count;
       countInput.id = 'count-input-' + cat.id;
+      countInput.setAttribute('aria-label', 'Count');
       countInput.oninput = function() {
         var n = parseInt(countInput.value, 10);
         if (isNaN(n) || n < 0) n = 0;
@@ -835,46 +561,42 @@
       };
 
       var btnPlus = document.createElement('button');
-      btnPlus.className = 'btn-count';
+      btnPlus.type = 'button';
+      btnPlus.className = 'plus';
       btnPlus.textContent = '+';
+      btnPlus.setAttribute('aria-label', 'One more');
       btnPlus.onclick = function() { changeCount(cat.id, 1); };
 
-      /* "X / 23" fullness badge */
+      stepper.appendChild(btnMinus);
+      stepper.appendChild(countInput);
+      stepper.appendChild(btnPlus);
+
       var capBadge = document.createElement('span');
       capBadge.className = 'cap-badge';
       capBadge.id = 'cap-badge-' + cat.id;
-      capBadge.textContent = cat.count + ' / ' + state.columns;
+      capBadge.textContent = cat.count + ' of ' + state.columns;
 
-      controls.appendChild(btnMinus);
-      controls.appendChild(countInput);
-      controls.appendChild(btnPlus);
+      controls.appendChild(stepper);
       controls.appendChild(capBadge);
 
       /* REMOVE BUTTON */
       var btnRemove = document.createElement('button');
+      btnRemove.type = 'button';
       btnRemove.className = 'btn-remove-category';
-      btnRemove.textContent = '×';
+      btnRemove.innerHTML = svgIcon(TRASH_ICON, 18);
+      btnRemove.setAttribute('aria-label', 'Remove ' + (cat.name || 'this category'));
       btnRemove.title = 'Remove this category';
       btnRemove.onclick = function() { removeCategory(cat.id); };
 
-      header.appendChild(swatch);
+      header.appendChild(swatchWrap);
       header.appendChild(nameInput);
       header.appendChild(controls);
       header.appendChild(btnRemove);
 
-      /* ---------- CELL GRID ---------- */
-      var gridWrap = document.createElement('div');
-      gridWrap.className = 'cell-grid-wrapper';
-
-      var grid = buildCellGrid(cat);
-      gridWrap.appendChild(grid);
-
       row.appendChild(header);
-      row.appendChild(gridWrap);
-
+      row.appendChild(buildCellGrid(cat));
       return row;
     }
-
 
     /* -----------------------------------------------------------
        buildCellGrid — create the row of cells for one category
@@ -886,8 +608,10 @@
       var grid = document.createElement('div');
       grid.className = 'cell-grid';
       grid.id = 'grid-' + cat.id;
+      grid.setAttribute('aria-hidden', 'true'); /* the − / + buttons do the same job */
 
-      grid.style.gridTemplateColumns = 'repeat(' + state.columns + ', 22px)';
+      /* each cell shares the width, but never grows past 40px */
+      grid.style.gridTemplateColumns = 'repeat(' + state.columns + ', minmax(0, 40px))';
 
       if (cat.count >= state.columns) grid.classList.add('full');
 
@@ -896,17 +620,11 @@
       for (var i = 0; i < state.columns; i++) {
         var cell = document.createElement('div');
         cell.className = 'cell';
-        if (i < cat.count) {
-          cell.style.background = cat.color;                          /* filled */
-        } else {
-          cell.style.background = hexToRgba(cat.color, 0.18);         /* empty tint */
-        }
+        cell.style.background = i < cat.count ? cat.color : hexToRgba(cat.color, 0.2);
         grid.appendChild(cell);
       }
-
       return grid;
     }
-
 
     /* -----------------------------------------------------------
        renderGrid — surgical update of one category's grid
@@ -926,12 +644,12 @@
         if (i < cat.count) {
           cells[i].style.background = cat.color;
         } else {
-          cells[i].style.background = hexToRgba(cat.color, 0.18);
+          cells[i].style.background = hexToRgba(cat.color, 0.2);
         }
       }
 
       var badge = document.getElementById('cap-badge-' + catId);
-      if (badge) badge.textContent = cat.count + ' / ' + state.columns;
+      if (badge) badge.textContent = cat.count + ' of ' + state.columns;
     }
 
 
@@ -976,7 +694,13 @@
 
       var row = document.querySelector('[data-category-id="' + catId + '"]');
       if (row) {
-        row.querySelector('.color-swatch').style.background = color;
+        var swatch = row.querySelector('.color-swatch');
+        swatch.style.background = color;
+        swatch.setAttribute('aria-expanded', 'false');
+        swatch.focus();
+        row.querySelectorAll('.color-option').forEach(function(o) {
+          o.setAttribute('aria-pressed', o.style.background === swatch.style.background ? 'true' : 'false');
+        });
         renderGrid(catId);
       }
 
@@ -986,31 +710,43 @@
       if (state.calculated) renderResults();
     }
 
-
     /* -----------------------------------------------------------
        toggleColorPicker — open / close one swatch's popup
        Closes any other open pickers first.
        ----------------------------------------------------------- */
-    function toggleColorPicker(catId) {
-      var target = document.getElementById('color-picker-' + catId);
-      var wasOpen = target.classList.contains('open');
-
+    function closeColorPickers() {
       document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
         p.classList.remove('open');
       });
-
-      if (!wasOpen) target.classList.add('open');
+      document.querySelectorAll('.color-swatch[aria-expanded="true"]').forEach(function(s) {
+        s.setAttribute('aria-expanded', 'false');
+      });
     }
 
-    /* Global listener — clicks outside any swatch or popup close the popup */
+    function toggleColorPicker(catId) {
+      var target = document.getElementById('color-picker-' + catId);
+      var wasOpen = target.classList.contains('open');
+      closeColorPickers();
+      if (!wasOpen) {
+        target.classList.add('open');
+        target.previousElementSibling.setAttribute('aria-expanded', 'true');
+        var current = target.querySelector('[aria-pressed="true"]') || target.querySelector('button');
+        if (current) current.focus();
+      }
+    }
+
+    /* Clicking outside any swatch or palette closes it; so does Escape. */
     document.addEventListener('click', function(e) {
-      if (!e.target.closest('.color-swatch') && !e.target.closest('.color-picker-popup')) {
-        document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
-          p.classList.remove('open');
-        });
+      if (!e.target.closest('.swatch-wrap')) closeColorPickers();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      var open = document.querySelector('.color-picker-popup.open');
+      if (open) {
+        closeColorPickers();
+        open.previousElementSibling.focus();
       }
     });
-
 
     /* -----------------------------------------------------------
        addCategory — append one new row, bump state.rows
@@ -1065,12 +801,10 @@
        ----------------------------------------------------------- */
     function updateAddButton() {
       var btn = document.getElementById('btn-add-category');
-      btn.disabled = state.categories.length >= MAX_ROWS;
-      btn.textContent = state.categories.length >= MAX_ROWS
-        ? '+ Add Category (max reached)'
-        : '+ Add Category';
+      var full = state.categories.length >= MAX_ROWS;
+      btn.disabled = full;
+      btn.innerHTML = svgIcon(PLUS_ICON, 18) + (full ? 'Add category (10 is the most)' : 'Add category');
     }
-
 
     /* -----------------------------------------------------------
        handleRowsChange — teacher edits the Rows field
@@ -1164,57 +898,58 @@
        checking total > 0 before computing decimal.
        ----------------------------------------------------------- */
     function renderResults() {
-      var tbody = document.getElementById('results-tbody');
-      var chart = document.getElementById('bar-chart');
+      var tbody   = document.getElementById('results-tbody');
+      var chart   = document.getElementById('bar-chart');
+      var stacked = document.getElementById('stacked-bar');
       tbody.innerHTML = '';
       chart.innerHTML = '';
+      stacked.innerHTML = '';
 
       var total = getTotal();              /* compute once and reuse */
       var sumCount = 0;
       var sumPercent = 0;
+      document.getElementById('results-total').textContent = total;
 
       state.categories.forEach(function(cat) {
         /* GUARD against divide-by-zero when nothing is placed yet.
-           In JS, 0 / 0 returns NaN ("not a number"); checking total > 0
+           In JS, 0 / 0 is NaN ("not a number"); checking total > 0
            first and falling back to 0 keeps the output meaningful. */
         var decimal = total > 0 ? cat.count / total : 0;
         var percent = decimal * 100;
         sumCount   += cat.count;
         sumPercent += percent;
+        var name = cat.name || '(unnamed)';
 
         /* ---- TABLE ROW ---- */
         var tr = document.createElement('tr');
 
         var tdCat = document.createElement('td');
-        tdCat.className = 'category-cell';
-        var miniSwatch = document.createElement('div');
+        var catCell = document.createElement('span');
+        catCell.className = 'category-cell';
+        var miniSwatch = document.createElement('span');
         miniSwatch.className = 'swatch-mini';
         miniSwatch.style.background = cat.color;
-        tdCat.appendChild(miniSwatch);
-        tdCat.appendChild(document.createTextNode(cat.name || '(unnamed)'));
+        catCell.appendChild(miniSwatch);
+        catCell.appendChild(document.createTextNode(name));
+        tdCat.appendChild(catCell);
         tr.appendChild(tdCat);
 
-        var tdCount = document.createElement('td');
-        tdCount.className = 'num-cell';
-        tdCount.textContent = cat.count;
-        tr.appendChild(tdCount);
-
-        var tdFrac = document.createElement('td');
-        tdFrac.className = 'num-cell';
-        tdFrac.textContent = cat.count + ' / ' + total;
-        tr.appendChild(tdFrac);
-
-        var tdDec = document.createElement('td');
-        tdDec.className = 'num-cell';
-        tdDec.textContent = decimal.toFixed(3);
-        tr.appendChild(tdDec);
-
-        var tdPct = document.createElement('td');
-        tdPct.className = 'num-cell';
-        tdPct.textContent = percent.toFixed(1) + ' %';
-        tr.appendChild(tdPct);
-
+        [String(cat.count), cat.count + ' / ' + total, decimal.toFixed(3), percent.toFixed(1) + '%']
+          .forEach(function(text) {
+            var td = document.createElement('td');
+            td.textContent = text;
+            tr.appendChild(td);
+          });
         tbody.appendChild(tr);
+
+        /* ---- STACKED BAR PIECE (width = share of the total) ---- */
+        if (cat.count > 0) {
+          var piece = document.createElement('span');
+          piece.style.flex = String(cat.count);
+          piece.style.background = cat.color;
+          piece.title = name + ': ' + percent.toFixed(1) + '%';
+          stacked.appendChild(piece);
+        }
 
         /* ---- BAR CHART ROW ---- */
         var bar = document.createElement('div');
@@ -1222,7 +957,7 @@
 
         var label = document.createElement('div');
         label.className = 'bar-label';
-        label.textContent = cat.name || '(unnamed)';
+        label.textContent = name;
 
         var track = document.createElement('div');
         track.className = 'bar-track';
@@ -1234,7 +969,7 @@
 
         var value = document.createElement('div');
         value.className = 'bar-value';
-        value.textContent = percent.toFixed(1) + ' %';
+        value.textContent = percent.toFixed(1) + '%';
 
         bar.appendChild(label);
         bar.appendChild(track);
@@ -1243,38 +978,19 @@
       });
 
       /* ---- TOTAL ROW ----
-         When total > 0, sumCount === total and sumPercent rounds to 100%.
-         The row mostly exists to make that invariant visible to students. */
+         When total > 0, sumCount equals total and the percentages add
+         up to 100%. The row is there so students can see that. */
       var totalTr = document.createElement('tr');
       totalTr.className = 'total-row';
-
-      var tdLabel = document.createElement('td');
-      tdLabel.textContent = 'Total';
-      totalTr.appendChild(tdLabel);
-
-      var tdSum = document.createElement('td');
-      tdSum.className = 'num-cell';
-      tdSum.textContent = sumCount;
-      totalTr.appendChild(tdSum);
-
-      var tdSumFrac = document.createElement('td');
-      tdSumFrac.className = 'num-cell';
-      tdSumFrac.textContent = sumCount + ' / ' + total;
-      totalTr.appendChild(tdSumFrac);
-
-      var tdSumDec = document.createElement('td');
-      tdSumDec.className = 'num-cell';
-      tdSumDec.textContent = total > 0 ? (sumCount / total).toFixed(3) : '0.000';
-      totalTr.appendChild(tdSumDec);
-
-      var tdSumPct = document.createElement('td');
-      tdSumPct.className = 'num-cell';
-      tdSumPct.textContent = sumPercent.toFixed(1) + ' %';
-      totalTr.appendChild(tdSumPct);
-
+      ['Total', String(sumCount), sumCount + ' / ' + total,
+       total > 0 ? (sumCount / total).toFixed(3) : '0.000', sumPercent.toFixed(1) + '%']
+        .forEach(function(text) {
+          var td = document.createElement('td');
+          td.textContent = text;
+          totalTr.appendChild(td);
+        });
       tbody.appendChild(totalTr);
     }
-
 
     /* -----------------------------------------------------------
        resetAll — zero every count, hide the results panel
@@ -1296,8 +1012,6 @@
        STARTUP
        ============================================================ */
     init();
-
-  </script>
-
+</script>
 </body>
 </html>
