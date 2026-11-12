@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<!--
+  CLASSROOM TIMER
+  =================================================================
+  One self-contained file: the page structure (HTML), the look (CSS)
+  and the behavior (JavaScript) all live here. Nothing is loaded
+  from the internet and nothing is saved. Refreshing the page
+  starts fresh.
+
+  To use it: double-click this file to open it in any web browser.
+  To change it: open it in any plain text editor (for example
+  Notepad or TextEdit), edit, save, and refresh the browser.
+
+  How the file is laid out:
+    1. <style>  ... all the visual styling (CSS)
+    2. <body>   ... the setup screen, then the full-screen "running" dialog (HTML)
+    3. <script> ... everything that makes it work (JavaScript)
+
+  Comment styles you will see:
+    <!-- ... -->   a comment inside HTML
+    /* ... */      a comment inside CSS or JavaScript
+    // ...         a one-line comment inside JavaScript
+  Comments are notes for people. The browser ignores them.
+-->
+<html lang="en">
+<head>
+<!-- Use a character set that can show any letter or symbol. -->
+<meta charset="utf-8">
+<!-- Fit the page to the width of the screen (phones, tablets, projectors). -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The text shown on the browser tab. -->
+<title>Classroom Timer</title>
+<!-- The small tab icon: a simple clock, drawn as an SVG image written
+     directly into this line ("data:"), so nothing is downloaded. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232F5DB9' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 9v4l2.5 2.5M9.5 2.5h5'/%3E%3C/svg%3E">
+
+<style>
+/* =================================================================
+   1. DESIGN TOKENS
+   These named colors and sizes are used everywhere below. Change a
+   value here and it changes across the whole page.
+   ================================================================= */
+:root {
+  --paper:       #F5F7F6;  /* page background, a cool whiteboard white */
+  --surface:     #FFFFFF;  /* cards and inputs */
+  --surface-2:   #EEF2F1;  /* subtle fills (timeline track, list rows) */
+  --ink:         #1C2730;  /* main text: a dark slate */
+  --ink-2:       #4A5862;  /* secondary text (about 7:1 contrast) */
+  --rule:        #D3DBDA;  /* light dividing lines */
+  --field-edge:  #85918F;  /* input borders, at least 3:1 against white */
+  --app:         #2F5DB9;  /* the timer's main accent color (blue) */
+  --app-bg:      #D7E5FA;  /* soft tint of the app color */
+  --primary:     #2F5DB9;  /* main button background: the app color */
+  --on-primary:  #FFFFFF;  /* text on the main button */
+  --focus:       #1D5FD1;  /* keyboard focus outline */
+  --ok:          #1F6B4A;  /* "ready" message text */
+  --warn:        #A3360F;  /* 30-second warning text (about 6:1) */
+  --warn-fill:   #FBE6DA;  /* 30-second warning badge background */
+  --error:       #A3260F;  /* error message text */
+
+  /* Six segment colors, repeated if there are more than six segments.
+     "bg" is a soft tint behind dark text; "dot" is a stronger version. */
+  --c1-bg: #D7E5FA; --c1-dot: #3A6BCB;
+  --c2-bg: #CDEBDD; --c2-dot: #2A8462;
+  --c3-bg: #F6E2BA; --c3-dot: #A86F14;
+  --c4-bg: #F5D3D0; --c4-dot: #BE4A43;
+  --c5-bg: #E1D8F5; --c5-dot: #7055C2;
+  --c6-bg: #CBE8EC; --c6-dot: #26818F;
+  --seg-ink: #1C2730;      /* text color on top of the tints */
+
+  --radius-lg: 16px;
+  --radius:    10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+/* If the computer is set to dark mode, swap the palette.
+   Every color still meets the same contrast targets. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper:      #12181C;
+    --surface:    #1B2329;
+    --surface-2:  #232D34;
+    --ink:        #EEF2F1;
+    --ink-2:      #B6C1C4;
+    --rule:       #2F3A41;
+    --field-edge: #7D8A8E;
+    --app:        #7FA6F0;
+    --app-bg:     #253A5E;
+    --primary:    #7FA6F0;
+    --on-primary: #12181C;
+    --focus:      #7EA9FF;
+    --ok:         #7FD3AA;
+    --warn:       #FFB088;
+    --warn-fill:  #3D2318;
+    --error:      #FF9C85;
+    --c1-bg: #253A5E; --c1-dot: #7FA6F0;
+    --c2-bg: #1D4636; --c2-dot: #5FC49A;
+    --c3-bg: #4F3C17; --c3-dot: #E2AB4C;
+    --c4-bg: #552A27; --c4-dot: #EC847D;
+    --c5-bg: #39305F; --c5-dot: #A88EEB;
+    --c6-bg: #1B454C; --c6-dot: #5DBBCB;
+    --seg-ink: #EEF2F1;
+  }
+}
+
+/* Each segment gets one of these classes (c0 to c5) to pick its color. */
+.c0 { --seg-bg: var(--c1-bg); --seg-dot: var(--c1-dot); }
+.c1 { --seg-bg: var(--c2-bg); --seg-dot: var(--c2-dot); }
+.c2 { --seg-bg: var(--c3-bg); --seg-dot: var(--c3-dot); }
+.c3 { --seg-bg: var(--c4-bg); --seg-dot: var(--c4-dot); }
+.c4 { --seg-bg: var(--c5-bg); --seg-dot: var(--c5-dot); }
+.c5 { --seg-bg: var(--c6-bg); --seg-dot: var(--c6-dot); }
+
+/* =================================================================
+   2. BASICS
+   How CSS reads: a "selector" picks which parts of the page to style
+   (e.g. body, .btn, #runner), then the lines inside { } set properties
+   such as color, size, and spacing. A dot (.) means a class name; a
+   hash (#) means an id.
+   ================================================================= */
+/* Make widths include padding and borders, so sizes are predictable. */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* The whole page: background, text color, font, and base text size. */
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Remove the browser's default spacing around headings and paragraphs. */
+h1, h2, h3 { margin: 0; line-height: 1.2; }
+p { margin: 0; }
+
+/* A clearly visible ring around whatever the keyboard is on.
+   Never removed, as the requirements ask. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Hides text visually but keeps it for screen readers. */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+/* Anything marked "hidden" in the HTML is not shown at all. */
+[hidden] { display: none !important; }
+
+/* =================================================================
+   3. BUTTONS AND FIELDS
+   ================================================================= */
+/* Every button starts with this rounded "pill" look. */
+.btn {
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;              /* comfortable touch / click size */
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--field-edge);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-2); }      /* slightly darker when the mouse is over it */
+.btn:disabled { opacity: 0.45; cursor: not-allowed; } /* faded when it can't be used */
+
+/* The main action button (e.g. "Start session"): filled with the accent color. */
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+.btn-primary:hover { background: var(--primary); filter: brightness(1.15); }
+
+/* Smaller buttons, used for the time presets and "Remove". */
+.btn-small {
+  min-height: 36px;
+  padding: 0 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* The small bold text above each input box. */
+.field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 0.35rem;
+}
+
+/* Text boxes, the larger description box, and drop-down menus share one look. */
+.input, .textarea, .select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--field-edge);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+}
+.textarea { resize: vertical; min-height: 4.5rem; }   /* the description box can be dragged taller */
+.input::placeholder, .textarea::placeholder { color: var(--ink-2); opacity: 0.8; }
+
+/* A red edge plus the written error message marks a problem field. */
+.input[aria-invalid="true"] { border: 2px solid var(--error); }
+
+/* =================================================================
+   3b. PAGE HEADER
+   A thin colored stripe across the top, then the app's clock icon
+   and name. Purely visual: there are no links here.
+   ================================================================= */
+.app-stripe { height: 4px; background: var(--app); }   /* the thin blue line at the very top */
+.app-bar { border-bottom: 1px solid var(--rule); }     /* the header strip and its bottom border */
+.app-bar-inner {
+  max-width: 980px; margin: 0 auto; padding: 14px 1.25rem;   /* centered, same width as the setup screen */
+  display: flex; align-items: center; gap: 14px;              /* icon and name side by side */
+}
+/* The app name, "Classroom Timer", with the icon in front of it. */
+.app-name { display: inline-flex; align-items: center; gap: 10px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+/* The rounded square that holds the clock icon. */
+.app-icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--app-bg);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.app-icon svg { stroke: var(--app); }   /* draws the clock's lines in the accent color */
+
+/* =================================================================
+   4. SETUP SCREEN
+   ================================================================= */
+/* Keeps the setup screen a comfortable width and centered on wide screens. */
+.setup {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2.25rem 1.25rem 0;
+}
+
+/* The session name looks like a big editable headline. */
+.session-name {
+  font: inherit;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--app);
+  border-radius: 0;
+  padding: 0.25rem 0 0.4rem;
+  width: 100%;
+}
+.session-name::placeholder { color: var(--ink-2); opacity: 0.7; }
+
+.section { margin-top: 2.25rem; }   /* space between Timeline, Segments, and Sound */
+
+/* A section's heading on the left, with an optional extra (like the total) on the right. */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.section-head h2 { font-size: 1.125rem; }
+
+.total-pill {
+  font-size: 0.95rem;
+  color: var(--ink-2);
+}
+.total-pill strong {
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Timeline preview: one colored block per segment ---- */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 3px;
+  height: 48px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.timeline li {
+  flex-basis: 0;            /* the width comes from flex-grow, set in JavaScript */
+  min-width: 6px;
+  background: var(--seg-bg);
+  color: var(--seg-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.timeline .tl-text { overflow: hidden; text-overflow: ellipsis; }
+.timeline .tl-empty {
+  flex-grow: 1;
+  background: transparent;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Segment cards ---- */
+/* The stack of segment cards. "grid" with a gap puts even space between them. */
+.segment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.875rem;
+}
+
+/* One white card per segment, with a colored stripe down its left edge. */
+.segment {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 6px solid var(--seg-dot);   /* color stripe matches the timeline */
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.segment fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+/* Top row of a card: number badge | activity name | Remove button. */
+.seg-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.875rem;
+  align-items: end;
+}
+
+/* The round number badge. The number is also in the hidden legend,
+   so screen readers hear "Segment 1". */
+.seg-badge {
+  width: 2.25rem; height: 2.25rem;
+  border-radius: 50%;
+  background: var(--seg-bg);
+  color: var(--seg-ink);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.seg-desc-wrap { margin-top: 0.875rem; }
+
+.duration { margin-top: 0.875rem !important; }
+.duration legend { padding: 0; }
+
+.duration-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* The small minutes and seconds boxes. */
+.time-inputs .input {
+  width: 4.25rem;
+  text-align: center;
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+.time-inputs label { color: var(--ink-2); margin-right: 0.5rem; }
+
+.presets { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+/* The preset that matches the segment's current length. */
+.presets .btn[aria-pressed="true"] {
+  background: var(--app-bg);
+  border-color: var(--app);
+}
+
+/* The dashed "+ Add segment" button under the cards. */
+.add-btn {
+  margin-top: 0.875rem;
+  width: 100%;
+  min-height: 56px;
+  border: 2px dashed var(--app);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--app);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.add-btn:hover { background: var(--surface); }
+
+/* ---- Sound settings ---- */
+.sound-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+.sound-row .field { flex: 1 1 260px; max-width: 360px; }
+
+/* ---- Footer that sticks to the bottom while scrolling ---- */
+.setup-footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: 2.5rem;
+  padding: 1rem 0 1.25rem;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+.status { font-weight: 500; color: var(--ink-2); }
+.status.is-ready { color: var(--ok); }
+.status-error { color: var(--error); font-weight: 600; }
+.footer-actions { display: flex; gap: 0.75rem; margin-left: auto; }
+
+/* =================================================================
+   5. RUNNING VIEW (the full-screen <dialog>)
+   Sizes use vw / vh so the text grows with the projector screen.
+   ================================================================= */
+/* The running view fills the whole screen. vw/vh mean "percent of the
+   screen's width/height"; dvh adjusts for phone toolbars. */
+.runner {
+  width: 100vw;  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw; max-height: 100vh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+.runner::backdrop { background: var(--paper); }
+
+.runner { border-top: 6px solid var(--app) !important; }
+.run-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.run-title .app-icon { width: 36px; height: 36px; flex: none; }
+/* Four stacked rows: title bar, thin timeline, main area, buttons.
+   clamp(min, preferred, max) lets sizes grow with the screen within limits. */
+.runner-inner {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: clamp(0.75rem, 2vh, 1.5rem);
+  padding: clamp(1rem, 3vh, 2.5rem) clamp(1rem, 3vw, 3rem);
+}
+
+.run-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.run-session {
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  font-weight: 700;
+}
+.total-left {
+  color: var(--ink-2);
+  font-size: clamp(1rem, 1.6vw, 1.4rem);
+  white-space: nowrap;
+}
+.total-left strong {
+  color: var(--ink);
+  font-size: clamp(1.5rem, 2.6vw, 2.4rem);
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.4rem;
+}
+
+/* Thin decorative timeline across the top of the running view. */
+.run-timeline {
+  display: flex;
+  gap: 4px;
+  height: 12px;
+}
+.run-timeline span {
+  flex-basis: 0;
+  border-radius: 999px;
+  background: var(--seg-dot);
+}
+.run-timeline .is-done { opacity: 0.3; }
+.run-timeline .is-later { opacity: 0.45; }
+
+/* The main area: the big "now" panel on the left, the plan list on the right. */
+.run-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 30%);
+  gap: clamp(1rem, 2.5vw, 2.5rem);
+  min-height: 0;          /* lets the columns scroll instead of overflowing */
+}
+
+/* ---- The main "now" panel ---- */
+.now-panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 10px solid var(--seg-dot);
+  border-radius: var(--radius-lg);
+  padding: clamp(1rem, 3vh, 2.5rem) clamp(1.25rem, 3vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.now-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  font-size: clamp(1rem, 1.5vw, 1.35rem);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* State badge: "Running", "Paused", "30 seconds or less", "Finished". */
+.state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.3em 0.9em;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 2px solid transparent;
+  font-weight: 700;
+}
+.state-badge::before {           /* small colored dot inside the badge */
+  content: "";
+  width: 0.6em; height: 0.6em;
+  border-radius: 50%;
+  background: var(--seg-dot);
+}
+
+/* The current activity's name, very large so the back row can read it. */
+.run-seg-name {
+  margin-top: clamp(0.5rem, 2vh, 1.5rem);
+  font-size: clamp(2rem, min(5.2vw, 8.5vh), 5.5rem);
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+/* What students should be doing, in large text under the name. */
+.run-seg-desc {
+  margin-top: clamp(0.4rem, 1.5vh, 1rem);
+  font-size: clamp(1.25rem, min(2.6vw, 4.4vh), 2.75rem);
+  line-height: 1.3;
+  color: var(--ink-2);
+  max-width: 34ch;
+  overflow-wrap: anywhere;
+}
+
+/* THE BIG COUNTDOWN. Fixed-width digits stop it jiggling each second. */
+.countdown {
+  margin-top: auto;
+  padding-top: clamp(0.5rem, 2vh, 1.5rem);
+  font-size: clamp(5rem, min(17vw, 27vh), 19rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.paused-note {
+  font-size: clamp(1rem, 1.6vw, 1.4rem);
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-top: 0.5rem;
+}
+
+/* Segment progress bar (a native <progress> element, restyled). */
+.progress-wrap { margin-top: clamp(0.75rem, 2vh, 1.5rem); }
+progress {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: clamp(12px, 1.6vh, 20px);
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+  color: var(--seg-dot);
+}
+progress::-webkit-progress-bar   { background: var(--surface-2); border-radius: 999px; }
+progress::-webkit-progress-value { background: var(--seg-dot); border-radius: 999px; }
+progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 999px; }
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  color: var(--ink-2);
+  font-size: clamp(0.9rem, 1.3vw, 1.15rem);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 30-second warning: color AND text change together ---- */
+.runner.is-warning .countdown { color: var(--warn); }
+.runner.is-warning .state-badge {
+  background: var(--warn-fill);
+  color: var(--warn);
+  border-color: var(--warn);
+}
+.runner.is-warning .state-badge::before { background: var(--warn); }
+.runner.is-warning .now-panel { border-left-color: var(--warn); }
+.runner.is-warning progress::-webkit-progress-value { background: var(--warn); }
+.runner.is-warning progress::-moz-progress-bar      { background: var(--warn); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .runner.is-warning .state-badge { animation: nudge 1.6s ease-in-out infinite; }
+  @keyframes nudge { 50% { transform: scale(1.04); } }
+}
+
+/* ---- Paused look ---- */
+.runner.is-paused .countdown { color: var(--ink-2); }
+.runner.is-paused .state-badge::before { background: var(--ink-2); }
+
+/* ---- Side list of all segments ---- */
+.side-panel {
+  min-height: 0;
+  overflow: auto;
+}
+.side-panel h3 {
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  color: var(--ink-2);
+  margin-bottom: 0.6rem;
+}
+.run-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.run-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  font-size: clamp(1rem, 1.55vw, 1.4rem);
+}
+.run-list .dot {
+  width: 0.7em; height: 0.7em;
+  border-radius: 50%;
+  background: var(--seg-dot);
+}
+.run-list .item-name { overflow-wrap: anywhere; }
+.run-list .item-time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.run-list .tag {
+  font-size: 0.75em;
+  font-weight: 700;
+  padding: 0.15em 0.7em;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.run-list .is-now {
+  background: var(--surface);
+  border-color: var(--seg-dot);
+  font-weight: 700;
+}
+.run-list .is-now .tag { background: var(--seg-bg); color: var(--seg-ink); }
+.run-list .is-done .item-name { color: var(--ink-2); text-decoration: line-through; }
+
+/* ---- Control buttons along the bottom ---- */
+.run-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+.run-controls .btn {
+  min-height: 52px;
+  font-size: 1.1rem;
+  padding: 0 1.6rem;
+}
+
+/* =================================================================
+   6. SMALLER SCREENS AND SPECIAL MODES
+   ================================================================= */
+@media (max-width: 820px) {
+  .run-body { grid-template-columns: 1fr; overflow: auto; }
+  .now-panel, .side-panel { overflow: visible; }
+  .seg-top { grid-template-columns: auto 1fr; }
+  .seg-top .remove-btn { grid-column: 1 / -1; justify-self: start; }
+}
+
+/* Windows High Contrast mode: keep the blocks visible. */
+@media (forced-colors: active) {
+  .timeline li, .run-timeline span, .seg-badge, .run-list li { border: 1px solid CanvasText; }
+  progress { border: 1px solid CanvasText; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =================================================================
+     PAGE HEADER
+     A thin colored stripe, then the clock icon and the app's name.
+     aria-hidden="true" tells screen readers to skip purely decorative parts.
+     ================================================================= -->
+<div class="app-stripe" aria-hidden="true"></div>
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <!-- <h1> is the main heading of the page. The <svg> draws the clock icon. -->
+    <h1 class="app-name"><span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>Classroom Timer</h1>
+  </div>
+</header>
+
+<!-- =================================================================
+     SETUP SCREEN
+     This is what the teacher sees before class.
+     ================================================================= -->
+<main id="setup" class="setup">
+
+  <!-- Session name -->
+  <label for="session-name" class="field-label">Session name</label>
+  <input id="session-name" class="session-name" type="text"
+         placeholder="e.g. Essay Brainstorm" autocomplete="off" maxlength="80">
+
+  <!-- Timeline preview -->
+  <section class="section" aria-labelledby="timeline-heading">
+    <div class="section-head">
+      <h2 id="timeline-heading">Timeline</h2>
+      <p class="total-pill">Total <strong id="total-time">0:00</strong></p>
+    </div>
+    <!-- JavaScript fills this list with one block per segment. -->
+    <ol id="timeline" class="timeline" aria-label="Timeline preview"></ol>
+    <!-- Time markers under the bar (visual only). -->
+    <div id="ticks" class="ticks" aria-hidden="true"></div>
+  </section>
+
+  <!-- Segment editor -->
+  <section class="section" aria-labelledby="segments-heading">
+    <div class="section-head">
+      <h2 id="segments-heading">Segments</h2>
+    </div>
+    <!-- JavaScript fills this list using the template below. -->
+    <ol id="segment-list" class="segment-list"></ol>
+    <button id="add-segment" class="add-btn" type="button">+ Add segment</button>
+  </section>
+
+  <!-- Sound settings -->
+  <section class="section" aria-labelledby="sound-heading">
+    <div class="section-head">
+      <h2 id="sound-heading">Sound</h2>
+    </div>
+    <div class="sound-row">
+      <div class="field">
+        <label for="sound-choice" class="field-label">Alert when each segment ends</label>
+        <select id="sound-choice" class="select">
+          <option value="chime">Soft chime</option>
+          <option value="beep">Double beep</option>
+          <option value="none">Mute (no sound)</option>
+        </select>
+      </div>
+      <button id="test-sound" class="btn" type="button">Play sample</button>
+    </div>
+  </section>
+
+  <!-- Footer: status message and the main buttons -->
+  <footer class="setup-footer">
+    <div>
+      <!-- Summary of the plan (updates as you type). -->
+      <p id="setup-status" class="status"></p>
+      <!-- Problems found when pressing Start. role="alert" makes screen readers read it right away. -->
+      <p id="setup-error" class="status-error" role="alert"></p>
+    </div>
+    <div class="footer-actions">
+      <button id="clear-btn" class="btn" type="button">Clear</button>
+      <button id="start-btn" class="btn btn-primary" type="button">Start session</button>
+    </div>
+  </footer>
+</main>
+
+<!-- One segment card. JavaScript copies this for every segment.
+     A <template> is not shown on the page by itself. -->
+<template id="segment-template">
+  <li class="segment">
+    <fieldset>
+      <!-- Hidden heading for the group, e.g. "Segment 2". -->
+      <legend class="sr-only seg-legend">Segment</legend>
+
+      <div class="seg-top">
+        <span class="seg-badge" aria-hidden="true">1</span>
+        <div>
+          <label class="field-label" data-field="name">Activity name</label>
+          <input class="input seg-name" type="text" maxlength="60" autocomplete="off"
+                 placeholder="e.g. Silent brainstorm">
+        </div>
+        <button type="button" class="btn btn-small remove-btn">Remove</button>
+      </div>
+
+      <div class="seg-desc-wrap">
+        <label class="field-label" data-field="desc">What students should do</label>
+        <textarea class="textarea seg-desc" rows="2" maxlength="220"
+                  placeholder="e.g. Write down every idea you have. No talking yet."></textarea>
+      </div>
+
+      <fieldset class="duration">
+        <legend class="field-label">Duration</legend>
+        <div class="duration-row">
+          <div class="time-inputs">
+            <input class="input seg-min" type="text" inputmode="numeric" maxlength="3" autocomplete="off">
+            <label data-field="min">minutes</label>
+            <input class="input seg-sec" type="text" inputmode="numeric" maxlength="2" autocomplete="off">
+            <label data-field="sec">seconds</label>
+          </div>
+          <div class="presets" role="group">
+            <button type="button" class="btn btn-small" data-minutes="1">1 min</button>
+            <button type="button" class="btn btn-small" data-minutes="2">2 min</button>
+            <button type="button" class="btn btn-small" data-minutes="5">5 min</button>
+            <button type="button" class="btn btn-small" data-minutes="10">10 min</button>
+            <button type="button" class="btn btn-small" data-minutes="15">15 min</button>
+          </div>
+        </div>
+      </fieldset>
+    </fieldset>
+  </li>
+</template>
+
+
+<!-- =================================================================
+     RUNNING VIEW
+     A native <dialog> that fills the whole screen while the timer runs.
+     ================================================================= -->
+<dialog id="runner" class="runner" aria-labelledby="run-session">
+  <div class="runner-inner">
+
+    <header class="run-top">
+      <div class="run-title">
+        <span class="app-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
+        <h2 id="run-session" class="run-session">Session</h2>
+      </div>
+      <p class="total-left">Total left <strong id="run-total-left">0:00</strong></p>
+    </header>
+
+    <!-- Decorative bar; the list on the right gives the same information in text. -->
+    <div id="run-timeline" class="run-timeline" aria-hidden="true"></div>
+
+    <div class="run-body">
+      <!-- What's happening right now -->
+      <section id="now-panel" class="now-panel" aria-labelledby="run-seg-name">
+        <div class="now-meta">
+          <p id="run-position">Segment 1 of 1</p>
+          <p id="run-state" class="state-badge">Running</p>
+        </div>
+
+        <h3 id="run-seg-name" class="run-seg-name">Segment</h3>
+        <p id="run-seg-desc" class="run-seg-desc"></p>
+
+        <p class="countdown">
+          <span class="sr-only">Time left in this segment: </span>
+          <span id="run-countdown">0:00</span>
+        </p>
+        <p id="paused-note" class="paused-note" hidden>Paused. Press Resume to continue.</p>
+
+        <div class="progress-wrap">
+          <label for="run-progress" class="sr-only">Segment progress</label>
+          <progress id="run-progress" max="100" value="0"></progress>
+          <div class="progress-labels" aria-hidden="true">
+            <span id="run-elapsed">0:00 elapsed</span>
+            <span id="run-seg-total">0:00 total</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- The full plan, marked Done / Now / Next / Later -->
+      <aside class="side-panel" aria-labelledby="plan-heading">
+        <h3 id="plan-heading">Today's plan</h3>
+        <ol id="run-list" class="run-list"></ol>
+      </aside>
+    </div>
+
+    <footer class="run-controls">
+      <button id="pause-btn" class="btn btn-primary" type="button">Pause</button>
+      <button id="mute-btn" class="btn" type="button">Silence sound</button>
+      <button id="end-btn" class="btn" type="button">End session</button>
+    </footer>
+
+    <!-- Invisible "announcer": screen readers read out anything placed here. -->
+    <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+  </div>
+</dialog>
+
+
+<script>
+/* =================================================================
+   CLASSROOM TIMER: BEHAVIOR
+   Read from top to bottom:
+     A. Settings and small helpers
+     B. The list of segments (the "plan") and the setup screen
+     C. Sounds (made with the Web Audio API, no sound files)
+     D. Running the timer
+     E. Wiring buttons and keys to the functions above
+
+   A few JavaScript words you will see:
+     const    a named value that will not be replaced (e.g. a setting)
+     let      a named value that can change (e.g. the list of segments)
+     function a named set of steps that runs when it is "called"
+     =>       a short way to write a small function
+     document the web page itself; JavaScript reads and changes it
+     addEventListener  "when this happens (a click, a key press),
+                        run this function"
+   ================================================================= */
+
+/* -----------------------------------------------------------------
+   A. SETTINGS AND HELPERS
+   ----------------------------------------------------------------- */
+
+const MAX_MINUTES = 180;       // longest allowed segment: 3 hours
+const WARNING_SECONDS = 30;    // when the "almost time" warning starts
+const COLORS = 6;             // how many segment colors exist in the CSS
+const ORIGINAL_TITLE = document.title;
+
+// Shortcut: get an element by its id.
+const $ = (id) => document.getElementById(id);
+
+// Turn a number of seconds into "m:ss", e.g. 125 becomes "2:05".
+function formatTime(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const minutes = Math.floor(s / 60);
+  const seconds = s % 60;
+  return minutes + ':' + String(seconds).padStart(2, '0');
+}
+
+// Turn seconds into words for screen readers, e.g. "2 minutes 5 seconds".
+function spokenTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+  if (minutes) parts.push(minutes + (minutes === 1 ? ' minute' : ' minutes'));
+  if (seconds) parts.push(seconds + (seconds === 1 ? ' second' : ' seconds'));
+  return parts.join(' ') || '0 seconds';
+}
+
+/* -----------------------------------------------------------------
+   B. THE PLAN AND THE SETUP SCREEN
+   All segments live in one list called "segments". The screen is
+   redrawn from this list, so the list is the single source of truth.
+   ----------------------------------------------------------------- */
+
+let segments = [];
+let nextId = 1;   // every segment gets its own id number so inputs can find it
+
+// Make a new, empty segment (5 minutes by default, like the wireframe).
+// The { ... } is an "object": a bundle of named values for one segment.
+function makeSegment(minutes = 5, seconds = 0) {
+  return { id: nextId++, name: '', desc: '', min: minutes, sec: seconds };
+}
+
+// A segment's length in seconds.
+function lengthOf(seg) {
+  return seg.min * 60 + seg.sec;
+}
+
+function findSegment(id) {
+  return segments.find((s) => s.id === Number(id));
+}
+
+// Grab the parts of the setup screen we'll be updating.
+const segmentList = $('segment-list');
+const template    = $('segment-template');
+const timelineEl  = $('timeline');
+const ticksEl     = $('ticks');
+const totalEl     = $('total-time');
+const statusEl    = $('setup-status');
+const errorEl     = $('setup-error');
+
+/* Draw every segment card from the "segments" list.
+   This runs when segments are added, removed or cleared. While you type,
+   we only update the stored values, so the cursor never jumps. */
+function renderSegments() {
+  segmentList.innerHTML = '';   // empty the list, then rebuild every card below
+
+  // forEach runs the steps inside once for every segment in the list.
+  segments.forEach((seg, index) => {
+    const number = index + 1;   // index counts from 0, people count from 1
+    // Make a fresh copy of the hidden <template> card from the HTML.
+    const card = template.content.firstElementChild.cloneNode(true);
+
+    card.dataset.id = seg.id;
+    card.classList.add('c' + (index % COLORS));
+
+    card.querySelector('.seg-legend').textContent = 'Segment ' + number;
+    card.querySelector('.seg-badge').textContent = number;
+
+    // Give each input a unique id and point its <label> at it.
+    ['name', 'desc', 'min', 'sec'].forEach((field) => {
+      const input = card.querySelector('.seg-' + field);
+      const label = card.querySelector('label[data-field="' + field + '"]');
+      input.id = 'seg-' + seg.id + '-' + field;
+      label.htmlFor = input.id;
+    });
+
+    card.querySelector('.seg-name').value = seg.name;
+    card.querySelector('.seg-desc').value = seg.desc;
+    card.querySelector('.seg-min').value  = String(seg.min);
+    card.querySelector('.seg-sec').value  = String(seg.sec).padStart(2, '0');
+
+    card.querySelector('.presets').setAttribute('aria-label', 'Quick durations for segment ' + number);
+    updatePresetStates(card, seg);
+
+    const removeBtn = card.querySelector('.remove-btn');
+    removeBtn.setAttribute('aria-label', 'Remove segment ' + number);
+    removeBtn.disabled = segments.length === 1;  // always keep at least one
+
+    segmentList.appendChild(card);   // put the finished card on the page
+  });
+
+  updateSummary();
+}
+
+// Redraw the timeline preview, the total, and the status message.
+function updateSummary() {
+  const total = segments.reduce((sum, s) => sum + lengthOf(s), 0);
+  totalEl.textContent = formatTime(total);
+
+  // --- Timeline blocks ---
+  timelineEl.innerHTML = '';
+  if (total === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'tl-empty';
+    empty.textContent = 'Set a duration to see the timeline';
+    timelineEl.appendChild(empty);
+  } else {
+    segments.forEach((seg, index) => {
+      const secs = lengthOf(seg);
+      if (secs === 0) return;                    // nothing to draw
+      const block = document.createElement('li');
+      block.className = 'c' + (index % COLORS);
+      block.style.flexGrow = secs;                // wider block = longer segment
+
+      const text = document.createElement('span');
+      text.className = 'tl-text';
+      const label = (index + 1) + (seg.name.trim() ? ' ' + seg.name.trim() : '');
+      text.textContent = label;
+
+      const hidden = document.createElement('span');
+      hidden.className = 'sr-only';
+      hidden.textContent = ', ' + spokenTime(secs);
+
+      block.title = label + ' (' + formatTime(secs) + ')';
+      block.append(text, hidden);
+      timelineEl.appendChild(block);
+    });
+  }
+
+  // --- Time markers: start, quarter, half, three-quarters, end ---
+  ticksEl.innerHTML = '';
+  [0, 0.25, 0.5, 0.75, 1].forEach((fraction) => {
+    const tick = document.createElement('span');
+    tick.textContent = formatTime(total * fraction);
+    ticksEl.appendChild(tick);
+  });
+
+  // --- Status message ---
+  const missing = segments.findIndex((s) => lengthOf(s) === 0);
+  statusEl.classList.remove('is-ready');
+  if (missing !== -1) {
+    statusEl.textContent = 'Segment ' + (missing + 1) + ' has no time set yet.';
+  } else {
+    const n = segments.length;
+    statusEl.textContent = n + (n === 1 ? ' segment, ' : ' segments, ') +
+                           formatTime(total) + ' total. Ready to start.';
+    statusEl.classList.add('is-ready');
+    errorEl.textContent = '';
+  }
+}
+
+// Highlight the preset button that matches this segment's length, if any.
+function updatePresetStates(card, seg) {
+  card.querySelectorAll('.presets [data-minutes]').forEach((button) => {
+    const match = seg.sec === 0 && seg.min === Number(button.dataset.minutes);
+    button.setAttribute('aria-pressed', match ? 'true' : 'false');
+  });
+}
+
+// Clean up a segment's minutes and seconds after the teacher leaves the field.
+// 90 seconds becomes 1 minute 30, and anything over 3 hours is capped.
+function normalizeDuration(seg, card) {
+  const total = Math.min(lengthOf(seg), MAX_MINUTES * 60);
+  seg.min = Math.floor(total / 60);
+  seg.sec = total % 60;
+  card.querySelector('.seg-min').value = String(seg.min);
+  card.querySelector('.seg-sec').value = String(seg.sec).padStart(2, '0');
+  if (total > 0) markInvalid(card, false);
+  updatePresetStates(card, seg);
+}
+
+// Flag (or un-flag) a card's time fields as a problem.
+function markInvalid(card, isInvalid) {
+  card.querySelectorAll('.seg-min, .seg-sec').forEach((input) => {
+    if (isInvalid) input.setAttribute('aria-invalid', 'true');
+    else input.removeAttribute('aria-invalid');
+  });
+}
+
+function addSegment() {
+  segments.push(makeSegment());
+  renderSegments();
+  // Move the keyboard straight into the new card's name field.
+  segmentList.lastElementChild.querySelector('.seg-name').focus();
+}
+
+function removeSegment(id) {
+  const index = segments.findIndex((s) => s.id === Number(id));
+  if (index === -1 || segments.length === 1) return;
+  segments.splice(index, 1);
+  renderSegments();
+
+  // Put focus somewhere sensible so keyboard users aren't lost:
+  // the card that moved into this spot, or the one before it.
+  const cards = segmentList.children;
+  const target = cards[index] || cards[index - 1];
+  if (target) target.querySelector('.seg-name').focus();
+  else $('add-segment').focus();
+}
+
+function clearAll() {
+  if (!confirm('Clear the session name and all segments?')) return;
+  $('session-name').value = '';
+  segments = [makeSegment(), makeSegment(), makeSegment()];
+  errorEl.textContent = '';
+  renderSegments();
+  $('session-name').focus();
+}
+
+/* -----------------------------------------------------------------
+   C. SOUNDS
+   The browser's Web Audio API "plays" simple tones made from math,
+   so there are no sound files to download.
+   ----------------------------------------------------------------- */
+
+let audio = null;        // the browser's sound engine, created on first use
+let playingAlert = null; // the alert currently sounding, so we can stop it
+
+// Start (or wake up) the sound engine. Browsers only allow this after a
+// click or key press, which is why we call it from the Start button.
+function getAudio() {
+  const Engine = window.AudioContext || window.webkitAudioContext;
+  if (!Engine) return null;               // very old browser: no sound
+  if (!audio) audio = new Engine();
+  if (audio.state === 'suspended') audio.resume();
+  return audio;
+}
+
+// Play one tone. "freq" is the pitch, "start" is when (in seconds),
+// "length" is how long it rings, "volume" is how loud at its peak.
+function tone(ctx, output, freq, start, length, wave, volume, list) {
+  const osc = ctx.createOscillator();     // makes the sound wave
+  const gain = ctx.createGain();          // controls the volume
+  osc.type = wave;
+  osc.frequency.value = freq;
+  // Fade in very quickly, then fade out smoothly (avoids clicks).
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+  osc.connect(gain);
+  gain.connect(output);
+  osc.start(start);
+  osc.stop(start + length + 0.05);
+  list.push(osc);
+}
+
+// Play the chosen alert: "chime", "beep" or "none".
+function playSound(style) {
+  if (style === 'none') return;
+  const ctx = getAudio();
+  if (!ctx) return;
+  stopSound();                            // never overlap two alerts
+
+  const output = ctx.createGain();        // one volume knob for the whole alert
+  output.gain.value = 0.9;
+  output.connect(ctx.destination);
+  const tones = [];
+  const t = ctx.currentTime + 0.05;
+
+  if (style === 'chime') {
+    // A gentle rising three-note chime (E, G#, B), played twice.
+    for (let round = 0; round < 2; round++) {
+      const base = t + round * 1.7;
+      [659.25, 830.61, 987.77].forEach((freq, i) => {
+        tone(ctx, output, freq,     base + i * 0.17, 1.5, 'sine', 0.22, tones);
+        tone(ctx, output, freq * 2, base + i * 0.17, 0.6, 'sine', 0.04, tones); // soft sparkle
+      });
+    }
+  } else {
+    // Two short beeps, repeated three times.
+    for (let round = 0; round < 3; round++) {
+      const base = t + round * 0.8;
+      tone(ctx, output, 1046.5, base,        0.14, 'triangle', 0.35, tones);
+      tone(ctx, output, 1046.5, base + 0.22, 0.14, 'triangle', 0.35, tones);
+    }
+  }
+
+  playingAlert = { output, tones };
+}
+
+// Stop any alert that is currently sounding.
+function stopSound() {
+  if (!playingAlert) return;
+  playingAlert.tones.forEach((osc) => { try { osc.stop(); } catch (e) { /* already stopped */ } });
+  try { playingAlert.output.disconnect(); } catch (e) { /* already disconnected */ }
+  playingAlert = null;
+}
+
+/* -----------------------------------------------------------------
+   D. RUNNING THE TIMER
+   The timer remembers the exact moment the current segment should end
+   and checks the clock four times a second. This stays accurate even
+   if the browser slows down background tabs.
+   ----------------------------------------------------------------- */
+
+const runner = $('runner');
+
+const run = {
+  plan: [],          // copy of the segments, frozen when Start is pressed
+  sessionName: '',
+  index: 0,          // which segment is on now (0 = first)
+  endsAt: 0,         // clock time (ms) when the current segment ends
+  remainingMs: 0,    // saved time left, used while paused
+  paused: false,
+  finished: false,
+  warned: false,     // has the 30-second warning been announced yet?
+  muted: false,
+  soundStyle: 'chime',
+  ticker: null       // the repeating clock check
+};
+
+let wakeLock = null; // asks the screen not to go to sleep (where supported)
+
+// Called when the teacher presses "Start session".
+function startSession() {
+  errorEl.textContent = '';
+
+  // Check every segment has some time set.
+  const missing = segments.findIndex((s) => lengthOf(s) === 0);
+  if (missing !== -1) {
+    const card = segmentList.children[missing];
+    markInvalid(card, true);
+    errorEl.textContent = 'Segment ' + (missing + 1) + ' needs a duration before you can start.';
+    card.querySelector('.seg-min').focus();
+    return;
+  }
+
+  // Freeze a copy of the plan. Blank names get a simple default.
+  run.plan = segments.map((s, i) => {
+    const secs = Math.min(lengthOf(s), MAX_MINUTES * 60);
+    return {
+      name: s.name.trim() || 'Segment ' + (i + 1),
+      desc: s.desc.trim(),
+      secs: secs,
+      ms: secs * 1000,
+      color: 'c' + (i % COLORS)
+    };
+  });
+  run.sessionName = $('session-name').value.trim() || 'Class session';
+
+  // Sound settings. "Mute" in setup means start silenced; the
+  // running-view button can still turn a soft chime back on.
+  const choice = $('sound-choice').value;
+  run.muted = choice === 'none';
+  run.soundStyle = choice === 'none' ? 'chime' : choice;
+  if (!run.muted) getAudio();   // unlock sound now, while we have a click
+
+  // Reset the running state.
+  run.index = 0;
+  run.paused = false;
+  run.finished = false;
+  run.warned = false;
+  run.endsAt = performance.now() + run.plan[0].ms;
+
+  // Reset the running view's buttons and look.
+  runner.classList.remove('is-warning', 'is-paused', 'is-finished');
+  $('pause-btn').hidden = false;
+  $('pause-btn').textContent = 'Pause';
+  $('end-btn').textContent = 'End session';
+  $('paused-note').hidden = true;
+  $('run-session').textContent = run.sessionName;
+  updateMuteButton();
+
+  showCurrentSegment();
+  runner.showModal();               // open the full-screen dialog
+  $('pause-btn').focus();
+
+  tick();                                 // update the display right away
+  run.ticker = setInterval(tick, 250);   // then check the clock every 250 ms (4 times a second)
+  keepScreenAwake();
+
+  // Small delay so screen readers notice the announcer after the dialog opens.
+  setTimeout(() => announce('Session started: ' + run.sessionName + '. ' + describeCurrent()), 400);
+}
+
+// Check the clock. Moves to the next segment when time runs out.
+function tick() {
+  if (run.paused || run.finished) return;
+  const now = performance.now();
+
+  if (now >= run.endsAt) {
+    // The segment is over. The loop catches up if several segments
+    // ended while the computer was asleep or the tab was hidden.
+    while (now >= run.endsAt) {
+      if (run.index >= run.plan.length - 1) {
+        finishSession();
+        return;
+      }
+      run.index++;
+      run.endsAt += run.plan[run.index].ms;
+      run.warned = false;
+    }
+    if (!run.muted) playSound(run.soundStyle);
+    showCurrentSegment();
+    announce(describeCurrent());
+  }
+
+  updateClock(run.endsAt - now);
+}
+
+// Words read aloud for the current segment, e.g.
+// "Now: Pair share, segment 2 of 3, 5 minutes. Discuss your ideas."
+function describeCurrent() {
+  const seg = run.plan[run.index];
+  return 'Now: ' + seg.name + ', segment ' + (run.index + 1) + ' of ' + run.plan.length +
+         ', ' + spokenTime(seg.secs) + '.' + (seg.desc ? ' ' + seg.desc : '');
+}
+
+// Fill in the name, description, side list and top bar for the current segment.
+function showCurrentSegment() {
+  const seg = run.plan[run.index];
+
+  $('run-position').textContent = 'Segment ' + (run.index + 1) + ' of ' + run.plan.length;
+  $('run-seg-name').textContent = seg.name;
+  $('run-seg-desc').textContent = seg.desc;
+  $('run-seg-desc').hidden = !seg.desc;
+  $('run-seg-total').textContent = formatTime(seg.secs) + ' total';
+
+  // Color the panel to match this segment.
+  const panel = $('now-panel');
+  panel.className = 'now-panel ' + seg.color;
+  $('run-progress').max = seg.ms;
+
+  runner.classList.remove('is-warning');
+  drawPlanList();
+  drawRunTimeline();
+}
+
+// Update the numbers: countdown, total left, progress bar, warning.
+function updateClock(remainingMs) {
+  const seg = run.plan[run.index];
+  const remainingSecs = Math.max(0, Math.ceil(remainingMs / 1000));
+
+  // Total left = this segment's remaining time + every later segment.
+  const laterSecs = run.plan.slice(run.index + 1).reduce((sum, s) => sum + s.secs, 0);
+  const totalLeft = remainingSecs + laterSecs;
+
+  $('run-countdown').textContent = formatTime(remainingSecs);
+  $('run-total-left').textContent = formatTime(totalLeft);
+  $('run-elapsed').textContent = formatTime(seg.secs - remainingSecs) + ' elapsed';
+  $('run-progress').value = Math.min(seg.ms, Math.max(0, seg.ms - remainingMs));
+
+  // The 30-second warning: changes color AND the badge text.
+  const warning = remainingSecs <= WARNING_SECONDS;
+  runner.classList.toggle('is-warning', warning);
+  if (warning && !run.warned) {
+    run.warned = true;
+    announce(spokenTime(remainingSecs) + ' left in ' + seg.name + '.');
+  }
+
+  updateBadge(warning);
+  document.title = formatTime(remainingSecs) + ' left: ' + seg.name;
+}
+
+// The little state label next to "Segment 1 of 3".
+function updateBadge(warning) {
+  const badge = $('run-state');
+  if (run.finished)    badge.textContent = 'Finished';
+  else if (run.paused) badge.textContent = 'Paused';
+  else if (warning)    badge.textContent = '30 seconds or less';
+  else                 badge.textContent = 'Running';
+}
+
+// The list of all segments, each tagged Done, Now, Next or Later.
+function drawPlanList() {
+  const list = $('run-list');
+  list.innerHTML = '';
+
+  run.plan.forEach((seg, i) => {
+    let state, tag;
+    if (run.finished || i < run.index) { state = 'is-done';  tag = 'Done'; }
+    else if (i === run.index)          { state = 'is-now';   tag = 'Now'; }
+    else if (i === run.index + 1)      { state = 'is-next';  tag = 'Next'; }
+    else                               { state = 'is-later'; tag = 'Later'; }
+
+    const item = document.createElement('li');
+    item.className = seg.color + ' ' + state;
+    if (state === 'is-now') item.setAttribute('aria-current', 'step');
+
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.setAttribute('aria-hidden', 'true');
+
+    const name = document.createElement('span');
+    name.className = 'item-name';
+    name.textContent = seg.name;
+
+    const time = document.createElement('span');
+    time.className = 'item-time';
+    time.textContent = formatTime(seg.secs);
+
+    const label = document.createElement('span');
+    label.className = 'tag';
+    label.textContent = tag;
+
+    item.append(dot, name, time, label);
+    list.appendChild(item);
+  });
+}
+
+// The thin colored bar across the top of the running view.
+function drawRunTimeline() {
+  const bar = $('run-timeline');
+  bar.innerHTML = '';
+  run.plan.forEach((seg, i) => {
+    const piece = document.createElement('span');
+    let state = i < run.index ? 'is-done' : (i === run.index ? 'is-now' : 'is-later');
+    if (run.finished) state = 'is-done';
+    piece.className = seg.color + ' ' + state;
+    piece.style.flexGrow = seg.secs;
+    bar.appendChild(piece);
+  });
+}
+
+function togglePause() {
+  if (run.finished) return;
+  const btn = $('pause-btn');
+
+  if (!run.paused) {
+    // Pause: remember how much time is left.
+    run.paused = true;
+    run.remainingMs = Math.max(0, run.endsAt - performance.now());
+    btn.textContent = 'Resume';
+    announce('Paused.');
+  } else {
+    // Resume: set a fresh end time from the saved remainder.
+    run.paused = false;
+    run.endsAt = performance.now() + run.remainingMs;
+    btn.textContent = 'Pause';
+    announce('Resumed. ' + run.plan[run.index].name + '.');
+  }
+
+  runner.classList.toggle('is-paused', run.paused);
+  $('paused-note').hidden = !run.paused;
+  updateBadge(runner.classList.contains('is-warning'));
+}
+
+// "Silence sound" stops any alert now and keeps alerts off until pressed again.
+function toggleMute() {
+  run.muted = !run.muted;
+  if (run.muted) stopSound();
+  else getAudio();
+  updateMuteButton();
+  announce(run.muted ? 'Sound off.' : 'Sound on.');
+}
+
+function updateMuteButton() {
+  $('mute-btn').textContent = run.muted ? 'Turn sound on' : 'Silence sound';
+}
+
+// The last segment has ended.
+function finishSession() {
+  run.finished = true;
+  clearInterval(run.ticker);
+  if (!run.muted) playSound(run.soundStyle);
+
+  runner.classList.remove('is-warning', 'is-paused');
+  $('run-seg-name').textContent = 'Session complete';
+  $('run-seg-desc').textContent = 'All segments are finished.';
+  $('run-seg-desc').hidden = false;
+  $('run-countdown').textContent = '0:00';
+  $('run-total-left').textContent = '0:00';
+  $('run-progress').value = $('run-progress').max;
+  $('run-elapsed').textContent = formatTime(run.plan[run.index].secs) + ' elapsed';
+  $('paused-note').hidden = true;
+  updateBadge(false);
+  drawPlanList();
+  drawRunTimeline();
+
+  // Pause no longer makes sense; End becomes Close.
+  $('pause-btn').hidden = true;
+  $('end-btn').textContent = 'Close';
+  $('end-btn').focus();
+  document.title = 'Session complete';
+
+  announce('Session complete. All segments are finished.');
+}
+
+// "End session" (or the Escape key). Asks first unless the session is done.
+function endSession() {
+  if (!run.finished && !confirm('End this session? The timer will stop.')) return;
+  runner.close();   // the "close" handler below does the cleanup
+}
+
+// Clean up whenever the dialog closes, however it was closed.
+function cleanUpAfterSession() {
+  clearInterval(run.ticker);
+  run.finished = true;
+  stopSound();
+  releaseScreen();
+  document.title = ORIGINAL_TITLE;
+  $('start-btn').focus();
+}
+
+// Read a message aloud for screen readers (clear first so repeats are read).
+function announce(message) {
+  const box = $('announcer');
+  box.textContent = '';
+  setTimeout(() => { box.textContent = message; }, 100);
+}
+
+// Ask the screen not to dim or sleep during class. Silently skipped
+// if the browser doesn't support it.
+async function keepScreenAwake() {
+  try {
+    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) {
+    wakeLock = null;
+  }
+}
+function releaseScreen() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
+/* -----------------------------------------------------------------
+   E. CONNECTING BUTTONS AND KEYS
+   ----------------------------------------------------------------- */
+
+// Typing in any segment field: store the new value.
+segmentList.addEventListener('input', (event) => {
+  const field = event.target;
+  const card = field.closest('.segment');
+  if (!card) return;
+  const seg = findSegment(card.dataset.id);
+
+  if (field.classList.contains('seg-name')) seg.name = field.value;
+  else if (field.classList.contains('seg-desc')) seg.desc = field.value;
+  else if (field.classList.contains('seg-min') || field.classList.contains('seg-sec')) {
+    // Only allow digits in the time boxes.
+    const digits = field.value.replace(/\D/g, '');
+    if (digits !== field.value) field.value = digits;
+    const value = digits === '' ? 0 : parseInt(digits, 10);
+    if (field.classList.contains('seg-min')) seg.min = value;
+    else seg.sec = value;
+    updatePresetStates(card, seg);
+  }
+  updateSummary();
+});
+
+// Leaving a time box: clean it up (e.g. 90 seconds becomes 1:30).
+segmentList.addEventListener('change', (event) => {
+  const field = event.target;
+  if (!field.classList.contains('seg-min') && !field.classList.contains('seg-sec')) return;
+  const card = field.closest('.segment');
+  normalizeDuration(findSegment(card.dataset.id), card);
+  updateSummary();
+});
+
+// Clicks on preset buttons and Remove buttons.
+segmentList.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  const card = button.closest('.segment');
+  const seg = findSegment(card.dataset.id);
+
+  if (button.dataset.minutes) {
+    seg.min = Number(button.dataset.minutes);
+    seg.sec = 0;
+    normalizeDuration(seg, card);
+    updateSummary();
+  } else if (button.classList.contains('remove-btn')) {
+    removeSegment(seg.id);
+  }
+});
+
+$('add-segment').addEventListener('click', addSegment);
+$('clear-btn').addEventListener('click', clearAll);
+$('start-btn').addEventListener('click', startSession);
+$('test-sound').addEventListener('click', () => {
+  const choice = $('sound-choice').value;
+  if (choice === 'none') {
+    errorEl.textContent = '';
+    statusEl.textContent = 'Sound is set to mute, so there is nothing to play.';
+    statusEl.classList.remove('is-ready');
+  } else {
+    playSound(choice);
+  }
+});
+
+$('pause-btn').addEventListener('click', togglePause);
+$('mute-btn').addEventListener('click', toggleMute);
+$('end-btn').addEventListener('click', endSession);
+
+// The Escape key normally closes a dialog instantly. Here it asks first,
+// so a stray key press doesn't end the lesson.
+runner.addEventListener('cancel', (event) => {
+  event.preventDefault();
+  endSession();
+});
+runner.addEventListener('close', cleanUpAfterSession);
+
+// Screens release the "stay awake" request when the tab is hidden;
+// ask again when the teacher comes back.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && runner.open && !run.finished) keepScreenAwake();
+});
+
+/* -----------------------------------------------------------------
+   F. FIRST LOAD
+   Everything above only sets things up. These last two lines run once
+   when the page opens, so the teacher sees three empty cards to fill in.
+   ----------------------------------------------------------------- */
+// Start with three blank 5-minute segments, like the wireframe.
+segments = [makeSegment(), makeSegment(), makeSegment()];
+renderSegments();
+</script>
+</body>
+</html>
