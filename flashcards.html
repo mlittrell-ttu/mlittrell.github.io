@@ -9,8 +9,10 @@
 
   How the file is laid out:
     1. <style>  ... design tokens, then one block per part of the page
-    2. <body>   ... Teacher Apps header, Study view, Manage view,
-                    the New / Edit card dialog, the save toast
+    2. <body>   ... Teacher Apps header, then three screens:
+                    Home (welcome or your decks), Deck (study + edit
+                    one deck) and Study; the New / Edit card dialog
+                    and the save toast
     3. <script> ... everything that makes it work
 -->
 <html lang="en">
@@ -124,17 +126,6 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .app-icon svg { stroke: var(--app); }
 
-/* Study / Manage tabs: a two-part pill switch. */
-.view-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--surface-2); }
-.view-tabs button {
-  min-height: 38px; padding: 0 18px; border: 0; border-radius: 999px;
-  background: transparent; color: var(--ink-2);
-  font-size: 0.9375rem; font-weight: 600; cursor: pointer;
-}
-.view-tabs button.active { background: var(--app-bg); color: var(--ink); box-shadow: inset 0 0 0 1px var(--app); }
-
-.header-deck { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9375rem; color: var(--ink-2); min-height: 24px; }
-
 /* =================================================================
    4. VIEWS (only one is shown at a time)
    ================================================================= */
@@ -219,43 +210,9 @@ kbd {
 }
 
 /* =================================================================
-   6. MANAGE VIEW
+   6. CARD LIST (on the deck screen)
    ================================================================= */
-.manage { display: flex; flex-direction: column; gap: 28px; }
-.block-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
-.small-heading { font-size: 0.9375rem; font-weight: 700; color: var(--ink-2); }
-
-/* ---- Deck buttons ---- */
-.deck-bar { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
-.deck-pill {
-  display: inline-flex; align-items: stretch;
-  border-radius: 999px; border: 1px solid var(--rule); background: var(--surface);
-}
-.deck-pill.active { background: var(--app); border-color: var(--app); color: #FFFFFF; }
-.deck-select {
-  display: inline-flex; align-items: center; gap: 10px;
-  min-height: 44px; padding: 0 8px 0 18px; border: 0; border-radius: 999px;
-  background: transparent; color: inherit; font-weight: 600; cursor: pointer;
-}
-.deck-pill.no-close .deck-select { padding-right: 18px; }
-.deck-count { font-weight: 500; color: var(--ink-2); }
-.deck-pill.active .deck-count { color: #DFF3EA; }
-.unsaved-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
-.deck-pill.active .unsaved-dot { background: #FFD9C9; }
-.deck-close {
-  width: 36px; margin: 4px 4px 4px 0; border: 0; border-radius: 999px;
-  background: transparent; color: inherit; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.deck-close:hover { background: rgba(28,39,48,0.08); }
-.deck-pill.active .deck-close:hover { background: rgba(255,255,255,0.18); }
-
-/* ---- Cards in the open deck ---- */
-.cards-head {
-  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px;
-  padding-top: 24px; border-top: 1px solid var(--rule);
-}
-.cards-head h2 { font-size: 1.875rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; overflow-wrap: anywhere; }
+/* "12 cards · Unsaved changes" under the deck name */
 .context-label { margin-top: 4px; font-size: 0.9375rem; color: var(--ink-2); }
 .context-label .is-unsaved { color: var(--warn); font-weight: 600; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -279,6 +236,112 @@ kbd {
 .card-back { margin-top: 2px; font-size: 0.9375rem; color: var(--ink-2); overflow-wrap: anywhere; }
 .card-item img { display: block; max-width: 100%; max-height: 96px; border-radius: 10px; background: var(--surface-2); }
 .empty-manage { margin-top: 16px; padding: 40px 24px; border: 2px dashed var(--rule); border-radius: var(--radius-lg); text-align: center; color: var(--ink-2); }
+
+/* =================================================================
+   3b. BREADCRUMB AND PRIVACY NOTE (header)
+   ================================================================= */
+.crumb { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.crumb .app-name a { color: var(--ink); text-decoration: none; }
+.crumb .app-name a:hover { text-decoration: underline; }
+.crumb .sep { color: var(--field-edge); font-size: 1.125rem; }
+.crumb-deck { font-size: 1.125rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
+.privacy-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--ink-2); }
+.privacy-chip svg { stroke: var(--app); flex: none; }
+
+/* "← All decks" style links */
+.back { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); text-decoration: none; border-radius: 6px; }
+.back:hover { color: var(--ink); text-decoration: underline; }
+
+/* =================================================================
+   4b. HOME: WELCOME (first visit)
+   ================================================================= */
+.welcome { max-width: 880px; margin: 0 auto; padding: 64px 24px 72px; }
+.welcome-title { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -0.025em; line-height: 1.1; }
+.welcome .lede { margin-top: 12px; font-size: 1.1875rem; color: var(--ink-2); max-width: 52ch; }
+.starts { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
+.start {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  min-height: 196px; padding: 24px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+}
+.start:hover { border-color: var(--app); box-shadow: 0 0 0 3px var(--app-bg); }
+.start.primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.start-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--app-bg); display: flex; align-items: center; justify-content: center; }
+.start-icon svg { stroke: var(--app); }
+.start.primary .start-icon { background: rgba(255,255,255,0.16); }
+.start.primary .start-icon svg { stroke: #FFFFFF; }
+.start-title { margin-top: 6px; font-size: 1.25rem; font-weight: 700; }
+.start-text { font-size: 0.9375rem; color: var(--ink-2); }
+.start.primary .start-text { color: #DFF3EA; }
+.start-small { margin-top: auto; font-size: 0.8125rem; color: var(--ink-2); }
+
+.how { margin-top: 40px; padding: 20px 24px; border-radius: 16px; background: var(--surface-2); }
+.how-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px 24px; }
+.how-steps li { display: inline-flex; align-items: center; gap: 10px; font-size: 0.9375rem; }
+.how-num { width: 26px; height: 26px; border-radius: 50%; background: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 700; flex: none; }
+.how-note { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); display: flex; gap: 10px; align-items: flex-start; font-size: 0.9375rem; color: var(--ink-2); }
+.how-note svg { flex: none; margin-top: 2px; stroke: var(--app); }
+
+/* =================================================================
+   4c. HOME: YOUR DECKS
+   ================================================================= */
+.library-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
+.library-head h2 { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; }
+.library-head p { margin-top: 4px; color: var(--ink-2); }
+.decks { list-style: none; margin: 24px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.deck {
+  position: relative; display: flex; flex-direction: column; gap: 14px;
+  padding: 22px 22px 20px; background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+}
+.deck-top { display: flex; gap: 14px; align-items: flex-start; padding-right: 32px; }
+/* A little stack of cards with the card count on top. */
+.deck-stack { position: relative; width: 52px; height: 52px; flex: none; }
+.deck-stack span { position: absolute; inset: 0; border-radius: 12px; border: 1px solid var(--rule); background: var(--surface); }
+.deck-stack span:nth-child(1) { transform: translate(6px, -6px); background: var(--app-bg); border-color: var(--app-bg); }
+.deck-stack span:nth-child(2) { transform: translate(3px, -3px); }
+.deck-stack span:nth-child(3) { display: flex; align-items: center; justify-content: center; font-weight: 750; color: var(--app); font-size: 1.0625rem; }
+.deck-name { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.deck-meta { margin-top: 2px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.875rem; color: var(--ink-2); }
+.unsaved { display: inline-flex; align-items: center; gap: 6px; color: var(--warn); font-weight: 600; }
+.unsaved::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+.deck-peek { list-style: none; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--paper); display: grid; gap: 4px; font-size: 0.9375rem; color: var(--ink-2); min-height: 48px; }
+.deck-peek li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deck-actions { margin-top: auto; display: flex; gap: 8px; }
+.deck-actions .btn { flex: 1; }
+.deck .deck-close { position: absolute; top: 14px; right: 14px; }
+.drop-strip { margin-top: 20px; padding: 18px; border: 2px dashed var(--rule); border-radius: 16px; text-align: center; font-size: 0.9375rem; color: var(--ink-2); }
+.drop-strip svg { vertical-align: -4px; margin-right: 6px; stroke: var(--ink-2); }
+/* Shown over the whole page while a deck file is dragged in. */
+body.file-drag::after {
+  content: "Drop to open the deck"; position: fixed; inset: 12px; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px dashed var(--app); border-radius: 24px; background: rgba(205,235,221,0.85);
+  font-size: 1.5rem; font-weight: 700; color: var(--ink); pointer-events: none;
+}
+
+/* =================================================================
+   4d. DECK VIEW
+   ================================================================= */
+.deck-head { margin-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
+.deck-head h2 { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; overflow-wrap: anywhere; }
+.study-panel {
+  margin-top: 24px; padding: 28px 32px; border-radius: 24px; background: var(--app-bg);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 32px;
+}
+.study-panel h3 { font-size: 1.5rem; font-weight: 750; letter-spacing: -0.01em; }
+.study-panel p { margin-top: 4px; color: #1F4A3A; }
+.study-panel .row-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.study-panel .shuffle-btn { background: rgba(255,255,255,0.7); }
+.cards-bar { margin-top: 36px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.cards-bar h3 { font-size: 1.25rem; font-weight: 700; }
+.message .back { margin-top: 8px; }
+
+@media (max-width: 640px) {
+  .privacy-chip { flex-basis: 100%; }
+  .welcome { padding-top: 40px; }
+  .study-panel { padding: 22px; }
+  .library-head h2, .deck-head h2 { font-size: 1.875rem; }
+}
 
 /* =================================================================
    7. NEW / EDIT CARD DIALOG
@@ -342,7 +405,6 @@ kbd {
 @media (max-width: 640px) {
   .page { padding-top: 28px; }
   .card-face { padding: 20px; }
-  .header-deck { display: none; }
 }
 </style>
 </head>
@@ -360,36 +422,158 @@ kbd {
         <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
       </a>
       <span class="bar-divider" aria-hidden="true"></span>
-      <h1 class="app-name">
+      <!-- Breadcrumb: "Flashcards" goes back to the deck list.
+           renderContextLabel() fills in the deck name when one is open. -->
+      <nav class="crumb" aria-label="You are here">
         <span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="14" height="13" rx="2.5"/><path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v11"/></svg></span>
-        Flashcards
-      </h1>
+        <h1 class="app-name"><a href="#" id="crumb-home" onclick="showView('home'); return false;">Flashcards</a></h1>
+        <span class="sep" id="crumb-sep" hidden aria-hidden="true">/</span>
+        <span class="crumb-deck" id="crumb-deck" hidden></span>
+      </nav>
     </div>
-    <nav class="view-tabs" aria-label="Flashcards views">
-      <button type="button" id="tab-study" class="active" aria-pressed="true" onclick="showView('study')">Study</button>
-      <button type="button" id="tab-manage" aria-pressed="false" onclick="showView('manage')">Manage</button>
-    </nav>
-    <!-- Name of the deck being used. renderContextLabel() fills it. -->
-    <p class="header-deck" id="header-deck"></p>
+    <p class="privacy-chip">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      Decks stay on your computer
+    </p>
   </div>
 </header>
 
 <main>
 
   <!-- =================================================================
-       STUDY VIEW
-       Studies the active deck (or the unsaved cards if no deck is open).
+       HOME VIEW
+       First visit: a welcome with three ways to start.
+       Once any deck is open: "Your decks", one card per deck.
+       renderDeckBar() decides which one shows.
        ================================================================= -->
-  <section id="view-study" class="view active" aria-label="Study">
+  <section id="view-home" class="view active" aria-label="Home">
+
+    <div id="welcome" class="welcome">
+      <h2 class="welcome-title">Make a deck. Study it. Keep it.</h2>
+      <p class="lede">Flashcards with text or pictures. Each deck saves as one small file on your computer, so nothing is ever uploaded.</p>
+      <div class="starts">
+        <button type="button" class="start primary" onclick="newDeck()">
+          <span class="start-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="start-title">New deck</span>
+          <span class="start-text">Start from scratch. Add your first card in seconds.</span>
+        </button>
+        <button type="button" class="start" onclick="openLoadDecks()">
+          <span class="start-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg></span>
+          <span class="start-title">Open a deck file</span>
+          <span class="start-text">Pick up a deck you or a colleague saved before.</span>
+          <span class="start-small">Or drop a .json file anywhere on this page.</span>
+        </button>
+        <button type="button" class="start" onclick="trySample()">
+          <span class="start-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="14" height="13" rx="2.5"/><path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v11"/></svg></span>
+          <span class="start-title">Try a sample deck</span>
+          <span class="start-text">See how it works with 8 ready-made cards.</span>
+        </button>
+      </div>
+      <div class="how">
+        <ol class="how-steps">
+          <li><span class="how-num" aria-hidden="true">1</span>Make or open a deck</li>
+          <li><span class="how-num" aria-hidden="true">2</span>Study and mark what you know</li>
+          <li><span class="how-num" aria-hidden="true">3</span>Save the deck file to use next time</li>
+        </ol>
+        <p class="how-note">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Nothing is stored online. Close this page without saving and the cards are gone, so press Save deck when you're done.
+        </p>
+      </div>
+    </div>
+
+    <div id="library" class="page" hidden>
+      <div class="library-head">
+        <div>
+          <h2>Your decks</h2>
+          <p id="library-count"></p>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn" onclick="openLoadDecks()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg>
+            Open deck file
+          </button>
+          <button type="button" class="btn btn-primary" onclick="newDeck()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            New deck
+          </button>
+        </div>
+      </div>
+      <!-- renderDeckBar() fills this with one card per deck. -->
+      <ul class="decks" id="deck-list"></ul>
+      <p class="drop-strip">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg>
+        Drop deck files anywhere on this page to open them
+      </p>
+    </div>
+
+    <!-- Hidden file picker used by browsers without showOpenFilePicker (e.g. Firefox). -->
+    <input type="file" id="deck-load-input" multiple accept=".json,application/json" hidden onchange="loadDecks(event)">
+  </section>
+
+  <!-- =================================================================
+       DECK VIEW
+       One deck: study it (top panel) and edit its cards (list below).
+       ================================================================= -->
+  <section id="view-deck" class="view" aria-labelledby="manage-deck-title">
+    <div class="page">
+      <a class="back" href="#" onclick="showView('home'); return false;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        All decks
+      </a>
+      <div class="deck-head">
+        <div>
+          <h2 id="manage-deck-title">New deck</h2>
+          <p class="context-label" id="manage-context-label"></p>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn" onclick="saveAsJSON()">Save as…</button>
+          <button type="button" class="btn" onclick="exportJSON()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+            Save deck
+          </button>
+        </div>
+      </div>
+
+      <section class="study-panel" aria-labelledby="ready-title">
+        <div>
+          <h3 id="ready-title">Ready to study?</h3>
+          <p id="ready-text"></p>
+        </div>
+        <div class="row-btns">
+          <button type="button" id="btn-shuffle" class="btn shuffle-btn" aria-pressed="false" onclick="toggleShuffle()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+            <span id="shuffle-label">Shuffle off</span>
+          </button>
+          <button type="button" id="btn-start-study" class="btn btn-primary btn-big" onclick="startStudying()">Start studying</button>
+        </div>
+      </section>
+
+      <div class="cards-bar">
+        <h3>Cards</h3>
+        <button type="button" class="btn btn-primary" onclick="openAddModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Add card
+        </button>
+      </div>
+      <ul class="card-list" id="card-list"></ul>
+      <div class="empty-manage" id="empty-manage" hidden></div>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       STUDY VIEW
+       ================================================================= -->
+  <section id="view-study" class="view" aria-label="Study">
     <div class="page">
 
-      <!-- Shown when there is nothing to study. initStudy() writes the text. -->
-      <div id="empty-study" class="message">
+      <!-- Shown when there is nothing to study. -->
+      <div id="empty-study" class="message" hidden>
         <span class="message-icon" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="14" height="13" rx="2.5"/><path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v11"/></svg></span>
         <h2 id="empty-study-title">No cards yet</h2>
-        <p id="empty-study-text">Go to Manage to open a deck or add cards.</p>
+        <p id="empty-study-text">Add some cards to this deck first.</p>
         <div class="message-actions">
-          <button type="button" class="btn btn-primary btn-big" onclick="showView('manage')">Go to Manage</button>
+          <button type="button" class="btn btn-primary btn-big" onclick="showView('deck')">Back to the deck</button>
         </div>
       </div>
 
@@ -405,16 +589,17 @@ kbd {
           </button>
           <button type="button" class="btn btn-primary btn-big" onclick="initStudy()">Study all again</button>
         </div>
+        <a class="back" href="#" onclick="showView('deck'); return false;">Back to the deck</a>
       </div>
 
       <!-- The study session itself. -->
       <div id="study-deck" class="study" hidden>
         <div class="study-top">
+          <a class="back" href="#" onclick="showView('deck'); return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+            <span id="study-back-label">Back to the deck</span>
+          </a>
           <p class="progress-label" id="progress-label" aria-live="polite"></p>
-          <button type="button" id="btn-shuffle" class="btn shuffle-btn" aria-pressed="false" onclick="toggleShuffle()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
-            <span id="shuffle-label">Shuffle off</span>
-          </button>
         </div>
         <div class="ticks" id="ticks" aria-hidden="true"></div>
 
@@ -445,52 +630,6 @@ kbd {
           </button>
         </div>
         <p class="kbd-hint" id="kbd-hint">Keyboard: <kbd>Space</kbd> to flip</p>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- =================================================================
-       MANAGE VIEW
-       Top: your decks. Below: the cards in the open deck.
-       ================================================================= -->
-  <section id="view-manage" class="view" aria-label="Manage">
-    <div class="page manage">
-
-      <div>
-        <div class="block-head">
-          <h2 class="small-heading">Your decks</h2>
-          <button type="button" class="btn" onclick="openLoadDecks()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg>
-            Open deck file
-          </button>
-        </div>
-        <!-- Hidden file picker used by browsers without showOpenFilePicker (e.g. Firefox). -->
-        <input type="file" id="deck-load-input" multiple accept=".json,application/json" hidden onchange="loadDecks(event)">
-        <!-- renderDeckBar() fills this with one button per deck. -->
-        <div class="deck-bar" id="deck-bar"></div>
-      </div>
-
-      <div>
-        <div class="cards-head">
-          <div>
-            <h2 id="manage-deck-title">Unsaved cards</h2>
-            <p class="context-label" id="manage-context-label"></p>
-          </div>
-          <div class="toolbar">
-            <button type="button" class="btn" onclick="saveAsJSON()">Save as…</button>
-            <button type="button" class="btn" onclick="exportJSON()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
-              Save deck
-            </button>
-            <button type="button" class="btn btn-primary" onclick="openAddModal()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              Add card
-            </button>
-          </div>
-        </div>
-        <ul class="card-list" id="card-list"></ul>
-        <div class="empty-manage" id="empty-manage" hidden></div>
       </div>
 
     </div>
@@ -744,9 +883,12 @@ kbd {
       if (decks[idx].dirty) {
         if (!confirm(
           '"' + decks[idx].name + '" has unsaved changes.\n' +
-          'Unload anyway? Changes will be lost.'
+          'Close it anyway? Unsaved changes will be lost.'
         )) return;
       }
+
+      /* Closing the deck we're looking at? We'll go back to the deck list. */
+      var wasViewing = activeDeckIdx === idx && currentView !== 'home';
 
       /* if the deck being removed is the active one, fall back to scratchpad */
       if (activeDeckIdx === idx) {
@@ -759,10 +901,8 @@ kbd {
 
       decks.splice(idx, 1); /* remove one item at position idx */
 
-      renderDeckBar();
-      renderManageList();
-      renderContextLabel();
-      initStudy();
+      if (wasViewing) showView('home');
+      else { renderDeckBar(); renderManageList(); renderContextLabel(); }
     }
 
 
@@ -785,103 +925,181 @@ kbd {
     function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
 
-    /* renderDeckBar rebuilds the row of deck buttons from scratch.
-       Every element is created fresh with createElement, so nothing
-       inside is looked up by id (and nothing can go missing).
+    /* A small built-in deck so new users can see how the app works.
+       It lives in this file, so it works offline too. */
+    var SAMPLE_CARDS = [
+      ['Photosynthesis', 'How plants use light, water and carbon dioxide to make sugar and oxygen.'],
+      ['Mitochondria',   'The part of a cell that releases energy from food.'],
+      ['Osmosis',        'Water moving through a membrane toward the side with more dissolved material.'],
+      ['Chlorophyll',    'The green pigment that captures light for photosynthesis.'],
+      ['Enzyme',         'A protein that speeds up a chemical reaction.'],
+      ['Cell membrane',  'The thin layer that controls what enters and leaves a cell.'],
+      ['Nucleus',        'The control center of a cell. It holds the DNA.'],
+      ['Habitat',        'The natural home of a plant or animal.']
+    ];
 
-       Each deck is a pill with two buttons:
-         .deck-select → makes this the active deck
-         .deck-close  → closes (unloads) the deck, asking first if unsaved
-       The "Unsaved cards" pill (cards not in any file yet) has no ×.
-       The last item is always the dashed "New deck" button. */
+    /* Which screen is showing: 'home', 'deck' or 'study'. */
+    var currentView = 'home';
+
+
+    /* renderDeckBar redraws the home screen.
+       (The name is kept from the older layout because many functions
+       call it after a deck changes.)
+       No decks open → the welcome. Otherwise → "Your decks", one card
+       per deck, plus a card for "New deck" while it has unsaved cards. */
     function renderDeckBar() {
-      var bar = document.getElementById('deck-bar');
-      bar.innerHTML = '';
+      var anyDecks = decks.length > 0 || scratchCards.length > 0;
+      document.getElementById('welcome').hidden = anyDecks;
+      document.getElementById('library').hidden = !anyDecks;
+      if (!anyDecks) return;
 
+      var total = decks.length + (scratchCards.length > 0 ? 1 : 0);
+      document.getElementById('library-count').textContent =
+        plural(total, 'deck') + ' open. Pick one to study or edit.';
+
+      var list = document.getElementById('deck-list');
+      list.innerHTML = '';
       decks.forEach(function(deck, idx) {
-        bar.appendChild(buildDeckPill(
-          deck.name, deck.cards.length, deck.dirty, idx === activeDeckIdx,
-          function() { setActiveDeck(idx); },
-          function() { unloadDeck(idx); }
-        ));
+        list.appendChild(buildDeckCard(deck.name, deck.cards, deck.dirty ? 'Unsaved changes' : 'Saved', idx));
       });
-
       if (scratchCards.length > 0) {
-        bar.appendChild(buildDeckPill(
-          'Unsaved cards', scratchCards.length, true, activeDeckIdx === -1,
-          function() { setActiveDeck(-1); },
-          null /* no close button: these cards only live in memory */
-        ));
+        list.appendChild(buildDeckCard('New deck', scratchCards, 'Not saved to a file yet', -1));
       }
-
-      var newBtn = document.createElement('button');
-      newBtn.type = 'button';
-      newBtn.className = 'btn btn-dashed';
-      newBtn.innerHTML = svgIcon(ICON.plus, 16) + 'New deck';
-      newBtn.onclick = newDeck;
-      bar.appendChild(newBtn);
     }
 
-    function buildDeckPill(name, count, dirty, active, onSelect, onClose) {
-      var pill = document.createElement('div');
-      pill.className = 'deck-pill' + (active ? ' active' : '') + (onClose ? '' : ' no-close');
+    /* One deck card on the home screen. idx -1 = the unsaved "New deck". */
+    function buildDeckCard(name, deckCards, status, idx) {
+      var li = document.createElement('li');
+      li.className = 'deck';
 
-      var select = document.createElement('button');
-      select.type = 'button';
-      select.className = 'deck-select';
-      select.setAttribute('aria-pressed', active ? 'true' : 'false');
-      select.onclick = onSelect;
+      var close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'icon-btn deck-close';
+      close.setAttribute('aria-label', (idx === -1 ? 'Discard ' : 'Close ') + name);
+      close.title = idx === -1 ? 'Discard these cards' : 'Close this deck';
+      close.innerHTML = svgIcon(ICON.close, 16);
+      close.onclick = function() { idx === -1 ? discardNewDeck() : unloadDeck(idx); };
+      li.appendChild(close);
 
-      var nameEl = document.createElement('span');
-      nameEl.textContent = name;
-      select.appendChild(nameEl);
+      var top = document.createElement('div');
+      top.className = 'deck-top';
+      var stack = document.createElement('span');
+      stack.className = 'deck-stack';
+      stack.setAttribute('aria-hidden', 'true');
+      stack.innerHTML = '<span></span><span></span><span></span>';
+      stack.lastChild.textContent = deckCards.length;
+      top.appendChild(stack);
 
-      var countEl = document.createElement('span');
-      countEl.className = 'deck-count';
-      countEl.textContent = count;
-      select.appendChild(countEl);
+      var info = document.createElement('div');
+      var h = document.createElement('h3');
+      h.className = 'deck-name';
+      h.textContent = name;
+      var meta = document.createElement('p');
+      meta.className = 'deck-meta';
+      meta.appendChild(document.createTextNode(plural(deckCards.length, 'card')));
+      var st = document.createElement('span');
+      if (status === 'Saved') st.textContent = '· Saved';
+      else { st.className = 'unsaved'; st.textContent = status; }
+      meta.appendChild(st);
+      info.appendChild(h);
+      info.appendChild(meta);
+      top.appendChild(info);
+      li.appendChild(top);
 
-      if (dirty) {
-        var dot = document.createElement('span');
-        dot.className = 'unsaved-dot';
-        dot.title = 'Unsaved changes';
-        select.appendChild(dot);
-        var srText = document.createElement('span');
-        srText.className = 'sr-only';
-        srText.textContent = ', unsaved changes';
-        select.appendChild(srText);
+      /* A peek at the first three fronts. */
+      var peek = document.createElement('ul');
+      peek.className = 'deck-peek';
+      peek.setAttribute('aria-label', 'First cards');
+      deckCards.slice(0, 3).forEach(function(c) {
+        var item = document.createElement('li');
+        item.textContent = c.frontImg ? '(image card)' : (c.front || '');
+        peek.appendChild(item);
+      });
+      if (deckCards.length === 0) {
+        var none = document.createElement('li');
+        none.textContent = 'No cards yet';
+        peek.appendChild(none);
       }
-      pill.appendChild(select);
+      li.appendChild(peek);
 
-      if (onClose) {
-        var close = document.createElement('button');
-        close.type = 'button';
-        close.className = 'deck-close';
-        close.setAttribute('aria-label', 'Close deck ' + name);
-        close.innerHTML = svgIcon(ICON.close, 16);
-        close.onclick = function(e) { e.stopPropagation(); onClose(); };
-        pill.appendChild(close);
-      }
-      return pill;
+      var actions = document.createElement('div');
+      actions.className = 'deck-actions';
+      var study = document.createElement('button');
+      study.type = 'button';
+      study.className = 'btn btn-primary';
+      study.textContent = 'Study';
+      study.setAttribute('aria-label', 'Study ' + name);
+      study.disabled = deckCards.length === 0;
+      study.onclick = function() { openDeck(idx); startStudying(); };
+      var edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'btn';
+      edit.textContent = 'Edit cards';
+      edit.setAttribute('aria-label', 'Edit cards in ' + name);
+      edit.onclick = function() { openDeck(idx); showView('deck'); };
+      actions.appendChild(study);
+      actions.appendChild(edit);
+      li.appendChild(actions);
+      return li;
     }
 
-    /* newDeck starts a fresh set of cards. New cards that are not in a
-       file yet live in "Unsaved cards"; Save deck turns them into a
-       real deck file. If there are already unsaved cards, we switch to
-       them rather than throwing them away. */
+    /* Make a deck the active one, without switching screens. */
+    function openDeck(idx) {
+      if (idx !== activeDeckIdx) setActiveDeck(idx);
+    }
+
+    /* New deck: cards that aren't in a file yet live in scratchCards
+       (shown as "New deck"). Save deck turns them into a real file.
+       If there are already unsaved new cards, we go back to those
+       rather than throwing them away. */
     function newDeck() {
-      if (activeDeckIdx !== -1) setActiveDeck(-1);
+      openDeck(-1);
+      showView('deck');
       openAddModal();
     }
 
+    /* Throw away the unsaved "New deck" (asks first). */
+    function discardNewDeck() {
+      if (!confirm('Discard ' + plural(scratchCards.length, 'unsaved card') + '? This can’t be undone.')) return;
+      scratchCards.length = 0;   /* empty the array in place so `cards` stays in step */
+      if (activeDeckIdx === -1) syncCards();
+      renderDeckBar();
+      renderContextLabel();
+      renderManageList();
+      initStudy();
+    }
 
-    /* renderContextLabel updates the deck title, the "12 cards ·
-       Unsaved changes" line in Manage, and the deck name in the header. */
+    /* Add the built-in sample deck and open it. */
+    function trySample() {
+      var name = 'Sample deck';
+      var existing = decks.findIndex(function(d) { return d.name === name; });
+      if (existing === -1) {
+        decks.push({
+          name: name,
+          cards: SAMPLE_CARDS.map(function(c, i) {
+            return { id: Date.now() + i, front: c[0], back: c[1], frontImg: null, backImg: null, interval: 1 };
+          }),
+          dirty: false,
+          fileHandle: null
+        });
+        existing = decks.length - 1;
+      }
+      openDeck(existing);
+      renderDeckBar();
+      showView('deck');
+    }
+
+    /* Start studying the active deck. */
+    function startStudying() {
+      if (cards.length === 0) return;
+      showView('study');
+    }
+
+
+    /* renderContextLabel updates everything that shows the active deck's
+       name: the deck page title and "12 cards · Unsaved changes" line,
+       the "Ready to study?" panel, and the header breadcrumb. */
     function renderContextLabel() {
-      var title  = document.getElementById('manage-deck-title');
-      var label  = document.getElementById('manage-context-label');
-      var header = document.getElementById('header-deck');
-
       var name, n, unsavedText;
       if (activeDeckIdx >= 0) {
         var deck = decks[activeDeckIdx];
@@ -889,12 +1107,13 @@ kbd {
         n = deck.cards.length;
         unsavedText = deck.dirty ? 'Unsaved changes' : '';
       } else {
-        name = scratchCards.length > 0 ? 'Unsaved cards' : 'New deck';
+        name = 'New deck';
         n = scratchCards.length;
         unsavedText = scratchCards.length > 0 ? 'Not saved to a file yet' : '';
       }
 
-      title.textContent = name;
+      document.getElementById('manage-deck-title').textContent = name;
+      var label = document.getElementById('manage-context-label');
       label.innerHTML = '';
       label.appendChild(document.createTextNode(plural(n, 'card')));
       if (unsavedText) {
@@ -905,37 +1124,72 @@ kbd {
         label.appendChild(warn);
       }
 
-      header.innerHTML = '';
-      if (activeDeckIdx >= 0 || scratchCards.length > 0) {
-        header.innerHTML = svgIcon(ICON.file, 16);
-        header.appendChild(document.createTextNode(name));
-      }
+      document.getElementById('ready-text').textContent = n === 0
+        ? 'Add a card or two first, then you can study them here.'
+        : plural(n, 'card') + '. Flip each one, then mark Got it or Review again.';
+      document.getElementById('btn-start-study').disabled = n === 0;
+      document.getElementById('study-back-label').textContent = 'Back to ' + name;
+
+      /* Breadcrumb: "Flashcards / Deck name" on the deck and study screens. */
+      var showDeck = currentView !== 'home';
+      document.getElementById('crumb-sep').hidden  = !showDeck;
+      document.getElementById('crumb-deck').hidden = !showDeck;
+      document.getElementById('crumb-deck').textContent = name;
     }
 
 
-    /* -----------------------------------------------------------
-     * VIEW SWITCHING
-     * ----------------------------------------------------------- */
-
+    /* Switch screens: 'home', 'deck' or 'study'. */
     function showView(name) {
+      /* A deck that was closed while we were looking at it: go home. */
+      if (name !== 'home' && activeDeckIdx === -1 && scratchCards.length === 0 && name === 'study') name = 'deck';
+
+      currentView = name;
       document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
-      document.querySelectorAll('.view-tabs button').forEach(function(b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-
       document.getElementById('view-' + name).classList.add('active');
-      var tab = document.getElementById('tab-' + name);
-      tab.classList.add('active');
-      tab.setAttribute('aria-pressed', 'true');
 
-      if (name === 'study')  initStudy();
-      if (name === 'manage') {
-        renderDeckBar();
-        renderManageList();
-        renderContextLabel();
-      }
+      if (name === 'home')  renderDeckBar();
+      if (name === 'deck')  renderManageList();
+      if (name === 'study') initStudy();
+      renderContextLabel();
+      window.scrollTo(0, 0);
     }
+
+
+    /* Drop .json deck files anywhere on the page to open them.
+       Image drops inside the New card dialog are handled there instead. */
+    var dragDepth = 0;
+    function isFileDrag(e) {
+      return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1;
+    }
+    function modalIsOpen() { return !document.getElementById('card-modal').hidden; }
+    document.addEventListener('dragenter', function(e) {
+      if (!isFileDrag(e) || modalIsOpen()) return;
+      dragDepth++;
+      document.body.classList.add('file-drag');
+    });
+    document.addEventListener('dragleave', function(e) {
+      if (!isFileDrag(e) || modalIsOpen()) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) document.body.classList.remove('file-drag');
+    });
+    document.addEventListener('dragover', function(e) {
+      if (isFileDrag(e)) e.preventDefault(); /* stops the browser opening the file itself */
+    });
+    document.addEventListener('drop', function(e) {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragDepth = 0;
+      document.body.classList.remove('file-drag');
+      if (modalIsOpen()) return;
+      var files = Array.from(e.dataTransfer.files).filter(function(f) { return /\.json$/i.test(f.name); });
+      if (files.length === 0) { showToast('Drop a .json deck file to open it'); return; }
+      files.forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) { addDeckFromFileAndHandle(file.name, ev.target.result, null); };
+        reader.readAsText(file);
+      });
+      if (currentView !== 'home') showView('home');
+    });
 
 
     /* Each side of a card can hold text OR one image. An image can be
@@ -1051,10 +1305,10 @@ kbd {
       if (cards.length === 0) {
         if (activeDeckIdx >= 0) {
           document.getElementById('empty-study-title').textContent = decks[activeDeckIdx].name + ' has no cards';
-          document.getElementById('empty-study-text').textContent  = 'Go to Manage to add some.';
+          document.getElementById('empty-study-text').textContent  = 'Add some cards to this deck first.';
         } else {
           document.getElementById('empty-study-title').textContent = 'No cards yet';
-          document.getElementById('empty-study-text').textContent  = 'Go to Manage to open a deck file or add cards.';
+          document.getElementById('empty-study-text').textContent  = 'Add some cards to this deck first.';
         }
         showStudyPart('empty');
         return;
@@ -1227,11 +1481,9 @@ kbd {
       if (cards.length === 0) {
         empty.hidden = false;
         if (activeDeckIdx >= 0) {
-          empty.textContent = 'This deck has no cards. Press Add card to make one.';
-        } else if (decks.length > 0) {
-          empty.textContent = 'Pick a deck above to see its cards, or press Add card to start a new set.';
+          empty.textContent = 'No cards yet. Press Add card to make your first one.';
         } else {
-          empty.textContent = 'No decks open. Use Open deck file to load a saved deck, or press Add card to start fresh.';
+          empty.textContent = 'No cards yet. Press Add card to make your first one.';
         }
         return;
       }
@@ -1786,9 +2038,7 @@ kbd {
      * ----------------------------------------------------------- */
     setupDropZone('drop-modal-front', 'text-modal-front', 'file-modal-front');
     setupDropZone('drop-modal-back',  'text-modal-back',  'file-modal-back');
-    renderDeckBar();
-    renderContextLabel();
-    initStudy();
+    showView('home');
 </script>
 </body>
 </html>
