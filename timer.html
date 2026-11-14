@@ -248,9 +248,96 @@ p { margin: 0; }
 /* Short directions at the top that say what the app is for. */
 .intro { margin-bottom: 1.75rem; }
 .intro h2 { font-size: 1.125rem; margin-bottom: 0.25rem; }
-.intro p { font-size: 1.0625rem; color: var(--ink-2); text-wrap: pretty; }
+.intro p, .intro-short { font-size: 1.0625rem; color: var(--ink-2); text-wrap: pretty; }
 /* "Session name" matches the section headings (Directions, Timeline...). */
 .session-label { font-size: 1.125rem; font-weight: 700; color: var(--ink); margin-bottom: 0.25rem; }
+
+/* =================================================================
+   3c. LANDING, QUICK COUNTDOWN AND TEMPLATE SCREENS
+   ================================================================= */
+.screen-wrap { max-width: 980px; margin: 0 auto; padding: 2.25rem 1.25rem 4rem; }
+.crumb-sep { color: var(--field-edge); font-size: 1.125rem; }
+.crumb-here { font-size: 1.125rem; font-weight: 700; }
+.app-name a { color: inherit; text-decoration: none; }
+.app-name a:hover { text-decoration: underline; }
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 1.25rem;
+  font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); text-decoration: none; border-radius: 6px;
+}
+.back-link:hover { color: var(--ink); text-decoration: underline; }
+
+/* Landing */
+.landing-title { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -0.025em; line-height: 1.1; }
+.landing-lede { margin-top: 12px; font-size: 1.1875rem; color: var(--ink-2); max-width: 54ch; }
+.starts { margin-top: 2.25rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1rem; }
+/* Each tile is one big button. Quick countdown also has small time
+   buttons on it, so there the big button is stretched over the tile
+   (the ::after below) and the time buttons sit on top of it. */
+.start {
+  position: relative;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  min-height: 220px; padding: 24px; text-align: left;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+  color: var(--ink); cursor: pointer;
+  font: inherit; line-height: 1.5;
+}
+.start:hover, .start:focus-within { border-color: var(--app); box-shadow: 0 0 0 3px var(--app-bg); }
+.start.primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.start-main { all: unset; cursor: pointer; display: contents; }
+.start-main::after { content: ""; position: absolute; inset: 0; border-radius: 20px; }
+.start-main:focus-visible::after { outline: 3px solid var(--focus); outline-offset: 2px; }
+.start-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--app-bg); display: flex; align-items: center; justify-content: center; }
+.start-icon svg { stroke: var(--app); }
+.start.primary .start-icon { background: rgba(255,255,255,0.16); }
+.start.primary .start-icon svg { stroke: #FFFFFF; }
+.start-title { margin-top: 6px; font-size: 1.25rem; font-weight: 700; }
+.start-text { font-size: 0.9375rem; color: var(--ink-2); }
+.start.primary .start-text { color: #DCE7FA; }
+.mini-times { position: relative; z-index: 1; margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+.mini-times button {
+  min-height: 36px; padding: 0 10px; border-radius: 999px; border: 0;
+  background: rgba(255,255,255,0.2); color: #FFFFFF; font: inherit; font-size: 0.8125rem; font-weight: 700; cursor: pointer;
+}
+.mini-times button:hover { background: rgba(255,255,255,0.32); }
+.mini-line { margin-top: auto; width: 100%; display: flex; gap: 3px; height: 10px; }
+.mini-line span { border-radius: 999px; }
+.landing-tip { margin-top: 2.25rem; display: flex; gap: 12px; align-items: flex-start; padding: 18px 22px; border-radius: 16px; background: var(--surface-2); color: var(--ink-2); font-size: 0.9375rem; }
+.landing-tip svg { flex: none; margin-top: 2px; stroke: var(--app); }
+
+/* Template gallery */
+.gallery-head h2 { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; }
+.gallery-head p { margin-top: 4px; color: var(--ink-2); }
+.tpls { list-style: none; margin: 1.5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 1rem; }
+.tpl { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.tpl h3 { font-size: 1.25rem; font-weight: 700; }
+.tpl-meta { margin-top: 2px; font-size: 0.875rem; color: var(--ink-2); }
+.tpl-line { display: flex; gap: 3px; height: 14px; }
+.tpl-line span { border-radius: 999px; }
+.tpl-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.9375rem; }
+.tpl-list li { display: flex; align-items: center; gap: 8px; }
+.tpl-list .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.tpl-list .time { margin-left: auto; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tpl-actions { margin-top: auto; display: flex; gap: 8px; }
+.tpl-actions .btn { flex: 1; }
+
+/* Quick countdown setup */
+.quick-card { max-width: 640px; margin: 0 auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 24px; padding: clamp(1.25rem, 4vw, 2rem); text-align: center; }
+.quick-card h2 { font-size: 1.75rem; font-weight: 750; }
+.quick-sub { margin-top: 6px; color: var(--ink-2); }
+.quick-times { margin-top: 1.5rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.quick-times button {
+  min-height: 76px; border-radius: 16px; border: 1px solid var(--field-edge); background: var(--surface);
+  color: var(--ink); font-size: 1.5rem; font-weight: 750; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.quick-times button small { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); }
+.quick-times button:hover { background: var(--surface-2); }
+.quick-times button[aria-pressed="true"] { background: var(--app-bg); border-color: var(--app); box-shadow: inset 0 0 0 1px var(--app); }
+.quick-custom { margin-top: 1.25rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; color: var(--ink-2); }
+.quick-custom .input { width: 72px; text-align: center; font-size: 1.25rem; }
+.quick-what { margin-top: 1.25rem; text-align: left; }
+.quick-go { margin-top: 1.5rem; width: 100%; min-height: 56px; font-size: 1.125rem; }
+.quick-fine { margin-top: 12px; font-size: 0.8125rem; color: var(--ink-2); }
+.quick-error { margin-top: 10px; color: var(--error); font-weight: 600; }
 
 /* "Start from" row: quick-start templates above the segment cards. */
 .templates {
@@ -276,6 +363,7 @@ p { margin: 0; }
   cursor: pointer;
 }
 .template-btn:hover { background: var(--app-bg); border-color: var(--app); }
+.browse-link { font-size: 0.9375rem; font-weight: 600; color: var(--app); }
 /* Little coloured dots preview each template's segments. */
 .template-dots { display: inline-flex; gap: 3px; }
 .template-dots span { width: 7px; height: 7px; border-radius: 50%; }
@@ -636,6 +724,29 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Quick countdown: one big timer, nothing else ---- */
+.add-min-btn { display: none; }
+.runner.is-quick .add-min-btn { display: inline-flex; align-items: center; justify-content: center; }
+.runner.is-quick .run-timeline,
+.runner.is-quick .side-panel,
+.runner.is-quick .total-left,
+.runner.is-quick #run-position,
+.runner.is-quick #next-btn,
+.runner.is-quick #mute-btn,
+.runner.is-quick .progress-labels { display: none; }
+.runner.is-quick .runner-inner { grid-template-rows: auto 1fr auto; }
+.runner.is-quick .run-session { color: var(--ink-2); }
+.runner.is-quick .run-body { grid-template-columns: 1fr; }
+.runner.is-quick .now-panel {
+  background: transparent; border: 0;
+  align-items: center; justify-content: center; text-align: center;
+}
+.runner.is-quick .now-meta { justify-content: center; }
+.runner.is-quick .run-seg-desc { max-width: none; }
+.runner.is-quick .countdown { margin-top: 0.15em; padding-top: 0; font-size: clamp(6rem, min(26vw, 42vh), 26rem); }
+.runner.is-quick .progress-wrap { width: min(100%, 900px); }
+.runner.is-quick .run-controls { justify-content: center; }
+
 /* ---- 30-second warning: colour AND text change together ---- */
 .runner.is-warning .countdown { color: var(--warn); }
 .runner.is-warning .state-badge {
@@ -773,16 +884,97 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
       <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
     </a>
     <span class="bar-divider" aria-hidden="true"></span>
-    <h1 class="app-name"><span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>Classroom Timer</h1>
+    <h1 class="app-name"><span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span><a href="#" id="crumb-home">Classroom Timer</a></h1>
+    <span class="crumb-sep" id="crumb-sep" hidden aria-hidden="true">/</span><span class="crumb-here" id="crumb-here" hidden></span>
   </div>
 </header>
 
-<main id="setup" class="setup">
+<!-- =================================================================
+     LANDING: three ways to start. showScreen() shows one <main> at a time.
+     ================================================================= -->
+<main id="landing" class="screen-wrap">
+  <h2 class="landing-title">What do you need today?</h2>
+  <p class="landing-lede">Put a big, clear countdown on the projector. Time one activity, or plan the whole class in timed segments.</p>
+  <div class="starts">
+    <div class="start primary">
+      <button type="button" class="start-main" id="go-quick">
+        <span class="start-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
+        <span class="start-title">Quick countdown</span>
+        <span class="start-text">One timer, no planning. Pick a time and go.</span>
+      </button>
+      <!-- Each of these starts a countdown straight away. -->
+      <div class="mini-times" role="group" aria-label="Start a quick countdown now">
+        <button type="button" data-quick="1" aria-label="Start a 1 minute countdown now">1 min</button>
+        <button type="button" data-quick="3" aria-label="Start a 3 minute countdown now">3 min</button>
+        <button type="button" data-quick="5" aria-label="Start a 5 minute countdown now">5 min</button>
+        <button type="button" data-quick="10" aria-label="Start a 10 minute countdown now">10 min</button>
+      </div>
+    </div>
+    <button type="button" class="start" id="go-plan">
+      <span class="start-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h12M3 17h8"/></svg></span>
+      <span class="start-title">Plan a session</span>
+      <span class="start-text">Break class into timed segments, each with its own instructions.</span>
+      <span class="mini-line" aria-hidden="true"><span style="flex:2;background:var(--c1-bg)"></span><span style="flex:3;background:var(--c2-bg)"></span><span style="flex:4;background:var(--c3-bg)"></span><span style="flex:1;background:var(--c4-bg)"></span></span>
+    </button>
+    <button type="button" class="start" id="go-templates">
+      <span class="start-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+      <span class="start-title">Start from a template</span>
+      <span class="start-text">Ready-made routines like Do Now and Think-Pair-Share. Change anything.</span>
+      <span class="mini-line" aria-hidden="true"><span style="flex:1;background:var(--c1-bg)"></span><span style="flex:1;background:var(--c2-bg)"></span><span style="flex:1;background:var(--c3-bg)"></span></span>
+    </button>
+  </div>
+  <p class="landing-tip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Works offline and full screen. Plug into the projector, press Start, and students see the time left, what to do, and what's next.</p>
+</main>
 
-  <section class="intro" aria-labelledby="directions-heading">
-    <h2 id="directions-heading">Directions</h2>
-    <p>Plan your class in timed segments, then start the timer for students to follow along.</p>
+<!-- =================================================================
+     QUICK COUNTDOWN: pick a time, optional instruction, go.
+     ================================================================= -->
+<main id="quick" class="screen-wrap" hidden>
+  <a href="#" class="back-link" data-back><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</a>
+  <section class="quick-card" aria-labelledby="quick-heading">
+    <h2 id="quick-heading">Quick countdown</h2>
+    <p class="quick-sub">Pick a time, then start.</p>
+    <div class="quick-times" id="quick-times" role="group" aria-label="Countdown length">
+      <button type="button" data-min="1">1<small>minute</small></button>
+      <button type="button" data-min="2">2<small>minutes</small></button>
+      <button type="button" data-min="3">3<small>minutes</small></button>
+      <button type="button" data-min="5">5<small>minutes</small></button>
+      <button type="button" data-min="10">10<small>minutes</small></button>
+      <button type="button" data-min="15">15<small>minutes</small></button>
+    </div>
+    <div class="quick-custom">
+      <span>Or type</span>
+      <input id="quick-min" class="input" type="text" inputmode="numeric" value="5" aria-label="Minutes" maxlength="3">
+      <span>min</span>
+      <input id="quick-sec" class="input" type="text" inputmode="numeric" value="00" aria-label="Seconds" maxlength="2">
+      <span>sec</span>
+    </div>
+    <div class="quick-what">
+      <label class="field-label" for="quick-label">What should students do? (optional)</label>
+      <input id="quick-label" class="input" type="text" placeholder="e.g. Read quietly" maxlength="80" autocomplete="off">
+    </div>
+    <p id="quick-error" class="quick-error" role="alert"></p>
+    <button type="button" id="quick-start" class="btn btn-primary quick-go">Start 5:00 countdown</button>
+    <p class="quick-fine">Opens full screen. Pause, add a minute, or stop any time.</p>
   </section>
+</main>
+
+<!-- =================================================================
+     TEMPLATE GALLERY: renderTemplates() fills it from TEMPLATES.
+     ================================================================= -->
+<main id="gallery" class="screen-wrap" hidden>
+  <a href="#" class="back-link" data-back><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</a>
+  <div class="gallery-head">
+    <h2>Templates</h2>
+    <p>"Use this" opens it in the planner so you can change anything. "Start now" goes straight to the projector.</p>
+  </div>
+  <ul class="tpls" id="templates"></ul>
+</main>
+
+<main id="setup" class="setup" hidden>
+
+  <a href="#" class="back-link" data-back><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</a>
+  <p class="intro intro-short">Add segments, then press Start session.</p>
 
   <!-- Session name -->
   <label for="session-name" class="field-label session-label">Session name</label>
@@ -805,10 +997,7 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
   <section class="section" aria-labelledby="segments-heading">
     <div class="section-head">
       <h2 id="segments-heading">Segments</h2>
-    </div>
-    <!-- Quick-start templates. renderTemplates() fills this from TEMPLATES. -->
-    <div class="templates" id="templates" role="group" aria-label="Start from a template">
-      <span class="templates-label">Start from</span>
+      <a href="#" id="browse-templates" class="browse-link">Browse templates</a>
     </div>
     <!-- JavaScript fills this list using the template below. -->
     <ol id="segment-list" class="segment-list"></ol>
@@ -954,6 +1143,7 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
     <footer class="run-controls">
       <button id="pause-btn" class="btn btn-primary" type="button">Pause</button>
       <button id="next-btn" class="btn" type="button">Next segment</button>
+      <button id="add-min-btn" class="btn add-min-btn" type="button">+1 minute</button>
       <button id="mute-btn" class="btn" type="button">Silence sound</button>
       <button id="end-btn" class="btn" type="button">End session</button>
     </footer>
@@ -1214,6 +1404,24 @@ const TEMPLATES = [
       ['Pair',  'Talk it over with your partner. Take turns sharing.',    4],
       ['Share', 'Pairs share their best idea with the class.',            5]
     ]
+  },
+  {
+    label: 'Stations',
+    session: 'Stations',
+    parts: [
+      ['Station 1', 'Work at your first station. Clean up before the timer ends.', 10],
+      ['Station 2', 'Rotate to your next station.', 10],
+      ['Station 3', 'Rotate to your next station.', 10],
+      ['Station 4', 'Rotate to your last station.', 10]
+    ]
+  },
+  {
+    label: 'Test or quiz',
+    session: 'Quiz',
+    parts: [
+      ['Work quietly',       'Eyes on your own paper. Raise your hand if you need help.', 25],
+      ['Check your answers', 'Go back over your work before you hand it in.',             5]
+    ]
   }
 ];
 
@@ -1224,7 +1432,7 @@ function hasWork() {
 }
 
 function applyTemplate(t) {
-  if (hasWork() && !confirm('Replace your current plan with "' + t.label + '"?')) return;
+  if (hasWork() && !confirm('Replace your current plan with "' + t.label + '"?')) return false;
   $('session-name').value = t.session;
   segments = t.parts.map(([name, desc, minutes]) => {
     const seg = makeSegment(minutes, 0);
@@ -1234,28 +1442,75 @@ function applyTemplate(t) {
   });
   errorEl.textContent = '';
   renderSegments();
-  segmentList.firstElementChild.querySelector('.seg-name').focus();
+  return true;
 }
 
-// Draw one button per template, with a dot per segment in its colour.
+// Fill the template gallery: one card per template (not "Blank"),
+// with its coloured timeline, its segments, "Use this" and "Start now".
 function renderTemplates() {
-  const row = $('templates');
-  TEMPLATES.forEach((t) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'template-btn';
-    const dots = document.createElement('span');
-    dots.className = 'template-dots';
-    dots.setAttribute('aria-hidden', 'true');
-    t.parts.forEach((part, i) => {
+  const list = $('templates');
+  TEMPLATES.filter((t) => t.label !== 'Blank').forEach((t) => {
+    const total = t.parts.reduce((sum, part) => sum + part[2] * 60, 0);
+    const card = document.createElement('li');
+    card.className = 'tpl';
+
+    const head = document.createElement('div');
+    const h = document.createElement('h3');
+    h.textContent = t.label;
+    const meta = document.createElement('p');
+    meta.className = 'tpl-meta';
+    meta.textContent = t.parts.length + ' segments · ' + formatTime(total);
+    head.append(h, meta);
+
+    const line = document.createElement('div');
+    line.className = 'tpl-line';
+    line.setAttribute('aria-hidden', 'true');
+    const items = document.createElement('ol');
+    items.className = 'tpl-list';
+    t.parts.forEach(([name, , minutes], i) => {
+      const colour = 'var(--c' + ((i % COLOURS) + 1) + '-dot)';
+      const bar = document.createElement('span');
+      bar.style.flex = String(minutes);
+      bar.style.background = 'var(--c' + ((i % COLOURS) + 1) + '-bg)';
+      line.appendChild(bar);
+
+      const li = document.createElement('li');
       const dot = document.createElement('span');
-      dot.style.background = 'var(--c' + ((i % COLOURS) + 1) + '-dot)';
-      dots.appendChild(dot);
+      dot.className = 'dot';
+      dot.style.background = colour;
+      dot.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span');
+      label.textContent = name;
+      const time = document.createElement('span');
+      time.className = 'time';
+      time.textContent = formatTime(minutes * 60);
+      li.append(dot, label, time);
+      items.appendChild(li);
     });
-    btn.appendChild(dots);
-    btn.appendChild(document.createTextNode(t.label));
-    btn.addEventListener('click', () => applyTemplate(t));
-    row.appendChild(btn);
+
+    const actions = document.createElement('div');
+    actions.className = 'tpl-actions';
+    const use = document.createElement('button');
+    use.type = 'button';
+    use.className = 'btn btn-primary';
+    use.textContent = 'Use this';
+    use.setAttribute('aria-label', 'Use ' + t.label + ' in the planner');
+    use.addEventListener('click', () => {
+      if (applyTemplate(t)) showScreen('setup');
+    });
+    const now = document.createElement('button');
+    now.type = 'button';
+    now.className = 'btn';
+    now.textContent = 'Start now';
+    now.setAttribute('aria-label', 'Start ' + t.label + ' now');
+    now.addEventListener('click', () => {
+      launchRun(t.parts.map(([name, desc, minutes]) => ({ name, desc, secs: minutes * 60 })),
+                t.session, { returnTo: now });
+    });
+    actions.append(use, now);
+
+    card.append(head, line, items, actions);
+    list.appendChild(card);
   });
 }
 
@@ -1386,18 +1641,29 @@ function startSession() {
     return;
   }
 
+  launchRun(segments.map((s) => ({ name: s.name, desc: s.desc, secs: lengthOf(s) })),
+            $('session-name').value, { returnTo: $('start-btn') });
+}
+
+/* Open the running view for a list of parts ({ name, desc, secs }).
+   Used by the planner, the template gallery's "Start now" and the
+   quick countdown (options.quick = true gives the simpler screen). */
+function launchRun(parts, sessionName, options = {}) {
   // Freeze a copy of the plan. Blank names get a simple default.
-  run.plan = segments.map((s, i) => {
-    const secs = Math.min(lengthOf(s), MAX_MINUTES * 60);
+  run.plan = parts.map((p, i) => {
+    const secs = Math.min(p.secs, MAX_MINUTES * 60);
     return {
-      name: s.name.trim() || 'Segment ' + (i + 1),
-      desc: s.desc.trim(),
+      name: (p.name || '').trim() || 'Segment ' + (i + 1),
+      desc: (p.desc || '').trim(),
       secs: secs,
       ms: secs * 1000,
       colour: 'c' + (i % COLOURS)
     };
   });
-  run.sessionName = $('session-name').value.trim() || 'Class session';
+  run.sessionName = (sessionName || '').trim() || 'Class session';
+  run.quick = !!options.quick;
+  run.returnTo = options.returnTo || null;
+  runner.classList.toggle('is-quick', run.quick);
 
   // Sound settings. "Mute" in setup means start silenced; the
   // running-view button can still turn a soft chime back on.
@@ -1419,7 +1685,7 @@ function startSession() {
   $('pause-btn').textContent = 'Pause';
   $('next-btn').hidden = false;
   $('jump-hint').hidden = false;
-  $('end-btn').textContent = 'End session';
+  $('end-btn').textContent = run.quick ? 'Stop' : 'End session';
   $('paused-note').hidden = true;
   $('run-session').textContent = run.sessionName;
   updateMuteButton();
@@ -1433,7 +1699,25 @@ function startSession() {
   keepScreenAwake();
 
   // Small delay so screen readers notice the announcer after the dialog opens.
-  setTimeout(() => announce('Session started: ' + run.sessionName + '. ' + describeCurrent()), 400);
+  setTimeout(() => announce(run.quick
+    ? 'Countdown started: ' + spokenTime(run.plan[0].secs) + '.'
+    : 'Session started: ' + run.sessionName + '. ' + describeCurrent()), 400);
+}
+
+/* +1 minute (quick countdown): adds a minute to the time left. */
+function addMinute() {
+  if (run.finished) return;
+  const seg = run.plan[run.index];
+  seg.secs += 60;
+  seg.ms += 60000;
+  $('run-progress').max = seg.ms;
+  if (run.paused) run.remainingMs += 60000;
+  else run.endsAt += 60000;
+  const left = run.paused ? run.remainingMs : run.endsAt - performance.now();
+  if (left / 1000 > WARNING_SECONDS) run.warned = false;
+  if (run.quick) $('run-session').textContent = 'Quick countdown · ' + formatTime(seg.secs);
+  updateClock(left);
+  announce('Added a minute. ' + spokenTime(Math.ceil(left / 1000)) + ' left.');
 }
 
 // Check the clock. Moves to the next segment when time runs out.
@@ -1654,8 +1938,8 @@ function finishSession() {
   if (!run.muted) playSound(run.soundStyle);
 
   runner.classList.remove('is-warning', 'is-paused');
-  $('run-seg-name').textContent = 'Session complete';
-  $('run-seg-desc').textContent = 'All segments are finished.';
+  $('run-seg-name').textContent = run.quick ? "Time's up" : 'Session complete';
+  $('run-seg-desc').textContent = run.quick ? 'The countdown has finished.' : 'All segments are finished.';
   $('run-seg-desc').hidden = false;
   $('run-countdown').textContent = '0:00';
   $('run-total-left').textContent = '0:00';
@@ -1674,12 +1958,12 @@ function finishSession() {
   $('end-btn').focus();
   document.title = 'Session complete';
 
-  announce('Session complete. All segments are finished.');
+  announce(run.quick ? "Time's up." : 'Session complete. All segments are finished.');
 }
 
 // "End session" (or the Escape key). Asks first unless the session is done.
 function endSession() {
-  if (!run.finished && !confirm('End this session? The timer will stop.')) return;
+  if (!run.finished && !confirm(run.quick ? 'Stop the countdown?' : 'End this session? The timer will stop.')) return;
   runner.close();   // the "close" handler below does the tidying up
 }
 
@@ -1690,7 +1974,7 @@ function cleanUpAfterSession() {
   stopSound();
   releaseScreen();
   document.title = ORIGINAL_TITLE;
-  $('start-btn').focus();
+  if (run.returnTo && document.body.contains(run.returnTo)) run.returnTo.focus();
 }
 
 // Read a message aloud for screen readers (clear first so repeats are read).
@@ -1781,6 +2065,100 @@ $('test-sound').addEventListener('click', () => {
   }
 });
 
+/* -----------------------------------------------------------------
+   SCREENS
+   Landing, Quick countdown, Templates and the planner ("setup") are
+   separate <main> elements; only one shows at a time.
+   ----------------------------------------------------------------- */
+const SCREEN_NAMES = { landing: '', quick: 'Quick countdown', gallery: 'Templates', setup: 'Plan a session' };
+let currentScreen = 'landing';
+let previousScreen = 'landing';
+
+function showScreen(name) {
+  if (name !== currentScreen) previousScreen = currentScreen;
+  currentScreen = name;
+  Object.keys(SCREEN_NAMES).forEach((id) => { $(id).hidden = id !== name; });
+  const label = SCREEN_NAMES[name];
+  $('crumb-sep').hidden = !label;
+  $('crumb-here').hidden = !label;
+  $('crumb-here').textContent = label;
+  window.scrollTo(0, 0);
+  // Move keyboard focus to something sensible on the new screen.
+  const target = { landing: '#go-quick', quick: '#quick-times [aria-pressed="true"]', gallery: '#templates .btn', setup: '#session-name' }[name];
+  const el = document.querySelector(target);
+  if (el) el.focus({ preventScroll: true });
+}
+
+// "Back" goes to the landing, except the planner goes back to where you came from.
+document.querySelectorAll('[data-back]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    showScreen(currentScreen === 'setup' && previousScreen === 'gallery' ? 'gallery' : 'landing');
+  });
+});
+$('crumb-home').addEventListener('click', (event) => { event.preventDefault(); showScreen('landing'); });
+$('go-quick').addEventListener('click', () => showScreen('quick'));
+$('go-plan').addEventListener('click', () => showScreen('setup'));
+$('go-templates').addEventListener('click', () => showScreen('gallery'));
+$('browse-templates').addEventListener('click', (event) => { event.preventDefault(); showScreen('gallery'); });
+
+/* -----------------------------------------------------------------
+   QUICK COUNTDOWN
+   ----------------------------------------------------------------- */
+function quickSeconds() {
+  const m = Math.min(parseInt($('quick-min').value, 10) || 0, MAX_MINUTES);
+  const sec = Math.min(parseInt($('quick-sec').value, 10) || 0, 59);
+  return m * 60 + sec;
+}
+
+// Keep the time buttons, the typed time and the Start label in step.
+function updateQuick() {
+  const secs = quickSeconds();
+  document.querySelectorAll('#quick-times button').forEach((b) => {
+    b.setAttribute('aria-pressed', secs === Number(b.dataset.min) * 60 ? 'true' : 'false');
+  });
+  $('quick-start').textContent = secs > 0 ? 'Start ' + formatTime(secs) + ' countdown' : 'Start countdown';
+  if (secs > 0) $('quick-error').textContent = '';
+}
+
+function startQuick(secs, returnTo) {
+  if (!secs) {
+    $('quick-error').textContent = 'Set a time first.';
+    $('quick-min').focus();
+    return;
+  }
+  const what = $('quick-label').value.trim();
+  launchRun([{ name: what || 'Time left', desc: '', secs }],
+            'Quick countdown · ' + formatTime(Math.min(secs, MAX_MINUTES * 60)),
+            { quick: true, returnTo });
+}
+
+$('quick-times').addEventListener('click', (event) => {
+  const b = event.target.closest('button');
+  if (!b) return;
+  $('quick-min').value = b.dataset.min;
+  $('quick-sec').value = '00';
+  updateQuick();
+});
+['quick-min', 'quick-sec'].forEach((id) => {
+  $(id).addEventListener('input', () => {
+    $(id).value = $(id).value.replace(/[^0-9]/g, '');
+    updateQuick();
+  });
+});
+$('quick-sec').addEventListener('blur', () => {
+  $('quick-sec').value = String(Math.min(parseInt($('quick-sec').value, 10) || 0, 59)).padStart(2, '0');
+});
+$('quick-start').addEventListener('click', () => startQuick(quickSeconds(), $('quick-start')));
+// The 1/3/5/10 min buttons on the landing start a countdown straight away.
+document.querySelectorAll('[data-quick]').forEach((b) => {
+  b.addEventListener('click', () => {
+    $('quick-label').value = '';
+    startQuick(Number(b.dataset.quick) * 60, b);
+  });
+});
+$('add-min-btn').addEventListener('click', addMinute);
+
 $('pause-btn').addEventListener('click', togglePause);
 $('next-btn').addEventListener('click', nextSegment);
 $('mute-btn').addEventListener('click', toggleMute);
@@ -1804,6 +2182,8 @@ document.addEventListener('visibilitychange', () => {
 segments = [makeSegment(), makeSegment(), makeSegment()];
 renderTemplates();
 renderSegments();
+updateQuick();
+showScreen('landing');
 </script>
 </body>
 </html>
