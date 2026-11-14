@@ -249,6 +249,8 @@ p { margin: 0; }
 .intro { margin-bottom: 1.75rem; }
 .intro h2 { font-size: 1.125rem; margin-bottom: 0.25rem; }
 .intro p { font-size: 1.0625rem; color: var(--ink-2); text-wrap: pretty; }
+/* "Session name" matches the section headings (Directions, Timeline...). */
+.session-label { font-size: 1.125rem; font-weight: 700; color: var(--ink); margin-bottom: 0.25rem; }
 
 /* "Start from" row: quick-start templates above the segment cards. */
 .templates {
@@ -765,7 +767,7 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
   </section>
 
   <!-- Session name -->
-  <label for="session-name" class="field-label">Session name</label>
+  <label for="session-name" class="field-label session-label">Session name</label>
   <input id="session-name" class="session-name" type="text"
          placeholder="e.g. Essay Brainstorm" autocomplete="off" maxlength="80">
 
