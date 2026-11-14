@@ -245,13 +245,10 @@ p { margin: 0; }
 
 .section { margin-top: 2.25rem; }
 
-/* One line under the header that says what the app is for. */
-.intro {
-  margin-bottom: 1.75rem;
-  font-size: 1.0625rem;
-  color: var(--ink-2);
-  max-width: 60ch;
-}
+/* Short directions at the top that say what the app is for. */
+.intro { margin-bottom: 1.75rem; }
+.intro h2 { font-size: 1.125rem; margin-bottom: 0.25rem; }
+.intro p { font-size: 1.0625rem; color: var(--ink-2); text-wrap: pretty; }
 
 /* "Start from" row: quick-start templates above the segment cards. */
 .templates {
@@ -762,7 +759,10 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
 
 <main id="setup" class="setup">
 
-  <p class="intro">Plan your class in timed chunks, then put a big countdown on the projector.</p>
+  <section class="intro" aria-labelledby="directions-heading">
+    <h2 id="directions-heading">Directions</h2>
+    <p>Plan your class in timed segments, then start the timer for students to follow along.</p>
+  </section>
 
   <!-- Session name -->
   <label for="session-name" class="field-label">Session name</label>
