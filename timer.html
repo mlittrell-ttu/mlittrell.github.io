@@ -245,6 +245,41 @@ p { margin: 0; }
 
 .section { margin-top: 2.25rem; }
 
+/* Short directions at the top that say what the app is for. */
+.intro { margin-bottom: 1.75rem; }
+.intro h2 { font-size: 1.125rem; margin-bottom: 0.25rem; }
+.intro p { font-size: 1.0625rem; color: var(--ink-2); text-wrap: pretty; }
+/* "Session name" matches the section headings (Directions, Timeline...). */
+.session-label { font-size: 1.125rem; font-weight: 700; color: var(--ink); margin-bottom: 0.25rem; }
+
+/* "Start from" row: quick-start templates above the segment cards. */
+.templates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.templates-label { font-size: 0.875rem; font-weight: 600; color: var(--ink-2); margin-right: 0.25rem; }
+.template-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--field-edge);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.template-btn:hover { background: var(--app-bg); border-color: var(--app); }
+/* Little coloured dots preview each template's segments. */
+.template-dots { display: inline-flex; gap: 3px; }
+.template-dots span { width: 7px; height: 7px; border-radius: 50%; }
+
 .section-head {
   display: flex;
   align-items: baseline;
@@ -420,6 +455,9 @@ p { margin: 0; }
 .status.is-ready { color: var(--ok); }
 .status-error { color: var(--error); font-weight: 600; }
 .footer-actions { display: flex; gap: 0.75rem; margin-left: auto; }
+.footer-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; margin-left: auto; }
+/* Says what Start does before anyone presses it. */
+.start-hint { font-size: 0.8125rem; color: var(--ink-2); text-align: right; }
 
 /* =================================================================
    5. RUNNING VIEW (the full-screen <dialog>)
@@ -723,8 +761,13 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
 
 <main id="setup" class="setup">
 
+  <section class="intro" aria-labelledby="directions-heading">
+    <h2 id="directions-heading">Directions</h2>
+    <p>Plan your class in timed segments, then start the timer for students to follow along.</p>
+  </section>
+
   <!-- Session name -->
-  <label for="session-name" class="field-label">Session name</label>
+  <label for="session-name" class="field-label session-label">Session name</label>
   <input id="session-name" class="session-name" type="text"
          placeholder="e.g. Essay Brainstorm" autocomplete="off" maxlength="80">
 
@@ -744,6 +787,10 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
   <section class="section" aria-labelledby="segments-heading">
     <div class="section-head">
       <h2 id="segments-heading">Segments</h2>
+    </div>
+    <!-- Quick-start templates. renderTemplates() fills this from TEMPLATES. -->
+    <div class="templates" id="templates" role="group" aria-label="Start from a template">
+      <span class="templates-label">Start from</span>
     </div>
     <!-- JavaScript fills this list using the template below. -->
     <ol id="segment-list" class="segment-list"></ol>
@@ -776,9 +823,12 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
       <!-- Problems found when pressing Start. role="alert" makes screen readers read it right away. -->
       <p id="setup-error" class="status-error" role="alert"></p>
     </div>
-    <div class="footer-actions">
-      <button id="clear-btn" class="btn" type="button">Clear</button>
-      <button id="start-btn" class="btn btn-primary" type="button">Start session</button>
+    <div class="footer-right">
+      <div class="footer-actions">
+        <button id="clear-btn" class="btn" type="button">Clear</button>
+        <button id="start-btn" class="btn btn-primary" type="button" aria-describedby="start-hint">Start session</button>
+      </div>
+      <p id="start-hint" class="start-hint">Opens a full-screen countdown your students can follow.</p>
     </div>
   </footer>
 </main>
@@ -1113,6 +1163,80 @@ function removeSegment(id) {
   const target = cards[index] || cards[index - 1];
   if (target) target.querySelector('.seg-name').focus();
   else $('add-segment').focus();
+}
+
+/* -----------------------------------------------------------------
+   QUICK-START TEMPLATES
+   Each one fills in the session name and the segments. Teachers can
+   change anything afterwards. Add a template by adding to this list.
+   ----------------------------------------------------------------- */
+const TEMPLATES = [
+  {
+    label: 'Blank',
+    session: '',
+    parts: [['', '', 5], ['', '', 5], ['', '', 5]]
+  },
+  {
+    label: 'Do Now, Lesson, Work, Exit',
+    session: 'Class period',
+    parts: [
+      ['Do Now',      'Answer the warm-up question on your own.',              5],
+      ['Mini-lesson', 'Eyes up front. Jot down the key ideas.',                10],
+      ['Work time',   "Work on today's task. Ask a neighbor before asking me.", 20],
+      ['Exit ticket', 'Answer the exit ticket and hand it in on your way out.', 5]
+    ]
+  },
+  {
+    label: 'Think-Pair-Share',
+    session: 'Think-Pair-Share',
+    parts: [
+      ['Think', 'Think quietly about the question. Jot down your ideas.', 3],
+      ['Pair',  'Talk it over with your partner. Take turns sharing.',    4],
+      ['Share', 'Pairs share their best idea with the class.',            5]
+    ]
+  }
+];
+
+// Has the teacher typed anything we'd lose by replacing the plan?
+function hasWork() {
+  return $('session-name').value.trim() !== '' ||
+         segments.some((s) => s.name.trim() !== '' || s.desc.trim() !== '');
+}
+
+function applyTemplate(t) {
+  if (hasWork() && !confirm('Replace your current plan with "' + t.label + '"?')) return;
+  $('session-name').value = t.session;
+  segments = t.parts.map(([name, desc, minutes]) => {
+    const seg = makeSegment(minutes, 0);
+    seg.name = name;
+    seg.desc = desc;
+    return seg;
+  });
+  errorEl.textContent = '';
+  renderSegments();
+  segmentList.firstElementChild.querySelector('.seg-name').focus();
+}
+
+// Draw one button per template, with a dot per segment in its colour.
+function renderTemplates() {
+  const row = $('templates');
+  TEMPLATES.forEach((t) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'template-btn';
+    const dots = document.createElement('span');
+    dots.className = 'template-dots';
+    dots.setAttribute('aria-hidden', 'true');
+    t.parts.forEach((part, i) => {
+      const dot = document.createElement('span');
+      dot.style.background = 'var(--c' + ((i % COLOURS) + 1) + '-dot)';
+      dots.appendChild(dot);
+    });
+    btn.appendChild(dots);
+    btn.appendChild(document.createTextNode(t.label));
+    btn.addEventListener('click', () => applyTemplate(t));
+    row.appendChild(btn);
+  });
 }
 
 function clearAll() {
@@ -1617,6 +1741,7 @@ document.addEventListener('visibilitychange', () => {
 
 // Start with three blank 5-minute segments, like the wireframe.
 segments = [makeSegment(), makeSegment(), makeSegment()];
+renderTemplates();
 renderSegments();
 </script>
 </body>
