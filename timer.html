@@ -675,14 +675,32 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
   gap: 0.4rem;
 }
 .run-list li {
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  font-size: clamp(1rem, 1.55vw, 1.4rem);
+}
+/* Each row is a button (click to jump to that segment), except the one
+   that's on now. Both share this layout. */
+.run-list .row {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
   padding: 0.65rem 0.85rem;
-  border-radius: var(--radius);
-  border: 2px solid transparent;
-  font-size: clamp(1rem, 1.55vw, 1.4rem);
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.run-list button.row { cursor: pointer; }
+.run-list button.row:hover { background: var(--surface-2); }
+.jump-hint {
+  margin-top: 0.6rem;
+  font-size: 0.875rem;
+  color: var(--ink-2);
 }
 .run-list .dot {
   width: 0.7em; height: 0.7em;
@@ -929,11 +947,13 @@ progress::-moz-progress-bar      { background: var(--seg-dot); border-radius: 99
       <aside class="side-panel" aria-labelledby="plan-heading">
         <h3 id="plan-heading">Today's plan</h3>
         <ol id="run-list" class="run-list"></ol>
+        <p id="jump-hint" class="jump-hint">Click a segment to jump to it.</p>
       </aside>
     </div>
 
     <footer class="run-controls">
       <button id="pause-btn" class="btn btn-primary" type="button">Pause</button>
+      <button id="next-btn" class="btn" type="button">Next segment</button>
       <button id="mute-btn" class="btn" type="button">Silence sound</button>
       <button id="end-btn" class="btn" type="button">End session</button>
     </footer>
@@ -1397,6 +1417,8 @@ function startSession() {
   runner.classList.remove('is-warning', 'is-paused', 'is-finished');
   $('pause-btn').hidden = false;
   $('pause-btn').textContent = 'Pause';
+  $('next-btn').hidden = false;
+  $('jump-hint').hidden = false;
   $('end-btn').textContent = 'End session';
   $('paused-note').hidden = true;
   $('run-session').textContent = run.sessionName;
@@ -1463,6 +1485,7 @@ function showCurrentSegment() {
   $('run-progress').max = seg.ms;
 
   runner.classList.remove('is-warning');
+  $('next-btn').textContent = run.index >= run.plan.length - 1 ? 'Finish session' : 'Next segment';
   drawPlanList();
   drawRunTimeline();
 }
@@ -1518,6 +1541,17 @@ function drawPlanList() {
     item.className = seg.colour + ' ' + state;
     if (state === 'is-now') item.setAttribute('aria-current', 'step');
 
+    // Any segment except the current one can be clicked to jump to it
+    // (not once the session has finished).
+    const canJump = !run.finished && i !== run.index;
+    const row = document.createElement(canJump ? 'button' : 'div');
+    row.className = 'row';
+    if (canJump) {
+      row.type = 'button';
+      row.setAttribute('aria-label', 'Jump to ' + seg.name + ', ' + spokenTime(seg.secs));
+      row.addEventListener('click', () => goToSegment(i));
+    }
+
     const dot = document.createElement('span');
     dot.className = 'dot';
     dot.setAttribute('aria-hidden', 'true');
@@ -1534,7 +1568,8 @@ function drawPlanList() {
     label.className = 'tag';
     label.textContent = tag;
 
-    item.append(dot, name, time, label);
+    row.append(dot, name, time, label);
+    item.appendChild(row);
     list.appendChild(item);
   });
 }
@@ -1551,6 +1586,29 @@ function drawRunTimeline() {
     piece.style.flexGrow = seg.secs;
     bar.appendChild(piece);
   });
+}
+
+/* Jump to any segment (the Next segment button, or a click in the plan).
+   That segment starts again from its full length, and Total left drops
+   the time that was skipped. If the timer is paused it stays paused. */
+function goToSegment(index) {
+  if (run.finished || index < 0 || index >= run.plan.length || index === run.index) return;
+  stopSound();
+  run.index = index;
+  run.warned = false;
+  const ms = run.plan[index].ms;
+  if (run.paused) run.remainingMs = ms;
+  else run.endsAt = performance.now() + ms;
+  showCurrentSegment();
+  updateClock(ms);
+  announce('Moved to ' + describeCurrent());
+}
+
+// "Next segment" moves on; on the last segment it finishes the session.
+function nextSegment() {
+  if (run.finished) return;
+  if (run.index >= run.plan.length - 1) finishSession();
+  else goToSegment(run.index + 1);
 }
 
 function togglePause() {
@@ -1610,6 +1668,8 @@ function finishSession() {
 
   // Pause no longer makes sense; End becomes Close.
   $('pause-btn').hidden = true;
+  $('next-btn').hidden = true;
+  $('jump-hint').hidden = true;
   $('end-btn').textContent = 'Close';
   $('end-btn').focus();
   document.title = 'Session complete';
@@ -1722,6 +1782,7 @@ $('test-sound').addEventListener('click', () => {
 });
 
 $('pause-btn').addEventListener('click', togglePause);
+$('next-btn').addEventListener('click', nextSegment);
 $('mute-btn').addEventListener('click', toggleMute);
 $('end-btn').addEventListener('click', endSession);
 
