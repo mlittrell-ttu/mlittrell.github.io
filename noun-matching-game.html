@@ -8,8 +8,8 @@
   saved as small .json files on your own computer.
 
   Students sort nouns into three groups: person, place or thing.
-  A wrong answer comes with a short explanation and waits for the
-  student to press "Next word". A right answer moves on by itself.
+  Every answer shows feedback and waits for the student to press
+  "Next word". A wrong answer also explains the right group.
 
   How the file is laid out:
     1. <style>  ... design tokens, then one block per part of the page
@@ -735,28 +735,22 @@ function choose(group) {
     $('fb-title').textContent = 'Yes! “' + w.word + '” is ' + article(g.name) + ' ' + g.name.toLowerCase() + '.';
     $('fb-text').textContent = g.short;
     $('fb-clue').hidden = true;
-    $('next-btn').hidden = true;
-    $('fb').hidden = false;
     announce($('fb-title').textContent);
-    /* Right answers move on by themselves. In class mode we wait a
-       little longer so the room can see the answer. */
-    game.timer = setTimeout(nextWord, game.mode === 'class' ? 2200 : 1400);
   } else {
     $('fb-title').textContent = 'Not quite. “' + w.word + '” is ' + article(g.name) + ' ' + g.name.toLowerCase() + '.';
     $('fb-text').textContent = g.why;
     $('fb-clue').textContent = clue;
     $('fb-clue').hidden = !clue;
-    $('next-btn').hidden = false;
-    $('next-btn').innerHTML = (game.i + 1 >= game.words.length ? 'See results ' : 'Next word ') + svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 18);
-    $('fb').hidden = false;
     announce($('fb-title').textContent + ' ' + g.why);
-    $('next-btn').focus();
   }
+  /* Right or wrong, the student moves on with "Next word". */
+  $('next-btn').innerHTML = (game.i + 1 >= game.words.length ? 'See results ' : 'Next word ') + svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 18);
+  $('fb').hidden = false;
+  $('next-btn').focus();
 }
 
 function nextWord() {
   if (!game) return;
-  clearTimeout(game.timer);
   game.i++;
   if (game.i >= game.words.length) { showResults(); return; }
   renderWord();
@@ -764,7 +758,6 @@ function nextWord() {
 
 function endGame() {
   if (!game) return;
-  clearTimeout(game.timer);
   if (game.results.length && !confirm('End this game? Your score so far will not be kept.')) return;
   game = null;
   renderLanding();
