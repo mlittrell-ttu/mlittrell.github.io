@@ -1,1590 +1,1326 @@
 <!DOCTYPE html>
+<!--
+  CENTER AND SPREAD  (part of Teacher Apps)
+  =================================================================
+  One self-contained file: structure (HTML), look (CSS) and
+  behaviour (JavaScript) all live here. Nothing is loaded from the
+  internet and nothing is saved or sent anywhere. Typed data can be
+  saved as a small .json file on your own computer.
+
+  Students build a small data set with blocks (or type in numbers)
+  and see the mean, median, mode and range. "How it works" walks
+  through each measure one step at a time, right on the chart.
+
+  How the file is laid out:
+    1. <style>  ... design tokens, then one block per part of the page
+    2. <body>   ... Teacher Apps header, then four screens:
+                    landing, working with the data, how it works,
+                    type your own numbers
+    3. <script> ... examples, the maths, then everything that draws
+                    the screens and reacts to clicks
+-->
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Center & Spread</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Center and Spread · Teacher Apps</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
+
 <style>
+/* =================================================================
+   1. DESIGN TOKENS
+   Shared Teacher Apps colours, plus this app's own colour (amber).
+   ================================================================= */
+:root {
+  --paper:      #F5F7F6;
+  --surface:    #FFFFFF;
+  --surface-2:  #EEF2F1;
+  --ink:        #1C2730;
+  --ink-2:      #4A5862;
+  --rule:       #D3DBDA;
+  --field-edge: #85918F;
+  --focus:      #1D5FD1;
 
-  /* =====================================================================
-     PARCHMENT PALETTE — shared with FlashCards / Timer / Percentages
-     ===================================================================== */
-  :root {
-    --bg:        #f7f2e8;
-    --surface:   #fffdf8;
-    --border:    #d8cebc;
-    --ink:       #2e2416;
-    --ink-light: #9e9080;
-    --accent:    #e0d5c2;
-    --accent2:   #c8bfb0;
-    --shadow:    0 2px 12px rgba(0,0,0,0.08);
-    --radius:    10px;
+  --app:        #A86F14;  /* Center and Spread amber */
+  --app-bg:     #FBEFD8;
+  --app-dark:   #8E5D10;
 
-    /* Chart-specific colors. Picked from the percentages palette so the
-       whole suite feels coherent, but chosen to stay visible on top of
-       random palette-colored bars. */
-    --mean-color:    #cc8543;   /* navy   — mean line + marker */
-    --median-color:  #8aab8a;   /* maroon — median line + marker */
-    --mode-color:    #bd8ceb;   /* teal   — mode block outline + marker */
-    --range-color:   #474747;   /* slate  — range bracket + marker */
-  }
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* =================================================================
+   2. BASICS
+   ================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--font); line-height: 1.5; }
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  body {
-    font-family: 'Georgia', serif;
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--field-edge); background: var(--surface); color: var(--ink);
+  font-size: 0.9375rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.btn-primary:hover { background: var(--app-dark); border-color: var(--app-dark); }
+.btn-big { min-height: 52px; padding: 0 24px; font-size: 1.0625rem; }
+.btn-dashed { min-height: 48px; border: 2px dashed var(--app); background: transparent; color: var(--app); }
+.btn-dashed:hover { background: var(--app-bg); }
 
-  /* =====================================================================
-     HEADER + NAV
-     ===================================================================== */
-  header {
-    width: 100%;
-    background: var(--bg);
-    color: var(--ink);
-    padding: 16px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: var(--shadow);
-    border-bottom: 1px solid var(--border);
-    gap: 20px;
-    flex-wrap: wrap;
-  }
+/* =================================================================
+   3. TEACHER APPS HEADER
+   ================================================================= */
+.app-stripe { height: 4px; background: var(--app); }
+.app-bar { border-bottom: 1px solid var(--rule); }
+.app-bar-inner {
+  max-width: 1060px; margin: 0 auto; padding: 14px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+}
+.app-id { display: flex; align-items: center; gap: 14px; }
+.home-link { display: inline-flex; border-radius: 10px; }
+.logo-mark { width: 32px; height: 32px; padding: 6px; border-radius: 9px; background: #1C2730; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.logo-mark span:nth-child(1) { background: #7FA6F0; border-radius: 3px 3px 3px 1.5px; }
+.logo-mark span:nth-child(2) { background: #5FC49A; border-radius: 50%; }
+.logo-mark span:nth-child(3) { background: #E2AB4C; border-radius: 3px; }
+.logo-mark span:nth-child(4) { background: #EEF2F1; border-radius: 3px 1.5px 3px 3px; }
+.bar-divider { width: 1px; height: 24px; background: var(--rule); }
+.app-name { display: inline-flex; align-items: center; gap: 10px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-icon { width: 32px; height: 32px; border-radius: 9px; background: var(--app-bg); display: inline-flex; align-items: center; justify-content: center; }
+.app-icon svg { stroke: var(--app); }
 
-  header h1 {
-    font-size: 1.4rem;
-    letter-spacing: 0.08em;
-    font-weight: normal;
-  }
+/* =================================================================
+   4. THIS APP'S COLOURS
+   Soft gold for the app, honey blocks, and one colour per measure
+   that is used everywhere that measure appears.
+   ================================================================= */
+:root {
+  --app: #B8893A; --app-bg: #FBF1DE;
+  --soft: #F3D79E; --soft-edge: #DDB25F; --soft-hover: #EFCB82;
+  --blk: #EDC679; --blk-edge: #D6A64C; --blk-dim: #F7EBD2;
+  --mean: #3F63B5;   --mean-bg: #E3E9F7;
+  --median: #1F7F86; --median-bg: #DAEFEF;
+  --mode: #8A5BB0;   --mode-bg: #EEE5F6;
+  --range: #C2513F;  --range-bg: #FBE4DF;
+}
+.m-mean   { --c: var(--mean);   --cb: var(--mean-bg); }
+.m-median { --c: var(--median); --cb: var(--median-bg); }
+.m-mode   { --c: var(--mode);   --cb: var(--mode-bg); }
+.m-range  { --c: var(--range);  --cb: var(--range-bg); }
+[hidden] { display: none !important; }
+.app-bar-inner { max-width: 1200px; padding-left: 32px; padding-right: 32px; }
+.app-icon { background: var(--app-bg); }
+.btn svg { stroke: currentColor; }
+.btn-primary { background: var(--soft); border-color: var(--soft-edge); color: var(--ink); }
+.btn-primary:hover { background: var(--soft-hover); border-color: var(--soft-edge); }
+.btn-measure { background: var(--c); border-color: var(--c); color: #FFFFFF; }
+.btn-measure:hover { background: var(--c); filter: brightness(0.92); }
 
-  header h1 span { color: var(--ink-light); }
+/* Header extras */
+.crumb { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.crumb .sep { color: var(--field-edge); font-size: 1.125rem; }
+.crumb .here { font-size: 1.125rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 32ch; }
+.bar-right { display: flex; align-items: center; gap: 6px; }
+.privacy { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--ink-2); }
+.privacy svg { stroke: var(--app); }
+.link-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); cursor: pointer; }
+.link-btn:hover { background: var(--surface-2); color: var(--ink); }
+.link-btn[aria-pressed="true"] { background: var(--app-bg); color: var(--ink); }
+.link-btn svg { stroke: currentColor; }
 
-  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+/* =================================================================
+   5. LANDING
+   ================================================================= */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 48px 32px 64px; }
+h1 { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -0.025em; line-height: 1.1; }
+.lede { margin-top: 12px; font-size: 1.1875rem; color: var(--ink-2); max-width: 58ch; }
+.starts { margin-top: 32px; display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; }
+.start { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-height: 220px; padding: 24px; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; cursor: pointer; }
+.start:hover { border-color: var(--soft-edge); }
+.start.primary { background: var(--app-bg); border-color: var(--soft-edge); }
+.start.primary:hover { border-color: var(--app); }
+.start-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--app-bg); display: flex; align-items: center; justify-content: center; }
+.start-icon svg { stroke: var(--app); }
+.start.primary .start-icon { background: var(--soft); }
+.start.primary .start-icon svg { stroke: #7A5A1E; }
+.start-title { margin-top: 6px; font-size: 1.25rem; font-weight: 700; }
+.start-text { font-size: 0.9375rem; color: var(--ink-2); }
+.mini { margin-top: auto; display: flex; align-items: flex-end; gap: 6px; height: 54px; }
+.mini i { width: 20px; border-radius: 5px; background: var(--blk); box-shadow: inset 0 -2px 0 var(--blk-edge); }
+.sec-head { margin-top: 44px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 1.375rem; font-weight: 750; }
+.sec-head p { color: var(--ink-2); font-size: 0.9375rem; }
+.examples { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.example { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 16px; text-align: left; background: var(--surface); border: 1px solid var(--rule); border-radius: 16px; cursor: pointer; color: var(--ink); }
+.example:hover { border-color: var(--soft-edge); }
+.example b { font-size: 1rem; }
+.example span { font-size: 0.875rem; color: var(--ink-2); }
+.ex-bars { display: flex; align-items: flex-end; gap: 4px; height: 40px; }
+.ex-bars i { flex: 1; border-radius: 3px; background: var(--blk); }
+.measures { margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.measure { padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--rule); border-top: 4px solid var(--c); }
+.measure .k { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.measure b { display: block; font-size: 1.0625rem; color: var(--c); margin-top: 2px; }
+.measure p { font-size: 0.875rem; color: var(--ink-2); margin-top: 2px; }
 
-  nav button {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--ink);
-    padding: 7px 18px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.85rem;
-    letter-spacing: 0.04em;
-    transition: background 0.2s;
-  }
+/* =================================================================
+   6. WORKING WITH THE DATA
+   ================================================================= */
+.work { max-width: 1200px; margin: 0 auto; padding: 24px 32px 40px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.how-grid { grid-template-columns: minmax(0, 1fr) 360px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toggle { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--rule); }
+.toggle button { min-height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; font-size: 0.9375rem; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: #FFFFFF; color: var(--ink); box-shadow: 0 1px 3px rgba(28,39,48,0.15); }
+.toggle button:disabled { opacity: 0.45; cursor: not-allowed; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.barcount { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9375rem; font-weight: 600; color: var(--ink-2); }
+.barcount .step { margin-top: 0; }
+.barcount .step button { width: 38px; height: 40px; font-size: 1.125rem; }
+.barcount .step b { min-width: 30px; display: flex; align-items: center; justify-content: center; color: var(--ink); border-left: 1px solid var(--rule); }
+.barcount .step b + button { border-left: 1px solid var(--rule); }
+.chart-card { margin-top: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 20px 24px 18px; }
+.title-in { width: 100%; max-width: 560px; border: 0; border-bottom: 1px dashed transparent; padding: 2px 0; font-size: 1.0625rem; font-weight: 700; background: transparent; }
+.title-in:hover, .title-in:focus { border-bottom-color: var(--field-edge); }
+.chart-title { font-size: 1.0625rem; font-weight: 700; }
+.chart-sub { font-size: 0.875rem; color: var(--ink-2); }
+.hint { margin-top: 12px; font-size: 0.875rem; color: var(--ink-2); }
 
-  nav button:hover { background: var(--accent); }
+/* Bars made of blocks */
+.chart { position: relative; margin-top: 16px; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; }
+.yaxis { position: relative; }
+.yaxis span { position: absolute; right: 0; transform: translateY(50%); font-size: 0.75rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.plot { position: relative; border-bottom: 2px solid var(--field-edge); }
+.grid i { position: absolute; left: 0; right: 0; border-top: 1px solid #E7ECEB; }
+.bars { position: absolute; inset: 0 60px 0 0; display: flex; justify-content: space-around; align-items: stretch; }
+.col { position: relative; flex: 1 1 0; display: flex; justify-content: center; min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 8px 8px 0 0; }
+.col:hover { background: rgba(237,198,121,0.12); }
+.col[disabled] { cursor: default; background: transparent; }
+.stack { position: relative; width: min(56px, 70%); height: 100%; }
+.blk { position: absolute; left: 0; right: 0; border-radius: 5px; background: var(--blk); box-shadow: inset 0 -2px 0 var(--blk-edge); }
+.blk.dim { background: var(--blk-dim); box-shadow: none; }
+.blk.landed { background: var(--mean); box-shadow: inset 0 -2px 0 #2F4E95; }
+.blk.gone { background: transparent; box-shadow: none; border: 2px dashed #E0C48C; }
+.blk.hi-median { background: var(--median); box-shadow: inset 0 -2px 0 #136067; }
+.blk.hi-mode { background: var(--mode); box-shadow: inset 0 -2px 0 #6B4291; }
+.blk.hi-range { background: var(--range); box-shadow: inset 0 -2px 0 #A03F30; }
+.ring { position: absolute; left: -5px; right: -5px; bottom: -2px; border: 3px solid var(--mode); border-radius: 8px; pointer-events: none; }
+.ring b { position: absolute; left: 50%; top: -24px; transform: translateX(-50%); font-size: 0.75rem; font-weight: 700; color: #FFFFFF; background: var(--mode); padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.badge { position: absolute; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%; background: var(--mean); color: #FFFFFF; font-size: 0.8125rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.xmark { position: absolute; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--field-edge); color: var(--ink-2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.875rem; }
+.line { position: absolute; left: -6px; right: 54px; border-top: 3px solid var(--c); pointer-events: none; }
+.line .tag { z-index: 5; }
+.line.dash { border-top-style: dashed; }
+.line.guess { --c: #5B6670; border-top: 2px dotted #5B6670; }
+.tag { position: absolute; top: -14px; padding: 3px 10px; border-radius: 999px; background: var(--c); color: #FFFFFF; font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
+.tag.r { right: -4px; } .tag.l { left: -4px; } .tag.c1 { left: 22%; } .tag.c2 { left: 52%; }
+.bracket { position: absolute; right: 30px; width: 16px; border: 3px solid var(--range); border-left: 0; border-radius: 0 6px 6px 0; z-index: 3; pointer-events: none; }
+.bracket .tag { --c: var(--range); top: 50%; left: auto; right: -34px; transform: translateY(-50%) rotate(-90deg); }
+.guide { position: absolute; left: 0; right: 40px; border-top: 2px dashed #E3A396; z-index: 2; pointer-events: none; }
+.labels { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; margin-top: 10px; }
+.lrow { display: flex; justify-content: space-around; margin-right: 60px; }
+.lab { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.name-in { width: 100%; max-width: 84px; text-align: center; font-size: 0.875rem; font-weight: 700; border: 0; border-bottom: 1px dashed var(--field-edge); background: transparent; padding: 0 2px; }
+.lab .nm { font-size: 0.875rem; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab .v { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.lab.faded .nm, .lab.faded .v, .lab.faded .name-in { color: #B4BDBB; }
+.lab.faded .v { text-decoration: line-through; }
+.step { display: inline-flex; border: 1px solid var(--field-edge); border-radius: 999px; overflow: hidden; margin-top: 4px; background: #FFFFFF; }
+.step button { width: 32px; height: 30px; border: 0; background: transparent; font-weight: 700; font-size: 1rem; cursor: pointer; }
+.step button:hover { background: var(--surface-2); }
+.step button:disabled { opacity: 0.35; cursor: not-allowed; }
+.step button + button { border-left: 1px solid var(--rule); }
 
-  nav button.active {
-    background: var(--accent);
-    border-color: var(--accent2);
-  }
+/* Dot plot */
+.dots { position: relative; height: 320px; margin: 18px 24px 0; }
+.axis { position: absolute; left: 0; right: 0; bottom: 40px; border-top: 2px solid var(--field-edge); }
+.tick { position: absolute; bottom: 14px; transform: translateX(-50%); font-size: 0.8125rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tick::before { content: ""; position: absolute; left: 50%; top: -12px; height: 8px; border-left: 2px solid var(--field-edge); }
+.dot { position: absolute; border-radius: 50%; background: var(--blk); box-shadow: inset 0 -2px 0 var(--blk-edge); transform: translateX(-50%); }
+.dot.dim { background: var(--blk-dim); box-shadow: none; }
+.dot.hi-median { background: var(--median); box-shadow: none; }
+.dot.hi-mode { background: var(--mode); box-shadow: none; }
+.dot.hi-range { background: var(--range); box-shadow: none; }
+.dot.ring-mode { outline: 3px solid var(--mode); outline-offset: 2px; }
+.dot.x::after { content: "✕"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--ink-2); }
+.mk { position: absolute; bottom: 40px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; z-index: 3; pointer-events: none; }
+.mk i { border-left: 3px solid var(--c); }
+.mk.dash i { border-left-style: dashed; }
+.mk.guess i { border-left: 2px dotted #5B6670; }
+.mk span { padding: 3px 10px; border-radius: 999px; background: var(--c); color: #FFFFFF; font-size: 0.8125rem; font-weight: 700; white-space: nowrap; margin-bottom: 4px; }
+.mk.guess span { background: #5B6670; }
+.rng { position: absolute; top: 14px; height: 14px; border: 3px solid var(--range); border-bottom: 0; border-radius: 6px 6px 0 0; z-index: 3; }
+.rng span { position: absolute; left: 50%; top: -2px; transform: translate(-50%, -50%); padding: 3px 10px; border-radius: 999px; background: var(--range); color: #FFFFFF; font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
 
-  /* =====================================================================
-     MAIN CONTENT
-     ===================================================================== */
-  main {
-    width: 100%;
-    max-width: 1100px;
-    padding: 28px 20px;
-  }
+/* Measure cards */
+.side { display: flex; flex-direction: column; gap: 12px; }
+.side h3 { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); margin-top: 4px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-left: 5px solid var(--c); border-radius: 16px; padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; }
+.stat .nm { font-size: 0.9375rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.stat .sw { width: 22px; border-top: 3px solid var(--c); }
+.stat .sw.dash { border-top-style: dashed; }
+.stat .val { grid-row: span 2; font-size: 2.25rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; text-align: right; }
+.stat .calc { font-size: 0.8125rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.stat .foot { grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px solid #EEF1F0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 4px 2px; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.switch i { width: 34px; height: 20px; border-radius: 999px; background: #C9D1CF; position: relative; flex: none; }
+.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; transition: left 0.15s; }
+.switch[aria-checked="true"] i { background: var(--c); }
+.switch[aria-checked="true"] i::after { left: 16px; }
+.how-link { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; padding: 4px 2px; color: var(--c); font-weight: 700; font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
+.how-link svg { stroke: currentColor; }
+.stat.off .val { color: #B4BDBB; }
 
-  .description {
-    color: var(--ink-light);
-    font-size: 0.9rem;
-    margin-bottom: 20px;
-    padding-left: 4px;
-  }
+/* Guess panel */
+.explain { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+.explain h2 { font-size: 1.375rem; font-weight: 750; }
+.explain .intro { color: var(--ink-2); font-size: 0.9375rem; margin-top: -8px; }
+.field label { display: block; font-size: 0.9375rem; font-weight: 700; margin-bottom: 6px; }
+.inp { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--field-edge); border-radius: 12px; background: #FFFFFF; font-size: 1rem; }
+.guess-row { display: flex; gap: 8px; }
+.guess-row .inp { flex: 1; }
+.result { margin-top: 8px; padding: 12px 14px; border-radius: 12px; font-size: 0.9375rem; background: var(--cb); display: flex; gap: 10px; align-items: flex-start; }
+.result svg { stroke: var(--c); flex: none; margin-top: 2px; }
 
-  /* =====================================================================
-     STATS ROW — Mean / Median / Mode / Range readouts
-     ===================================================================== */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
+/* =================================================================
+   7. HOW IT WORKS
+   ================================================================= */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { padding: 7px 14px; border-radius: 999px; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--rule); background: #FFFFFF; color: var(--ink-2); cursor: pointer; }
+.tabs button:hover { border-color: var(--c); color: var(--c); }
+.tabs button[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #FFFFFF; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.steps li { display: flex; gap: 12px; }
+.steps .n { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--c); color: #FFFFFF; font-weight: 800; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; }
+.steps li.next { opacity: 0.45; }
+.steps li.next .n { background: #FFFFFF; color: var(--ink-2); border: 2px solid var(--rule); }
+.steps b { display: block; font-size: 1rem; }
+.steps p { font-size: 0.9375rem; color: var(--ink-2); margin-top: 2px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.steps p strong { color: var(--ink); }
+.take { padding: 14px 16px; border-radius: 14px; background: var(--cb); font-size: 0.9375rem; font-weight: 600; }
+.player { margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.player .note { font-size: 0.875rem; color: var(--ink-2); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8125rem; color: var(--ink-2); margin-top: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 16px; height: 12px; border-radius: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+.chips span { min-width: 48px; height: 48px; padding: 0 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 800; background: #FFFFFF; border: 1px solid var(--rule); font-variant-numeric: tabular-nums; position: relative; }
+.chips span.x { color: #B4BDBB; text-decoration: line-through; background: var(--surface-2); }
+.chips span.m { background: var(--c); border-color: var(--c); color: #FFFFFF; }
+.chips span small { position: absolute; top: -9px; right: -9px; min-width: 22px; height: 22px; border-radius: 999px; background: var(--mode); color: #FFFFFF; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+.chips .half { min-width: 0; border: 0; background: none; font-size: 0.875rem; font-weight: 700; color: var(--median); }
 
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    box-shadow: var(--shadow);
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    position: relative;       /* anchors the absolutely-positioned info icon in the corner */
-  }
+/* =================================================================
+   8. TYPE YOUR OWN NUMBERS
+   ================================================================= */
+.ed { max-width: 1200px; margin: 0 auto; padding: 28px 32px 0; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 28px; align-items: start; }
+.rowhead, .row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 150px 40px; gap: 12px; align-items: center; }
+.rowhead { padding: 0 14px; margin-top: 22px; font-size: 0.75rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.rows { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.row { padding: 8px 14px; background: #FFFFFF; border: 1px solid var(--rule); border-radius: 14px; }
+.row.bad { border-color: #E3A396; background: #FDF4F2; }
+.row .n { color: var(--ink-2); font-size: 0.875rem; font-weight: 600; text-align: center; }
+.row .num-in { font-weight: 700; font-size: 1.0625rem; }
+.row.new { border-style: dashed; background: transparent; }
+.icon-btn { width: 40px; height: 40px; border: 0; border-radius: 999px; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-2); }
+.icon-btn svg { stroke: var(--ink-2); }
+.empty-rows { padding: 22px; text-align: center; color: var(--ink-2); border: 1px dashed var(--rule); border-radius: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 20px; }
+.panel h3 { font-size: 1.0625rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.panel h3 svg { stroke: var(--app); }
+.panel p { font-size: 0.9375rem; color: var(--ink-2); margin-top: 4px; }
+.ta { width: 100%; min-height: 90px; margin-top: 12px; padding: 12px; border: 1px solid var(--field-edge); border-radius: 12px; font: inherit; font-size: 0.9375rem; resize: vertical; background: #FFFFFF; }
+.mini-stats { margin-top: 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mini-stats div { padding: 10px; border-radius: 12px; background: var(--cb); min-width: 0; }
+.mini-stats span { display: block; font-size: 0.75rem; font-weight: 700; color: var(--c); }
+.mini-stats b { font-size: 1.25rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ed-foot { max-width: 1200px; margin: 24px auto 0; padding: 16px 32px 32px; border-top: 1px solid var(--rule); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.ed-foot .note { margin-left: auto; font-size: 0.875rem; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+.ed-foot .note svg { stroke: var(--app); }
+.msg { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--app-bg); font-size: 0.9375rem; font-weight: 600; }
+.drop-hint { position: fixed; inset: 12px; border: 3px dashed var(--app); border-radius: 24px; background: rgba(251,241,222,0.94); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: #7A5A1E; z-index: 50; pointer-events: none; }
 
-  /* The colored legend marker above each readout that ties visually
-     to the matching element on the chart. */
-  .stat-marker {
-    width: 32px;
-    height: 6px;
-    margin-bottom: 2px;
-  }
-  .mean-marker {
-    background: var(--mean-color);
-    border-radius: 2px;
-  }
-  .median-marker {
-    height: 0;
-    border-top: 3px dashed var(--median-color);
-  }
-  .mode-marker {
-    width: 18px;
-    height: 18px;
-    background: transparent;
-    box-shadow: inset 0 0 0 3px var(--mode-color);
-    border-radius: 3px;
-  }
-  .range-marker {
-    width: 12px;
-    height: 22px;
-    border: 2px solid var(--range-color);
-    border-left: none;
-    border-radius: 0 2px 2px 0;
-    background: transparent;
-  }
+/* Big text for the projector */
+body.big main { zoom: 1.2; }
 
-  .stat-label {
-    font-size: 0.72rem;
-    color: var(--ink-light);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
+/* Phone rows (phones only) */
+.prows { display: none; }
 
-  .stat-value {
-    font-size: 2rem;
-    font-weight: normal;
-    color: var(--ink);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    min-height: 2rem;       /* keeps card height stable when value is "—" */
-  }
-
-  /* ---------- INFO ICON ----------
-     Small circled "i" in the top-right corner of each card. Replaces
-     the previous text-hover trigger with an explicit, visible affordance
-     that signals "hover me for a definition". */
-  .info-icon {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--ink-light);
-    font-family: 'Georgia', serif;
-    font-style: italic;
-    font-size: 0.78rem;
-    cursor: help;                    /* the "help" cursor — signals hover-for-info */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    line-height: 1;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-  }
-  .info-icon:hover {
-    background: var(--accent);
-    border-color: var(--accent2);
-    color: var(--ink);
-  }
-
-  /* ---------- TOOLTIP ----------
-     Triggered by JS adding .show-tooltip to the .info-icon after a 1s
-     hover delay. Anchored to the icon's RIGHT edge (right: -2px) so the
-     220px-wide tooltip extends leftward into the card area instead of
-     overflowing off the right side. */
-  .info-icon.show-tooltip::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: calc(100% + 14px);
-    right: -2px;
-    width: 220px;
-    background: var(--ink);
-    color: var(--surface);
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    line-height: 1.5;
-    letter-spacing: 0.02em;
-    text-transform: none;
-    text-align: left;
-    z-index: 100;
-    pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-    white-space: normal;
-  }
-
-  /* The little triangle arrow pointing down from the tooltip toward the icon */
-  .info-icon.show-tooltip::before {
-    content: '';
-    position: absolute;
-    bottom: calc(100% + 4px);
-    right: 3px;
-    border: 6px solid transparent;
-    border-top-color: var(--ink);
-    z-index: 101;
-    pointer-events: none;
-  }
-
-  /* ---------- STAT CALCULATION ----------
-     Small line below each stat value showing how the number was derived
-     (e.g. "46 ÷ 8 = 5.75"). Sits muted underneath the bold value so the
-     value stays the primary readout. min-height keeps card heights stable
-     when the calculation is empty (no-data state). */
-  .stat-calc {
-    font-size: 0.72rem;
-    color: var(--ink-light);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-    line-height: 1.3;
-    min-height: 1rem;
-  }
-
-  /* =====================================================================
-     SORTED CARD — full-width card under the stats row showing the dataset
-     sorted ascending as chips. Values used in the median calculation get
-     a maroon highlight that matches the median line/marker color, so the
-     visual link "these maroon chips become the median" is unmistakable.
-     ===================================================================== */
-  .sorted-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 24px;
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    position: relative;            /* anchors the info icon in the corner */
-    margin-bottom: 24px;
-  }
-
-  /* The flex container that holds each value chip. flex-wrap means many
-     values will wrap onto a second line rather than overflow horizontally. */
-  .sorted-display {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    align-items: center;
-    min-height: 1.8rem;
-    width: 100%;
-  }
-
-  /* One value chip — small rounded pill containing a single number */
-  .sorted-val {
-    padding: 3px 11px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 0.9rem;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-    transition: background 0.2s, color 0.2s, border-color 0.2s;
-  }
-
-  /* The chip(s) at the middle of the sorted list — what the median uses.
-     Filled maroon to match the median line color on the chart. */
-  .sorted-val.uses-median {
-    background: var(--median-color);
-    color: var(--surface);
-    border-color: var(--median-color);
-    font-weight: bold;
-  }
-
-  /* Placeholder text shown when there's no data yet */
-  .sorted-empty {
-    font-size: 0.85rem;
-    color: var(--ink-light);
-    font-style: italic;
-  }
-
-  /* =====================================================================
-     CHART CARD
-     ===================================================================== */
-  .chart-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 28px 32px 16px;
-    box-shadow: var(--shadow);
-    margin-bottom: 24px;
-    overflow: visible;            /* tooltips and popups can spill out cleanly */
-  }
-
-  /* Grid layout: [ Y-axis labels ] [ Chart plotting area  ]
-                                   [ Editable bar footers   ] */
-  .chart-grid {
-    display: grid;
-    grid-template-columns: 36px 1fr;
-    grid-template-rows: auto auto;
-    column-gap: 6px;
-    row-gap: 12px;
-  }
-
-  .y-axis {
-    grid-column: 1; grid-row: 1;
-    position: relative;
-    font-size: 0.72rem;
-    color: var(--ink-light);
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    transition: height 0.3s;       /* smooth animation when the y-max changes */
-  }
-
-  .y-label {
-    position: absolute;
-    right: 6px;
-    transform: translateY(50%);    /* center the text vertically on its line */
-    pointer-events: none;
-  }
-
-  /* The plotting area — bars and stat lines positioned inside.
-     Its height is set inline by JS based on yMax. */
-  .chart-area {
-    grid-column: 2; grid-row: 1;
-    position: relative;
-    border-left: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    transition: height 0.3s;       /* smooth grow/shrink when the chart re-scales */
-  }
-
-  /* Faint horizontal gridlines at each y-axis tick value */
-  .gridline {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--border);
-    opacity: 0.35;
-    pointer-events: none;
-  }
-
-  /* The flex row holding the bar columns inside the chart area */
-  .bars-container {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: stretch;          /* bar columns stretch full height */
-    justify-content: space-around;
-    padding: 0 8px;
-    z-index: 1;
-  }
-
-  /* One bar column — the entire vertical strip including empty space above
-     the blocks. The whole strip is clickable (left-click adds, right-click
-     removes) so students can keep adding blocks even when their stack is short. */
-  .bar-column {
-    flex: 1;
-    max-width: 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;     /* blocks pin to the bottom */
-    align-items: center;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.2s;
-    user-select: none;             /* prevent text selection on rapid clicks */
-  }
-
-  .bar-column:hover { background: rgba(0,0,0,0.025); }
-
-  /* Stack of blocks inside one bar column.
-     column-reverse means the first DOM child sits at the bottom — perfect
-     for stacking up as we push new block objects into the array. */
-  .block-stack {
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: center;
-  }
-
-  /* Each block — discrete tile, 24px tall (including its 2px top border
-     which doubles as the visual separator between adjacent blocks). */
-  .block {
-    width: 38px;
-    height: 24px;
-    border-radius: 3px;
-    border-top: 2px solid rgba(0,0,0,0.18);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset;
-    transition: box-shadow 0.2s;
-    /* background color is set inline based on the bar's chosen color */
-  }
-
-  /* The bottommost block (first DOM child in the column-reverse stack)
-     has nothing under it, so no separator border is needed there. */
-  .block-stack > .block:first-child {
-    border-top: none;
-    height: 22px;                  /* keep the visible color block consistent at 22px */
-  }
-
-  /* Mode block — gets a teal "inner outline" via inset box-shadow.
-     Inset shadow stays within the block's box so the layout doesn't shift. */
-  .block.is-mode {
-    box-shadow: inset 0 0 0 3px var(--mode-color);
-  }
-
-  /* =====================================================================
-     STAT LINES — Mean (solid) and Median (dashed) crossing the chart
-     =====================================================================
-     Both are 3px-tall divs positioned with bottom: Npx based on each
-     statistic's value × the block-unit pixel height (24). A subtle white
-     halo via box-shadow makes them stay visible regardless of the bar
-     colors underneath. */
-  .stat-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 3px;
-    z-index: 2;
-    transition: bottom 0.3s ease;
-    pointer-events: none;
-  }
-
-  .stat-line.mean {
-    background: var(--mean-color);
-    box-shadow: 0 0 0 1px rgba(255,253,248,0.85);
-  }
-
-  /* Dashed median made with a repeating gradient instead of border-dashed
-     so the 3px line height and halo both work cleanly. */
-  .stat-line.median {
-    background: repeating-linear-gradient(
-      to right,
-      var(--median-color) 0 9px,
-      transparent 9px 15px
-    );
-    box-shadow: 0 0 0 1px rgba(255,253,248,0.85);
-  }
-
-  .stat-line-label {
-    position: absolute;
-    top: -11px;
-    background: var(--surface);
-    padding: 1px 8px;
-    border-radius: 10px;
-    font-size: 0.72rem;
-    color: var(--ink);
-    border: 1px solid var(--border);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    z-index: 3;
-  }
-
-  /* Labels on opposite sides so they never overlap each other */
-  .stat-line.mean   .stat-line-label { right: 6px; }
-  .stat-line.median .stat-line-label { left:  6px; }
-
-  /* =====================================================================
-     RANGE BRACKET — vertical bracket on the right edge of the chart
-     spanning min → max. Visually answers "how spread out is the data?".
-     ===================================================================== */
-  .range-bracket {
-    position: absolute;
-    right: 6px;
-    width: 8px;
-    border-right: 2.5px solid var(--range-color);
-    border-top:   2.5px solid var(--range-color);
-    border-bottom:2.5px solid var(--range-color);
-    opacity: 0.7;
-    z-index: 1;
-    transition: bottom 0.3s ease, height 0.3s ease;
-    pointer-events: none;
-  }
-
-  /* =====================================================================
-     BAR LABELS ROW — editable label + color swatch + count controls
-     under each bar. Lives in grid row 2.
-     ===================================================================== */
-  .bar-labels-row {
-    grid-column: 2; grid-row: 2;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-around;
-    padding: 4px 8px 0;
-  }
-
-  .bar-label-cell {
-    flex: 1;
-    max-width: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* Top line under each bar: swatch + editable label */
-  .label-line {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* Mini swatch — click to open the same 20-color palette popup */
-  .color-swatch-mini {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    border: 1px solid var(--accent2);
-    cursor: pointer;
-    flex-shrink: 0;
-    position: relative;            /* anchors the popup */
-  }
-
-  .color-picker-popup {
-    display: none;
-    position: absolute;
-    top: 22px;
-    left: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px;
-    box-shadow: var(--shadow);
-    z-index: 50;
-    width: 220px;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
-  }
-  .color-picker-popup.open { display: grid; }
-
-  .color-option {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    border: 1px solid var(--accent2);
-    cursor: pointer;
-    transition: transform 0.1s;
-  }
-  .color-option:hover { transform: scale(1.1); }
-
-  /* Editable label input — same dashed-underline pattern as percentages */
-  .bar-label-input {
-    flex: 1;
-    min-width: 0;                  /* allow shrink inside flex parent */
-    background: transparent;
-    border: none;
-    border-bottom: 1px dashed var(--border);
-    padding: 2px 0;
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: var(--ink);
-    outline: none;
-    text-align: center;
-    max-width: 60px;
-  }
-  .bar-label-input:focus { border-bottom-color: var(--accent2); }
-
-  /* Bottom line: − count + */
-  .count-controls-mini {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .btn-count-mini {
-    width: 22px;
-    height: 22px;
-    background: var(--accent);
-    border: 1px solid var(--accent2);
-    border-radius: 50%;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: var(--ink);
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    line-height: 1;
-  }
-  .btn-count-mini:hover { background: var(--accent2); }
-  .btn-count-mini:disabled { opacity: 0.35; cursor: not-allowed; }
-
-  .count-mini {
-    font-size: 0.82rem;
-    color: var(--ink);
-    min-width: 20px;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* =====================================================================
-     CONTROLS ROW — Bars adjustment + Randomize + Reset
-     ===================================================================== */
-  .controls-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-    padding: 0 6px;
-  }
-
-  .control-label {
-    font-size: 0.74rem;
-    color: var(--ink-light);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .btn-count {
-    width: 30px;
-    height: 30px;
-    background: var(--accent);
-    border: 1px solid var(--accent2);
-    border-radius: 50%;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 1.1rem;
-    color: var(--ink);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    line-height: 1;
-    transition: background 0.2s;
-  }
-  .btn-count:hover { background: var(--accent2); }
-  .btn-count:disabled { opacity: 0.35; cursor: not-allowed; }
-
-  .count-display {
-    font-size: 1rem;
-    min-width: 28px;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--ink);
-    border: 1px solid var(--border);
-    padding: 8px 20px;
-    border-radius: 24px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-family: inherit;
-    letter-spacing: 0.04em;
-    transition: background 0.2s;
-  }
-  .btn-secondary:hover { background: var(--border); }
-
-  footer {
-    text-align: center;
-    font-size: 0.75rem;
-    color: var(--ink-light);
-    padding: 20px;
-    margin-top: 12px;
-  }
-
+/* =================================================================
+   9. SMALL SCREENS
+   ================================================================= */
+@media (max-width: 960px) {
+  .work, .ed, .how-grid { grid-template-columns: 1fr; }
+  .starts { grid-template-columns: 1fr; }
+  .start { min-height: 0; }
+  .examples, .measures { grid-template-columns: 1fr 1fr; }
+  .side { display: grid; grid-template-columns: 1fr 1fr; }
+  .side h3 { display: none; }
+}
+@media (max-width: 600px) {
+  .app-bar-inner { padding: 12px 16px; }
+  .privacy, .crumb .sep, .crumb .here, #btn-big { display: none !important; }
+  .link-btn .lbl { display: none; }
+  .wrap { padding: 28px 16px 48px; }
+  .work, .ed { padding: 14px 16px 32px; gap: 14px; }
+  .work-side-first .side { order: -1; }
+  .examples, .measures { grid-template-columns: 1fr; }
+  .side { gap: 8px; }
+  .stat { padding: 10px 12px; border-left-width: 4px; }
+  .stat .val { font-size: 1.625rem; }
+  .stat .calc { font-size: 0.75rem; }
+  .stat .foot { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .chart-card { padding: 14px 12px; }
+  .chart, .labels { grid-template-columns: 18px minmax(0, 1fr); gap: 6px; }
+  .bars { right: 44px; }
+  .lrow { margin-right: 44px; }
+  .line { right: 40px; }
+  .bracket { right: 20px; }
+  .lab .step, .hint-bars { display: none; }
+  .name-in { font-size: 0.75rem; }
+  .lab .v { font-size: 1rem; }
+  .prows { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .prow { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #FFFFFF; border: 1px solid var(--rule); border-radius: 14px; }
+  .prow b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--field-edge); background: #FFFFFF; font-size: 1.25rem; cursor: pointer; }
+  .prow .pv { width: 28px; text-align: center; font-weight: 800; font-size: 1.125rem; }
+  .dots { margin: 18px 4px 0; height: 260px; }
+  .rowhead { display: none; }
+  .row { grid-template-columns: minmax(0, 1fr) 96px 40px; }
+  .row .n { display: none; }
+  .ed-foot { padding: 16px; }
+  .ed-foot .btn { flex: 1 1 100%; }
+  .ed-foot .note { margin-left: 0; }
+  .mini-stats { grid-template-columns: 1fr 1fr; }
+  .toolbar .tools { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .switch i::after { transition: none; } }
 </style>
 </head>
 <body>
 
-  <!-- ============================================================
-       HEADER — title + suite nav placeholder
-       ============================================================ -->
-  <header>
-  <h1>Center &amp; <span>Spread</span></h1>
+<div class="app-stripe" aria-hidden="true"></div>
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <div class="app-id">
+      <a class="home-link" href="index.html" aria-label="Back to Teacher Apps"><span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span></a>
+      <span class="bar-divider" aria-hidden="true"></span>
+      <span class="crumb">
+        <span class="app-name"><span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 16v-4M10 16V8M14 16V5M18 16v-6"/></svg></span>Center and Spread</span>
+        <span class="sep" id="crumb-sep" hidden>/</span><span class="here" id="crumb-here" hidden></span>
+      </span>
+    </div>
+    <div class="bar-right">
+      <span class="privacy" id="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Nothing is saved or sent anywhere</span>
+      <button type="button" class="link-btn" id="btn-newdata" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><span class="lbl">New data</span></button>
+      <button type="button" class="link-btn" id="btn-big" aria-pressed="false" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span class="lbl">Big text</span></button>
+      <button type="button" class="link-btn" id="btn-back" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl" id="btn-back-text">Back</span></button>
+      <button type="button" class="link-btn" id="btn-over" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><span class="lbl">Start over</span></button>
+    </div>
+  </div>
 </header>
-  <main>
 
-    <!-- ============================================================
-    <!-- ============================================================
-         STATS ROW — live readouts. Each card has an info icon (ⓘ) in
-         its upper-right corner that opens a definition tooltip on hover.
-         A small calculation line under each value shows the math
-         (e.g. "46 ÷ 8 = 5.75") so students see how the number is built.
-         ============================================================ -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <button type="button" class="info-icon tooltip-trigger"
-                data-tooltip="Add all the values, then divide by how many there are. Also called the average.">i</button>
-        <div class="stat-marker mean-marker"></div>
-        <div class="stat-label">Mean</div>
-        <div class="stat-value" id="stat-mean">—</div>
-        <div class="stat-calc"  id="calc-mean"></div>
-      </div>
-      <div class="stat-card">
-        <button type="button" class="info-icon tooltip-trigger"
-                data-tooltip="The middle value when the data is sorted from smallest to largest. Half the data is below, half is above.">i</button>
-        <div class="stat-marker median-marker"></div>
-        <div class="stat-label">Median</div>
-        <div class="stat-value" id="stat-median">—</div>
-        <div class="stat-calc"  id="calc-median"></div>
-      </div>
-      <div class="stat-card">
-        <button type="button" class="info-icon tooltip-trigger"
-                data-tooltip="The value that appears most often. If no value repeats, there is no mode.">i</button>
-        <div class="stat-marker mode-marker"></div>
-        <div class="stat-label">Mode</div>
-        <div class="stat-value" id="stat-mode">—</div>
-        <div class="stat-calc"  id="calc-mode"></div>
-      </div>
-      <div class="stat-card">
-        <button type="button" class="info-icon tooltip-trigger"
-                data-tooltip="The largest value minus the smallest value. Shows how spread out the data is.">i</button>
-        <div class="stat-marker range-marker"></div>
-        <div class="stat-label">Range</div>
-        <div class="stat-value" id="stat-range">—</div>
-        <div class="stat-calc"  id="calc-range"></div>
-      </div>
-    </div>
+<main>
+<!-- ============ LANDING ============ -->
+<section id="landing" class="wrap">
+  <h1>What’s typical, and how spread out is it?</h1>
+  <p class="lede">Build a small data set with blocks or type in real numbers. Then see the mean, median, mode and range, with the math shown step by step.</p>
+  <div class="starts">
+    <button type="button" class="start primary" id="go-blocks">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="13" width="6" height="7" rx="1.5"/><rect x="14" y="7" width="6" height="13" rx="1.5"/><rect x="14" y="3" width="6" height="3" rx="1"/></svg></span>
+      <span class="start-title">Build with blocks</span>
+      <span class="start-text">Start with 6 empty bars. Click a bar to stack a block.</span>
+      <span class="mini" aria-hidden="true"><i style="height:22px"></i><i style="height:38px"></i><i style="height:16px"></i><i style="height:38px"></i><i style="height:50px"></i><i style="height:30px"></i></span>
+    </button>
+    <button type="button" class="start" id="go-numbers">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 10h2M11 10h2M15 10h2M8 14h8"/></svg></span>
+      <span class="start-title">Type your own numbers</span>
+      <span class="start-text">Quiz scores, minutes read, jump distances. Type or paste a list from a spreadsheet.</span>
+    </button>
+    <button type="button" class="start" id="go-guess">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      <span class="start-title">Guess first</span>
+      <span class="start-text">The answers stay hidden. Students predict the mean and median, then reveal.</span>
+    </button>
+  </div>
+  <div class="sec-head"><h2>Examples to explore</h2><p>Each one opens ready to go</p></div>
+  <ul class="examples" id="examples"></ul>
+  <div class="sec-head"><h2>Four ways to describe data</h2><p>Three for the center, one for the spread</p></div>
+  <div class="measures">
+    <div class="measure m-mean"><span class="k">Center</span><b>Mean</b><p>Share everything out evenly</p></div>
+    <div class="measure m-median"><span class="k">Center</span><b>Median</b><p>The middle when lined up</p></div>
+    <div class="measure m-mode"><span class="k">Center</span><b>Mode</b><p>The value that shows up most</p></div>
+    <div class="measure m-range"><span class="k">Spread</span><b>Range</b><p>Biggest minus smallest</p></div>
+  </div>
+</section>
 
-    <!-- ============================================================
-         SORTED CARD — full-width strip showing every data value as a
-         chip in ascending order. Values that contribute to the median
-         calculation get a maroon highlight matching the median color.
-         ============================================================ -->
-    <div class="sorted-card">
-      <button type="button" class="info-icon tooltip-trigger"
-              data-tooltip="The data values arranged from smallest to largest. Values used by the median calculation are highlighted in maroon.">i</button>
-      <div class="stat-label">Sorted Data</div>
-      <div class="sorted-display" id="sorted-display"></div>
-    </div>
-
-
-        <div class="description">
-      Click a bar to add a block. Right-click (or use the −) to remove one. Each bar is a data point — rename or recolor it below.
-    </div>
-    
-    <!-- ============================================================
-         CHART CARD — Y-axis | plotting area | bar footers
-         ============================================================ -->
-    <div class="chart-card">
-      <div class="chart-grid">
-        <div class="y-axis" id="y-axis"></div>
-        <div class="chart-area" id="chart-area">
-          <!-- Bars container, gridlines, stat lines, and range bracket
-               are all built dynamically by JS. -->
+<!-- ============ WORKING WITH THE DATA ============ -->
+<section id="work" hidden>
+  <div class="work work-side-first">
+    <div>
+      <div class="toolbar">
+        <div class="toggle" role="group" aria-label="Chart type">
+          <button type="button" data-view="bars" aria-pressed="true">Bars</button>
+          <button type="button" data-view="dots" aria-pressed="false">Dot plot</button>
         </div>
-        <div class="bar-labels-row" id="bar-labels-row"></div>
+        <div class="tools">
+          <button type="button" class="btn" id="btn-sort"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4"/><path d="M13 7h8M13 12h6M13 17h4"/></svg><span id="sort-text">Sort smallest to largest</span></button>
+          <span class="barcount" id="barcount"><span>Bars</span><span class="step"><button type="button" id="btn-remove" aria-label="Remove a bar">−</button><b id="bar-n" aria-live="polite">6</b><button type="button" id="btn-add" aria-label="Add a bar">+</button></span></span>
+          <button type="button" class="btn" id="btn-edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 10h2M11 10h2M15 10h2M8 14h8"/></svg>Edit numbers</button>
+        </div>
+      </div>
+      <div class="chart-card">
+        <label class="sr-only" for="title-in">What are you measuring?</label>
+        <input class="title-in" id="title-in" autocomplete="off">
+        <div class="chart-sub" id="chart-sub">Each bar is one data point</div>
+        <div id="chart"></div>
+        <div class="prows" id="prows"></div>
+      </div>
+      <p class="hint" id="work-hint"></p>
+    </div>
+    <aside class="side" id="side" aria-label="Measures"></aside>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how" hidden>
+  <div class="work how-grid">
+    <div>
+      <div class="chart-card">
+        <div class="chart-title" id="how-title"></div>
+        <div class="chart-sub" id="how-sub"></div>
+        <div id="how-chart"></div>
+        <div class="legend" id="how-legend" hidden></div>
+        <div class="chips" id="how-chips" hidden></div>
+      </div>
+      <div class="player">
+        <button type="button" class="btn" id="how-prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Back a step</button>
+        <button type="button" class="btn btn-big btn-measure" id="how-next"></button>
+        <span class="note" id="how-note" aria-live="polite"></span>
       </div>
     </div>
-
-    <!-- ============================================================
-         CONTROLS ROW
-         ============================================================ -->
-    <div class="controls-row">
-      <span class="control-label">Bars</span>
-      <button class="btn-count" id="btn-remove-bar" onclick="removeBar()">−</button>
-      <span class="count-display" id="bar-count-display">6</span>
-      <button class="btn-count" id="btn-add-bar" onclick="addBar()">+</button>
-      <button class="btn-secondary" onclick="randomize()">↻ Randomize</button>
-      <button class="btn-secondary" onclick="resetAll()">Reset</button>
+    <div class="explain" id="how-panel">
+      <div class="tabs" role="tablist" aria-label="Measure" id="how-tabs">
+        <button type="button" role="tab" class="m-mean" data-m="mean">Mean</button>
+        <button type="button" role="tab" class="m-median" data-m="median">Median</button>
+        <button type="button" role="tab" class="m-mode" data-m="mode">Mode</button>
+        <button type="button" role="tab" class="m-range" data-m="range">Range</button>
+      </div>
+      <h2 id="how-h"></h2>
+      <ol class="steps" id="how-steps"></ol>
+      <div class="take" id="how-take" hidden></div>
     </div>
+  </div>
+</section>
 
-  </main>
+<!-- ============ TYPE YOUR OWN NUMBERS ============ -->
+<section id="numbers" hidden>
+  <div class="ed">
+    <div>
+      <div class="field" style="max-width: 440px"><label for="ed-title">What are you measuring?</label><input class="inp" id="ed-title" style="font-size: 1.125rem; font-weight: 700" placeholder="Quiz scores" autocomplete="off"></div>
+      <div id="ed-msg" class="msg" role="status" hidden></div>
+      <div class="rowhead" aria-hidden="true"><span>#</span><span>Name (optional)</span><span>Number</span><span></span></div>
+      <ul class="rows" id="ed-rows"></ul>
+      <ul class="rows">
+        <li class="row new">
+          <span class="n" id="new-n">1</span>
+          <input class="inp" id="new-name" placeholder="Name" aria-label="Name for the new number" autocomplete="off">
+          <input class="inp num-in" id="new-num" placeholder="Number" aria-label="New number" inputmode="decimal" autocomplete="off">
+          <button type="button" class="icon-btn" id="new-add" aria-label="Add this number"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        </li>
+      </ul>
+      <p class="hint">Type a number and press Enter to add it.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div class="panel">
+        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6"/></svg>Paste a list</h3>
+        <p>Numbers separated by commas, spaces or new lines. A column copied from a spreadsheet works too. To add names, put one name and number on each line, like <b>Ava, 82</b>.</p>
+        <label for="paste" class="sr-only">Numbers to add</label>
+        <textarea id="paste" class="ta" placeholder="82, 95, 74, 88, 95, 90, 79"></textarea>
+        <button type="button" class="btn" id="paste-add" style="margin-top: 12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add these numbers</button>
+      </div>
+      <div class="panel">
+        <h3 id="ed-count">No numbers yet</h3>
+        <div class="mini-stats" id="ed-stats"></div>
+        <p id="ed-note" style="margin-top: 10px; font-size: 0.8125rem"></p>
+      </div>
+    </div>
+  </div>
+  <div class="ed-foot">
+    <button type="button" class="btn btn-primary btn-big" id="ed-go">See it on a chart <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button type="button" class="btn btn-big" id="ed-save"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>Save data file</button>
+    <button type="button" class="btn btn-big" id="ed-open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Open data file</button>
+    <span class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Data files stay on your computer</span>
+  </div>
+  <input type="file" id="file-input" accept=".json,.csv,.txt,application/json,text/csv,text/plain" hidden>
+</section>
+</main>
 
-  <footer>
-    A Simple Ed Tool — runs entirely in your browser, no data leaves this page.
-  </footer>
+<div class="drop-hint" id="drop-hint" hidden>Drop a data file to open it</div>
+<div class="sr-only" aria-live="polite" id="announce"></div>
 
+<script>
+/* =================================================================
+   1. SETTINGS AND EXAMPLES
+   ================================================================= */
+var MAX_BLOCKS = 20;      /* tallest a block bar can be */
+var MAX_BARS = 10;        /* most bars in block mode */
+var MAX_BAR_ITEMS = 12;   /* more values than this show as a dot plot */
+var NAMES = ['Ava', 'Ben', 'Cam', 'Dee', 'Eli', 'Fay', 'Gus', 'Hal', 'Ivy', 'Jo', 'Kai', 'Lu'];
+var EXAMPLES = [
+  { title: 'Pets at home', who: 'students', values: [4, 7, 3, 7, 9, 6] },
+  { title: 'Books read this month', who: 'students', values: [2, 5, 3, 8, 4, 5, 6, 3] },
+  { title: 'Shoe sizes', who: 'students', values: [5, 6, 6, 7, 5, 8, 6, 7, 6, 4] },
+  { title: 'Minutes to walk to school', who: 'students', values: [3, 4, 3, 5, 4, 14], note: 'One big outlier: watch the mean move' }
+];
+var MEASURES = {
+  mean:   { name: 'Mean',   group: 'Center' },
+  median: { name: 'Median', group: 'Center' },
+  mode:   { name: 'Mode',   group: 'Center' },
+  range:  { name: 'Range',  group: 'Spread' }
+};
+var I = {
+  arw: '<path d="M5 12h14M13 6l6 6-6 6"/>', chk: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', again: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>', tr: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>'
+};
+function svg(p, s) { return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
 
-  <script>
+/* =================================================================
+   2. STATE
+   ================================================================= */
+var S = {
+  title: '',
+  items: [],              /* [{ name, value }] */
+  view: 'bars',           /* 'bars' or 'dots' */
+  sorted: false,
+  show: { mean: true, median: true, mode: false, range: false },
+  guess: null,            /* while guessing: { mean: {text, done}, median: {text, done} } */
+  big: false
+};
+var how = { m: 'mean', step: 0 };
+var dirty = false;        /* typed data changed since last save */
+var screen = 'landing';
 
-    /* ============================================================
-       CENTER & SPREAD — JavaScript
-       ============================================================
-       The model is intentionally simple. State holds an array of
-       "bars" (data points), each with a count of blocks stacked
-       on it. Stats are computed from those counts on every render.
-       ============================================================ */
+/* =================================================================
+   3. SMALL HELPERS
+   ================================================================= */
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function announce(t) { var a = $('announce'); a.textContent = ''; setTimeout(function () { a.textContent = t; }, 30); }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+/* Show at most 2 decimal places, without trailing zeros. */
+function fmt(n) {
+  if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+  return String(+n.toFixed(2));
+}
+/* "=" when the shown number is exact, "≈" when it was rounded */
+function eq(n) { return Math.abs(+fmt(n) - n) < 1e-9 ? '=' : '≈'; }
+function listJoin(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
 
+/* =================================================================
+   4. THE MATHS
+   ================================================================= */
+function stats() {
+  var v = S.items.map(function (it) { return it.value; });
+  var n = v.length;
+  var st = { n: n, values: v };
+  if (!n) return st;
+  st.sum = v.reduce(function (a, b) { return a + b; }, 0);
+  st.mean = st.sum / n;
+  /* sorted copy, keeping track of which item each value came from */
+  st.order = S.items.map(function (it, i) { return i; }).sort(function (a, b) { return v[a] - v[b] || a - b; });
+  st.sorted = st.order.map(function (i) { return v[i]; });
+  var mid = Math.floor(n / 2);
+  st.midIdx = n % 2 ? [mid] : [mid - 1, mid];
+  st.median = n % 2 ? st.sorted[mid] : (st.sorted[mid - 1] + st.sorted[mid]) / 2;
+  var freq = {}, keys = [];
+  v.forEach(function (x) { var k = String(x); if (!freq[k]) { freq[k] = 0; keys.push(x); } freq[k]++; });
+  st.freq = freq;
+  st.maxFreq = Math.max.apply(null, keys.map(function (x) { return freq[String(x)]; }));
+  st.modes = st.maxFreq > 1 ? keys.filter(function (x) { return freq[String(x)] === st.maxFreq; }).sort(function (a, b) { return a - b; }) : [];
+  st.min = st.sorted[0]; st.max = st.sorted[n - 1];
+  st.range = st.max - st.min;
+  st.empty = (st.sum === 0 && st.max === 0 && isBlocks());   /* a fresh set of empty bars */
+  return st;
+}
+function isWhole(x) { return Math.abs(x - Math.round(x)) < 1e-9; }
+/* Can this data be drawn as stacks of blocks? */
+function barsOK() {
+  return S.items.length > 0 && S.items.length <= MAX_BAR_ITEMS && S.items.every(function (it) { return isWhole(it.value) && it.value >= 0 && it.value <= MAX_BLOCKS; });
+}
+function isBlocks() { return S.view === 'bars' && barsOK(); }
 
-    /* -----------------------------------------------------------
-       THE 20-COLOR PALETTE — same as Percentages
-       Each new bar grabs a random color from here on creation.
-       ----------------------------------------------------------- */
-    var PALETTE = [
-      '#e4c14a','#c84a3a','#e8ddb8','#5fa05f','#e89c45',
-      '#4a7ab8','#8e57a8','#d873a8','#4ab0a0','#8b6541',
-      '#d04a82','#a5c93d','#2e4870','#e88574','#b59ed4',
-      '#828b4a','#4dabb8','#8a3242','#d4a747','#7a7a78'
-    ];
+/* =================================================================
+   5. SCREENS AND HEADER
+   ================================================================= */
+function showScreen(name) {
+  screen = name;
+  ['landing', 'work', 'how', 'numbers'].forEach(function (s) { $(s).hidden = (s !== name); });
+  var guessing = !!S.guess && name === 'work';
+  $('privacy').hidden = name !== 'landing';
+  $('btn-big').hidden = !(name === 'work' || name === 'how');
+  $('btn-over').hidden = name !== 'work';
+  $('btn-newdata').hidden = !guessing;
+  $('btn-back').hidden = !(name === 'how' || name === 'numbers');
+  $('btn-back-text').textContent = name === 'how' ? 'Back to the data' : 'Back';
+  var here = name === 'landing' ? '' : (guessing ? 'Guess first' : (S.title || (name === 'numbers' ? 'My data' : 'My data')));
+  $('crumb-sep').hidden = $('crumb-here').hidden = !here;
+  $('crumb-here').textContent = here;
+  window.scrollTo(0, 0);
+}
 
-    /* The block-unit pixel height. Every block in the chart is exactly
-       this many pixels tall, INCLUDING its top-border separator.
-       Used everywhere we convert between data values and screen pixels:
-         chart height  = yMax × BLOCK_UNIT
-         stat-line top = value × BLOCK_UNIT  (from chart-area bottom)
-         y-label top   = value × BLOCK_UNIT  (from y-axis bottom) */
-    var BLOCK_UNIT = 24;
+/* =================================================================
+   6. DRAWING A CHART
+   opts: { mode: 'work'|'how', marks: per-item {cls, cross, badge, ring},
+           lines: [{v, m, label, side, dash, guess}], bracket: bool,
+           level: mean (for "even it out"), hideValues, order: [item index] }
+   ================================================================= */
+function chartHTML(opts) {
+  return (opts.forceDots || !isBlocks()) ? dotsHTML(opts) : barsHTML(opts);
+}
 
-    /* Hard caps — keep things at a manipulative scale rather than data-viz scale */
-    var MAX_BLOCKS_PER_BAR = 20;
-    var MIN_BARS = 1;
-    var MAX_BARS = 10;
-    var DEFAULT_BARS = 6;
-
-    /* The hover delay before a tooltip appears, in milliseconds */
-    var TOOLTIP_DELAY_MS = 1000;
-
-
-    /* -----------------------------------------------------------
-       STATE — single source of truth for the whole app
-       ----------------------------------------------------------- */
-    var state = {
-      bars:   [],   /* array of {id, label, color, count} */
-      nextId: 1     /* incrementing id assigned to each new bar */
-    };
-
-
-    /* -----------------------------------------------------------
-       getRandomColor — pick a palette color at random
-       Math.random() returns 0..<1; multiplying by length and
-       Math.floor() gives us a valid array index 0..length-1.
-       ----------------------------------------------------------- */
-    function getRandomColor() {
-      return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+function barsHTML(o) {
+  var st = stats();
+  var n = S.items.length;
+  var maxV = Math.max(5, st.max || 0, o.level || 0);
+  var ymax = Math.min(MAX_BLOCKS, Math.ceil(maxV / 5) * 5);
+  var phone = window.matchMedia('(max-width: 600px)').matches;
+  var H = phone ? 200 : (o.mode === 'how' ? 300 : 320);
+  var U = Math.max(10, Math.floor(H / ymax));
+  H = U * ymax;
+  var step = ymax <= 10 ? 2 : 5;
+  var grid = '', ylab = '';
+  for (var k = 0; k <= ymax; k += step) { grid += '<i style="bottom:' + (k * U) + 'px"></i>'; ylab += '<span style="bottom:' + (k * U) + 'px">' + k + '</span>'; }
+  var order = o.order || S.items.map(function (it, i) { return i; });
+  var cols = '', labs = '';
+  order.forEach(function (i) {
+    var it = S.items[i], mk = (o.marks && o.marks[i]) || {};
+    var segs;
+    if (o.level != null) {
+      var lv = o.level;
+      segs = [{ cls: '', from: 0, to: Math.min(it.value, lv) }];
+      if (it.value < lv) segs.push({ cls: 'landed', from: it.value, to: lv });
+      if (it.value > lv) segs.push({ cls: 'gone', from: lv, to: it.value });
+    } else {
+      segs = [{ cls: mk.cls || '', from: 0, to: it.value }];
     }
+    var inner = cells(segs, U);
+    var top = Math.max(it.value, o.level || 0) * U;
+    if (mk.ring) inner += '<span class="ring" style="height:' + (it.value * U + 6) + 'px"><b>Mode</b></span>';
+    if (mk.cross) inner += '<span class="xmark" style="bottom:' + (top + 6) + 'px">✕</span>';
+    if (mk.badge) inner += '<span class="badge" style="bottom:' + (top + 6) + 'px">' + mk.badge + '</span>';
+    var interactive = o.mode === 'work' && !S.guess;
+    var label = esc(it.name || 'Bar') + ': ' + it.value + '.' + (interactive ? ' Click to add a block. Right-click to take one away.' : '');
+    cols += '<button type="button" class="col" data-i="' + i + '" aria-label="' + label + '"' + (interactive ? '' : ' disabled tabindex="-1"') + '><span class="stack">' + inner + '</span></button>';
+    var nameHTML = interactive
+      ? '<input class="name-in" data-name="' + i + '" value="' + esc(it.name) + '" aria-label="Name for bar ' + (i + 1) + '" autocomplete="off">'
+      : '<span class="nm">' + esc(o.hideValues ? '#' + (i + 1) : it.name) + '</span>';
+    labs += '<div class="lab' + (mk.cross ? ' faded' : '') + '">' + nameHTML +
+      (o.hideValues ? '' : '<span class="v">' + it.value + '</span>') +
+      (interactive ? '<span class="step"><button type="button" data-minus="' + i + '" aria-label="One less for ' + esc(it.name) + '"' + (it.value <= 0 ? ' disabled' : '') + '>−</button><button type="button" data-plus="' + i + '" aria-label="One more for ' + esc(it.name) + '"' + (it.value >= MAX_BLOCKS ? ' disabled' : '') + '>+</button></span>' : '') +
+      '</div>';
+  });
+  var over = '';
+  (o.lines || []).forEach(function (L) {
+    over += '<div class="line' + (L.dash ? ' dash' : '') + (L.guess ? ' guess' : ' m-' + L.m) + '" style="bottom:' + (L.v * U) + 'px"><span class="tag ' + (L.side || 'r') + '">' + esc(L.label) + '</span></div>';
+  });
+  if (o.bracket && n) {
+    over += '<div class="guide" style="bottom:' + (st.max * U) + 'px"></div><div class="guide" style="bottom:' + (st.min * U) + 'px"></div>';
+    over += '<div class="bracket" style="bottom:' + (st.min * U) + 'px;height:' + Math.max(2, st.range * U) + 'px"><span class="tag">Range ' + fmt(st.range) + '</span></div>';
+  }
+  return '<div class="chart"><div class="yaxis" style="height:' + H + 'px" aria-hidden="true">' + ylab + '</div>' +
+    '<div class="plot" style="height:' + H + 'px"><div class="grid" aria-hidden="true">' + grid + '</div><div class="bars">' + cols + '</div>' + over + '</div></div>' +
+    '<div class="labels"><span></span><div class="lrow">' + labs + '</div></div>';
+}
 
-
-    /* -----------------------------------------------------------
-       init — runs once on page load
-       Builds DEFAULT_BARS starter bars at count=0 with random colors,
-       then does an initial render and wires up the tooltip handlers.
-       ----------------------------------------------------------- */
-    function init() {
-      for (var i = 0; i < DEFAULT_BARS; i++) {
-        state.bars.push({
-          id:    state.nextId++,
-          label: 'P' + (i + 1),
-          color: getRandomColor(),
-          count: 0
-        });
-      }
-      renderAll();
-      setupTooltips();
+/* Draw a stack as unit blocks. A segment can start or end part-way
+   through a block, which is how a mean like 5.33 is shown. */
+function cells(segs, U) {
+  var html = '';
+  segs.forEach(function (s) {
+    if (s.to - s.from < 1e-9) return;
+    for (var c = Math.floor(s.from + 1e-9); c < s.to - 1e-9; c++) {
+      var p0 = Math.max(s.from, c), p1 = Math.min(s.to, c + 1);
+      var full = p1 >= c + 1 - 1e-9;
+      var h = Math.max(2, (p1 - p0) * U - (full ? 3 : 0));
+      html += '<i class="blk ' + s.cls + '" style="bottom:' + (p0 * U) + 'px;height:' + h + 'px"></i>';
     }
-
-
-    /* -----------------------------------------------------------
-       findBar — get a bar object by id
-       ----------------------------------------------------------- */
-    function findBar(id) {
-      for (var i = 0; i < state.bars.length; i++) {
-        if (state.bars[i].id === id) return state.bars[i];
-      }
-      return null;
-    }
-
-
-    /* =============================================================
-       STATS COMPUTATION
-       =============================================================
-       computeStats returns everything needed for the readouts AND
-       the visual overlays in one pass. Returning a single object
-       avoids re-walking the data multiple times.
-       ============================================================= */
-    function computeStats() {
-      var counts = state.bars.map(function(b) { return b.count; });
-      var n = counts.length;
-      var sum = counts.reduce(function(a, b) { return a + b; }, 0);
-
-      /* "hasData" distinguishes "empty grid" from "all bars happen to be 0".
-         When the grid has never been touched, stats display as "—" rather
-         than as 0.000s — those zeros would be technically correct but
-         pedagogically empty. */
-      var hasData = sum > 0;
-
-      /* MEAN — average of the counts.
-         Guarded for n=0 (no bars at all), but n is always >= MIN_BARS so
-         this is mostly defensive. */
-      var mean = n > 0 ? sum / n : 0;
-
-      /* MEDIAN — the middle value(s) of the sorted data.
-         For odd n: the single middle element.
-         For even n: the average of the two middle elements.
-         slice() before sort() makes a copy so we don't reorder the
-         original `counts` array (which is used elsewhere). */
-      var sorted = counts.slice().sort(function(a, b) { return a - b; });
-      var median = 0;
-      if (n > 0) {
-        if (n % 2 === 1) {
-          median = sorted[Math.floor(n / 2)];
-        } else {
-          median = (sorted[n/2 - 1] + sorted[n/2]) / 2;
-        }
-      }
-
-      /* MODE — the value(s) that appear most often.
-         Build a frequency map, find the max frequency, then collect
-         every value with that frequency. Empty array means no mode
-         (every value is unique). */
-      var freq = {};
-      counts.forEach(function(c) { freq[c] = (freq[c] || 0) + 1; });
-      var maxFreq = 0;
-      Object.keys(freq).forEach(function(k) {
-        if (freq[k] > maxFreq) maxFreq = freq[k];
-      });
-      var modes = [];
-      if (maxFreq > 1) {
-        Object.keys(freq).forEach(function(k) {
-          if (freq[k] === maxFreq) modes.push(parseInt(k, 10));
-        });
-        modes.sort(function(a, b) { return a - b; });
-      }
-
-      /* RANGE — max minus min. Spread Math operators across the counts. */
-      var min = n > 0 ? Math.min.apply(null, counts) : 0;
-      var max = n > 0 ? Math.max.apply(null, counts) : 0;
-      var range = max - min;
-
-      return {
-        mean:    mean,
-        median:  median,
-        modes:   modes,
-        range:   range,
-        min:     min,
-        max:     max,
-        sum:     sum,      /* total of all values — used for the mean calculation line */
-        n:       n,        /* number of data points — used for mean and median calc lines */
-        sorted:  sorted,   /* sorted copy of counts — used to show "(a + b) ÷ 2" for even n median */
-        maxFreq: maxFreq,  /* mode's frequency — used to show "X appears N times" */
-        hasData: hasData
-      };
-    }
-
-
-    /* -----------------------------------------------------------
-       computeYMax — pick the smallest y-axis max that fits the data
-       Snaps to multiples of 5 so the y-axis labels are clean.
-       Bottom of the staircase is 5 so an empty chart still has a
-       visible height. Top is the hard cap (20).
-       ----------------------------------------------------------- */
-    function computeYMax() {
-      var maxCount = 0;
-      state.bars.forEach(function(b) {
-        if (b.count > maxCount) maxCount = b.count;
-      });
-      if (maxCount <= 5)  return 5;
-      if (maxCount <= 10) return 10;
-      if (maxCount <= 15) return 15;
-      return 20;
-    }
-
-
-    /* =============================================================
-       RENDERING — broken into small functions so each one is easy
-       to reason about. renderAll calls them all in order.
-       ============================================================= */
-
-    function renderAll() {
-      var yMax  = computeYMax();
-      var stats = computeStats();
-
-      /* Set both the chart-area and y-axis to the same pixel height
-         so they line up perfectly in the grid. */
-      var chartHeight = yMax * BLOCK_UNIT;
-      document.getElementById('chart-area').style.height = chartHeight + 'px';
-      document.getElementById('y-axis').style.height     = chartHeight + 'px';
-
-      renderYAxis(yMax);
-      renderBars(stats);
-      renderStatLines(stats);
-      renderLabelsRow();
-      renderStats(stats);
-
-      updateBarCountControls();
-    }
-
-
-    /* -----------------------------------------------------------
-       renderYAxis — labels and faint gridlines at each multiple of 5
-       ----------------------------------------------------------- */
-    function renderYAxis(yMax) {
-      var yAxis = document.getElementById('y-axis');
-      var chartArea = document.getElementById('chart-area');
-
-      /* Wipe any previous labels and gridlines.
-         For chart-area we have to leave the bars/stat-lines untouched
-         since those are managed separately — so we filter the gridline
-         children specifically. */
-      yAxis.innerHTML = '';
-      Array.prototype.slice.call(chartArea.querySelectorAll('.gridline'))
-        .forEach(function(g) { g.remove(); });
-
-      /* Always show 0, then each subsequent multiple of 5 up to yMax */
-      for (var v = 0; v <= yMax; v += 5) {
-        /* Y-axis tick label */
-        var label = document.createElement('span');
-        label.className = 'y-label';
-        label.textContent = v;
-        label.style.bottom = (v * BLOCK_UNIT) + 'px';
-        yAxis.appendChild(label);
-
-        /* Matching faint gridline across the chart */
-        if (v > 0) {
-          var line = document.createElement('div');
-          line.className = 'gridline';
-          line.style.bottom = (v * BLOCK_UNIT) + 'px';
-          chartArea.appendChild(line);
-        }
-      }
-    }
-
-
-    /* -----------------------------------------------------------
-       renderBars — rebuild the bar columns and their block stacks
-       -----------------------------------------------------------
-       Full rebuild on every call. Cheap (max 10 columns × 20 blocks =
-       200 elements) and avoids a lot of fragile surgical-update code.
-       ----------------------------------------------------------- */
-    function renderBars(stats) {
-      var chartArea = document.getElementById('chart-area');
-
-      /* Remove any existing bars container without touching gridlines/lines */
-      var existingBars = chartArea.querySelector('.bars-container');
-      if (existingBars) existingBars.remove();
-
-      var container = document.createElement('div');
-      container.className = 'bars-container';
-
-      state.bars.forEach(function(bar) {
-        container.appendChild(buildBarColumn(bar, stats));
-      });
-
-      chartArea.appendChild(container);
-    }
-
-
-    /* -----------------------------------------------------------
-       buildBarColumn — one bar's clickable column + block stack
-       -----------------------------------------------------------
-       The whole column is the click target. That way students can
-       click "in the air" above their existing blocks to add more,
-       even when the stack is short — which feels natural and avoids
-       the frustration of trying to land a click on a tiny topmost block.
-       ----------------------------------------------------------- */
-    function buildBarColumn(bar, stats) {
-      var col = document.createElement('div');
-      col.className = 'bar-column';
-      col.dataset.barId = bar.id;
-
-      /* Left-click anywhere in the column → +1 block */
-      col.onclick = function() { changeCount(bar.id, 1); };
-
-      /* Right-click anywhere in the column → -1 block.
-         preventDefault stops the browser's normal context menu from popping up. */
-      col.oncontextmenu = function(e) {
-        e.preventDefault();
-        changeCount(bar.id, -1);
-      };
-
-      var stack = document.createElement('div');
-      stack.className = 'block-stack';
-
-      /* Is this bar a mode bar? (Its count appears in stats.modes.)
-         Only flag as mode if there IS a mode — when modes is empty, no
-         highlighting happens at all. */
-      var isModeBar = stats.modes.length > 0 &&
-                      stats.modes.indexOf(bar.count) !== -1;
-
-      /* Build one block element per unit of count.
-         column-reverse on .block-stack means the first DOM child sits
-         at the bottom — so pushing in array order fills bottom-up. */
-      for (var i = 0; i < bar.count; i++) {
-        var block = document.createElement('div');
-        block.className = 'block';
-        block.style.background = bar.color;
-        if (isModeBar) block.classList.add('is-mode');
-        stack.appendChild(block);
-      }
-
-      col.appendChild(stack);
-      return col;
-    }
-
-
-    /* -----------------------------------------------------------
-       renderStatLines — position the mean line, median line,
-       and the range bracket inside the chart area
-       ----------------------------------------------------------- */
-    function renderStatLines(stats) {
-      var chartArea = document.getElementById('chart-area');
-
-      /* Remove any existing overlays before rebuilding */
-      Array.prototype.slice.call(
-        chartArea.querySelectorAll('.stat-line, .range-bracket')
-      ).forEach(function(el) { el.remove(); });
-
-      /* No data → no overlay lines. The chart is empty so there's
-         nothing meaningful to mark. */
-      if (!stats.hasData) return;
-
-      /* MEAN line — solid 3px navy across the chart */
-      var meanLine = document.createElement('div');
-      meanLine.className = 'stat-line mean';
-      meanLine.style.bottom = (stats.mean * BLOCK_UNIT) + 'px';
-      var meanLabel = document.createElement('span');
-      meanLabel.className = 'stat-line-label';
-      meanLabel.textContent = 'Mean ' + stats.mean.toFixed(2);
-      meanLine.appendChild(meanLabel);
-      chartArea.appendChild(meanLine);
-
-      /* MEDIAN line — dashed 3px maroon across the chart */
-      var medianLine = document.createElement('div');
-      medianLine.className = 'stat-line median';
-      medianLine.style.bottom = (stats.median * BLOCK_UNIT) + 'px';
-      var medianLabel = document.createElement('span');
-      medianLabel.className = 'stat-line-label';
-      medianLabel.textContent = 'Median ' + formatNum(stats.median);
-      medianLine.appendChild(medianLabel);
-      chartArea.appendChild(medianLine);
-
-      /* RANGE bracket — vertical bracket on the right edge from min to max.
-         Only show if there's actually a range (max > min). */
-      if (stats.max > stats.min) {
-        var bracket = document.createElement('div');
-        bracket.className = 'range-bracket';
-        bracket.style.bottom = (stats.min * BLOCK_UNIT) + 'px';
-        bracket.style.height = ((stats.max - stats.min) * BLOCK_UNIT) + 'px';
-        chartArea.appendChild(bracket);
-      }
-    }
-
-
-    /* -----------------------------------------------------------
-       renderLabelsRow — editable labels + swatches + count controls
-       -----------------------------------------------------------
-       Rebuilt on add/remove of bars, color changes, and randomize/reset.
-       NOT rebuilt on count changes alone — we surgically update just
-       the count number to avoid stealing focus from the label input
-       while the teacher is typing.
-       ----------------------------------------------------------- */
-    function renderLabelsRow() {
-      var row = document.getElementById('bar-labels-row');
-      row.innerHTML = '';
-      state.bars.forEach(function(bar) {
-        row.appendChild(buildLabelCell(bar));
-      });
-    }
-
-
-    function buildLabelCell(bar) {
-      var cell = document.createElement('div');
-      cell.className = 'bar-label-cell';
-      cell.dataset.barId = bar.id;
-
-      /* ----- Line 1: small color swatch + editable label ----- */
-      var line1 = document.createElement('div');
-      line1.className = 'label-line';
-
-      /* COLOR SWATCH (mini) — clicking opens the 20-color picker */
-      var swatch = document.createElement('div');
-      swatch.className = 'color-swatch-mini';
-      swatch.style.background = bar.color;
-      swatch.onclick = function(e) {
-        e.stopPropagation();
-        toggleColorPicker(bar.id);
-      };
-
-      var popup = document.createElement('div');
-      popup.className = 'color-picker-popup';
-      popup.id = 'color-picker-' + bar.id;
-      PALETTE.forEach(function(color) {
-        var option = document.createElement('div');
-        option.className = 'color-option';
-        option.style.background = color;
-        option.onclick = function(e) {
-          e.stopPropagation();
-          changeColor(bar.id, color);
-        };
-        popup.appendChild(option);
-      });
-      swatch.appendChild(popup);
-
-      /* EDITABLE LABEL — text input with dashed underline */
-      var labelInput = document.createElement('input');
-      labelInput.type = 'text';
-      labelInput.className = 'bar-label-input';
-      labelInput.value = bar.label;
-      /* Keep state in sync as the user types — no rerender needed
-         because the input already shows the current text. */
-      labelInput.oninput = function() {
-        bar.label = labelInput.value;
-      };
-
-      line1.appendChild(swatch);
-      line1.appendChild(labelInput);
-
-      /* ----- Line 2: −  count  + ----- */
-      var line2 = document.createElement('div');
-      line2.className = 'count-controls-mini';
-
-      var btnMinus = document.createElement('button');
-      btnMinus.className = 'btn-count-mini';
-      btnMinus.textContent = '−';
-      btnMinus.onclick = function() { changeCount(bar.id, -1); };
-
-      var countSpan = document.createElement('span');
-      countSpan.className = 'count-mini';
-      countSpan.id = 'count-mini-' + bar.id;
-      countSpan.textContent = bar.count;
-
-      var btnPlus = document.createElement('button');
-      btnPlus.className = 'btn-count-mini';
-      btnPlus.textContent = '+';
-      btnPlus.onclick = function() { changeCount(bar.id, 1); };
-
-      line2.appendChild(btnMinus);
-      line2.appendChild(countSpan);
-      line2.appendChild(btnPlus);
-
-      cell.appendChild(line1);
-      cell.appendChild(line2);
-
-      return cell;
-    }
-
-
-    /* -----------------------------------------------------------
-       renderStats — update the four stat-card readouts AND the
-       calculation line under each one
-       -----------------------------------------------------------
-       Each card has two pieces of text we update:
-         • stat-value — the big number (or em-dash when empty)
-         • stat-calc  — small line showing how that number was built
-       formatNum trims trailing .00 so "5" shows as "5" not "5.00"
-       but "5.5" still shows two decimals worth when needed.
-       ----------------------------------------------------------- */
-    function renderStats(stats) {
-      var meanEl     = document.getElementById('stat-mean');
-      var medianEl   = document.getElementById('stat-median');
-      var modeEl     = document.getElementById('stat-mode');
-      var rangeEl    = document.getElementById('stat-range');
-
-      var meanCalc   = document.getElementById('calc-mean');
-      var medianCalc = document.getElementById('calc-median');
-      var modeCalc   = document.getElementById('calc-mode');
-      var rangeCalc  = document.getElementById('calc-range');
-
-      var sortedDisplay = document.getElementById('sorted-display');
-
-      if (!stats.hasData) {
-        /* Empty grid → placeholder dashes and blank calcs.
-           Card heights stay stable because .stat-calc has min-height. */
-        meanEl.textContent     = '—';
-        medianEl.textContent   = '—';
-        modeEl.textContent     = '—';
-        rangeEl.textContent    = '—';
-        meanCalc.textContent   = '';
-        medianCalc.textContent = '';
-        modeCalc.textContent   = '';
-        rangeCalc.textContent  = '';
-        /* Sorted card shows a quiet placeholder until data exists */
-        sortedDisplay.innerHTML = '<span class="sorted-empty">click bars to add blocks</span>';
-        return;
-      }
-
-      /* MEAN — value + "sum ÷ n = mean" */
-      meanEl.textContent   = formatNum(stats.mean);
-      meanCalc.textContent = stats.sum + ' ÷ ' + stats.n + ' = ' + formatNum(stats.mean);
-
-      /* MEDIAN — value + a calculation that depends on whether n is odd or even.
-         Odd n → just describe "middle of n values".
-         Even n → "(a + b) ÷ 2 = median" using the two middle elements
-                  of the sorted array. With 0-based indexing, those are
-                  at positions n/2 - 1 and n/2. */
-      medianEl.textContent = formatNum(stats.median);
-      if (stats.n % 2 === 1) {
-        medianCalc.textContent = 'middle of ' + stats.n + ' values';
-      } else {
-        var a = stats.sorted[stats.n / 2 - 1];
-        var b = stats.sorted[stats.n / 2];
-        medianCalc.textContent = '(' + a + ' + ' + b + ') ÷ 2 = ' + formatNum(stats.median);
-      }
-
-      /* MODE — value + a frequency-style explanation.
-         []           → "—" with "no value repeats"
-         [5]          → "5" with "5 appears 3 times"
-         [3, 5, ...]  → "3, 5" with "each appears 2 times" */
-      if (stats.modes.length === 0) {
-        modeEl.textContent   = '—';
-        modeCalc.textContent = 'no value repeats';
-      } else if (stats.modes.length === 1) {
-        modeEl.textContent   = stats.modes[0];
-        modeCalc.textContent = stats.modes[0] + ' appears ' + stats.maxFreq + ' times';
-      } else {
-        modeEl.textContent   = stats.modes.join(', ');
-        modeCalc.textContent = 'each appears ' + stats.maxFreq + ' times';
-      }
-
-      /* RANGE — value + "max − min = range" */
-      rangeEl.textContent   = formatNum(stats.range);
-      rangeCalc.textContent = stats.max + ' − ' + stats.min + ' = ' + formatNum(stats.range);
-
-      /* SORTED CARD — build a chip for each value in stats.sorted, and
-         mark the middle one (or two) with `uses-median` so they highlight
-         in maroon. This is the visual connection between the sorted data
-         and the median calculation on the median card. */
-      renderSortedCard(stats);
-    }
-
-
-    /* -----------------------------------------------------------
-       renderSortedCard — populate the full-width sorted card
-       -----------------------------------------------------------
-       Builds one chip per value in stats.sorted. Chips at the
-       middle position(s) get the `uses-median` class, which CSS
-       fills with the maroon median-color so students can see
-       exactly which values become the median.
-
-         Odd  n  → the single chip at index Math.floor(n/2) is the median
-         Even n  → both chips at indices n/2 - 1 and n/2 are averaged
-       ----------------------------------------------------------- */
-    function renderSortedCard(stats) {
-      var sortedDisplay = document.getElementById('sorted-display');
-      sortedDisplay.innerHTML = '';   /* wipe whatever was there */
-
-      /* Work out which indices in the sorted array contribute to median */
-      var medianIdxs = [];
-      if (stats.n % 2 === 1) {
-        medianIdxs.push(Math.floor(stats.n / 2));
-      } else {
-        medianIdxs.push(stats.n / 2 - 1);
-        medianIdxs.push(stats.n / 2);
-      }
-
-      /* Build a chip for each value */
-      stats.sorted.forEach(function(val, idx) {
-        var chip = document.createElement('span');
-        chip.className = 'sorted-val';
-        if (medianIdxs.indexOf(idx) !== -1) {
-          chip.classList.add('uses-median');   /* maroon fill ties it to the median card */
-        }
-        chip.textContent = val;
-        sortedDisplay.appendChild(chip);
-      });
-    }
-
-
-    /* -----------------------------------------------------------
-       formatNum — show whole numbers without decimal noise
-       -----------------------------------------------------------
-       5      → "5"
-       5.5    → "5.5"
-       5.7333 → "5.73"
-       The "+" cast strips trailing zeros that toFixed adds.
-       ----------------------------------------------------------- */
-    function formatNum(n) {
-      if (n === Math.floor(n)) return String(n);
-      return String(+n.toFixed(2));
-    }
-
-
-    /* =============================================================
-       INTERACTIVITY — count changes, bar add/remove, color, etc.
-       ============================================================= */
-
-    /* -----------------------------------------------------------
-       changeCount — +1 / -1 / arbitrary delta with cap enforcement
-       Calls renderAll because a count change may bump the y-axis
-       max to a new bracket (e.g., 5 → 10) which requires resizing
-       the chart and re-laying-out everything.
-       ----------------------------------------------------------- */
-    function changeCount(barId, delta) {
-      var bar = findBar(barId);
-      if (!bar) return;
-
-      bar.count += delta;
-      if (bar.count < 0) bar.count = 0;
-      if (bar.count > MAX_BLOCKS_PER_BAR) bar.count = MAX_BLOCKS_PER_BAR;
-
-      /* Mirror the new count into its display span without re-rendering
-         the whole labels row (which would steal input focus). */
-      var countSpan = document.getElementById('count-mini-' + barId);
-      if (countSpan) countSpan.textContent = bar.count;
-
-      /* The chart and stats both depend on every bar's count. */
-      var yMax  = computeYMax();
-      var stats = computeStats();
-      var chartHeight = yMax * BLOCK_UNIT;
-      document.getElementById('chart-area').style.height = chartHeight + 'px';
-      document.getElementById('y-axis').style.height     = chartHeight + 'px';
-      renderYAxis(yMax);
-      renderBars(stats);
-      renderStatLines(stats);
-      renderStats(stats);
-    }
-
-
-    /* -----------------------------------------------------------
-       addBar / removeBar — bump the data-point count up or down
-       New bars start empty with a fresh random color and a default
-       label. Removed bars come off the right end. Confirms before
-       discarding a bar that already has blocks.
-       ----------------------------------------------------------- */
-    function addBar() {
-      if (state.bars.length >= MAX_BARS) return;
-      state.bars.push({
-        id:    state.nextId++,
-        label: 'P' + (state.bars.length + 1),
-        color: getRandomColor(),
-        count: 0
-      });
-      renderAll();
-    }
-
-    function removeBar() {
-      if (state.bars.length <= MIN_BARS) return;
-      var last = state.bars[state.bars.length - 1];
-      if (last.count > 0 &&
-          !confirm('Remove this bar and its ' + last.count + ' block(s)?')) {
-        return;
-      }
-      state.bars.pop();
-      renderAll();
-    }
-
-
-    /* -----------------------------------------------------------
-       updateBarCountControls — show the current bar count and
-       enable/disable the +/- buttons at the caps
-       ----------------------------------------------------------- */
-    function updateBarCountControls() {
-      document.getElementById('bar-count-display').textContent = state.bars.length;
-      document.getElementById('btn-remove-bar').disabled = state.bars.length <= MIN_BARS;
-      document.getElementById('btn-add-bar').disabled    = state.bars.length >= MAX_BARS;
-    }
-
-
-    /* -----------------------------------------------------------
-       randomize — assign a random count (0–15) to every bar
-       Pedagogically useful for "now look — what's the mean of THIS dataset?"
-       ----------------------------------------------------------- */
-    function randomize() {
-      state.bars.forEach(function(bar) {
-        bar.count = Math.floor(Math.random() * 16); /* 0..15 inclusive */
-      });
-      renderAll();
-    }
-
-
-    /* -----------------------------------------------------------
-       resetAll — zero every bar's count
-       Keeps the bars, labels, and colors. Just wipes the data.
-       ----------------------------------------------------------- */
-    function resetAll() {
-      var anyHasBlocks = state.bars.some(function(b) { return b.count > 0; });
-      if (anyHasBlocks && !confirm('Reset all blocks to zero?')) return;
-      state.bars.forEach(function(bar) { bar.count = 0; });
-      renderAll();
-    }
-
-
-    /* -----------------------------------------------------------
-       changeColor — recolor one bar, refresh its swatch + blocks
-       ----------------------------------------------------------- */
-    function changeColor(barId, color) {
-      var bar = findBar(barId);
-      if (!bar) return;
-      bar.color = color;
-
-      /* Update the swatch in the footer */
-      var cell = document.querySelector('.bar-label-cell[data-bar-id="' + barId + '"]');
-      if (cell) {
-        cell.querySelector('.color-swatch-mini').style.background = color;
-      }
-
-      /* Repaint the blocks in this bar */
-      var stats = computeStats();
-      renderBars(stats);
-
-      /* Close the picker */
-      var popup = document.getElementById('color-picker-' + barId);
-      if (popup) popup.classList.remove('open');
-    }
-
-
-    /* -----------------------------------------------------------
-       toggleColorPicker — open the picker for one swatch
-       Closes any other open popup first so only one is visible at a time.
-       ----------------------------------------------------------- */
-    function toggleColorPicker(barId) {
-      var target = document.getElementById('color-picker-' + barId);
-      var wasOpen = target.classList.contains('open');
-
-      document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
-        p.classList.remove('open');
-      });
-
-      if (!wasOpen) target.classList.add('open');
-    }
-
-    /* Clicks anywhere outside a swatch or its popup close any open popup */
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.color-swatch-mini') &&
-          !e.target.closest('.color-picker-popup')) {
-        document.querySelectorAll('.color-picker-popup.open').forEach(function(p) {
-          p.classList.remove('open');
-        });
+  });
+  return html;
+}
+
+/* A sensible number line for a dot plot */
+function niceStep(span) {
+  var raw = span / 8, p = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  var m = raw / p;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+}
+function dotsHTML(o) {
+  var st = stats(), n = S.items.length;
+  if (!n) return '<p class="hint">No numbers yet.</p>';
+  var step = niceStep(Math.max(1, st.range));
+  var lo = Math.floor(st.min / step) * step, hi = Math.ceil(st.max / step) * step;
+  if (hi - lo < step * 2) { lo -= step; hi += step; }
+  function x(v) { return ((v - lo) / (hi - lo) * 100) + '%'; }
+  var phone = window.matchMedia('(max-width: 600px)').matches;
+  var areaH = (phone ? 260 : 320) - 100;
+  var counts = {}; st.values.forEach(function (v) { counts[String(v)] = (counts[String(v)] || 0) + 1; });
+  var tallest = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
+  var D = Math.max(8, Math.min(24, Math.floor(areaH / tallest) - 4));
+  var ticks = '';
+  for (var t = lo; t <= hi + 1e-9; t += step) ticks += '<span class="tick" style="left:' + x(t) + '">' + fmt(t) + '</span>';
+  var seen = {}, dots = '';
+  var order = st.order.slice();
+  order.forEach(function (i) {
+    var it = S.items[i], k = String(it.value), mk = (o.marks && o.marks[i]) || {};
+    var lvl = seen[k] = (seen[k] || 0) + 1;
+    var cls = (mk.cls ? ' ' + mk.cls : '') + (mk.cross ? ' x dim' : '') + (mk.ring ? ' ring-mode' : '');
+    dots += '<span class="dot' + cls + '" style="left:' + x(it.value) + ';bottom:' + (44 + (lvl - 1) * (D + 4)) + 'px;width:' + D + 'px;height:' + D + 'px" title="' + esc((it.name ? it.name + ': ' : '') + fmt(it.value)) + '"></span>';
+  });
+  var over = '', y = 0;
+  (o.lines || []).forEach(function (L) {
+    var h = 210 - y * 34; y++;
+    over += '<div class="mk' + (L.dash ? ' dash' : '') + (L.guess ? ' guess' : ' m-' + L.m) + '" style="left:' + x(L.v) + '"><span>' + esc(L.label) + '</span><i style="height:' + Math.max(60, h - (phone ? 60 : 0)) + 'px"></i></div>';
+  });
+  if (o.bracket) over += '<div class="rng" style="left:' + x(st.min) + ';width:calc(' + x(st.max) + ' - ' + x(st.min) + ')"><span>Range ' + fmt(st.range) + '</span></div>';
+  var desc = 'Dot plot of ' + n + ' values from ' + fmt(st.min) + ' to ' + fmt(st.max) + '.';
+  return '<div class="dots" role="img" aria-label="' + esc(desc) + '"><div class="axis"></div>' + ticks + dots + over + '</div>';
+}
+
+/* =================================================================
+   7. WORKING SCREEN
+   ================================================================= */
+function workLines(st) {
+  var L = [];
+  if (st.empty || !st.n) return L;
+  if (S.guess) {
+    ['mean', 'median'].forEach(function (m) {
+      var g = S.guess[m];
+      if (g.done) {
+        L.push({ v: +g.text, guess: true, label: 'Your ' + m + ' guess ' + fmt(+g.text), side: m === 'mean' ? 'c1' : 'c2' });
+        L.push({ v: st[m], m: m, label: MEASURES[m].name + ' ' + fmt(st[m]), side: m === 'mean' ? 'r' : 'l', dash: m === 'median' });
       }
     });
+    return L;
+  }
+  if (S.show.mean) L.push({ v: st.mean, m: 'mean', label: 'Mean ' + fmt(st.mean), side: 'r' });
+  if (S.show.median) L.push({ v: st.median, m: 'median', label: 'Median ' + fmt(st.median), side: 'l', dash: true });
+  return L;
+}
+function workMarks(st) {
+  var marks = {};
+  if (S.show.mode && !S.guess && st.modes && st.modes.length) {
+    S.items.forEach(function (it, i) { if (st.modes.indexOf(it.value) > -1) marks[i] = { ring: true }; });
+  }
+  return marks;
+}
+function renderWork() {
+  var st = stats();
+  var ok = barsOK();
+  if (!ok) S.view = 'dots';
+  var focus = document.activeElement && (document.activeElement.dataset || {});
+  var fkey = focus.minus != null ? '[data-minus="' + focus.minus + '"]' : focus.plus != null ? '[data-plus="' + focus.plus + '"]' : focus.i != null && document.activeElement.classList.contains('col') ? '.col[data-i="' + focus.i + '"]' : null;
 
+  document.querySelectorAll('.toggle [data-view]').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.view === S.view));
+    if (b.dataset.view === 'bars') { b.disabled = !ok; b.title = ok ? '' : 'These numbers are too big or too many for blocks'; }
+  });
+  var guessing = !!S.guess;
+  $('btn-sort').hidden = guessing || S.view !== 'bars';
+  $('sort-text').textContent = S.sorted ? 'Back to original order' : 'Sort smallest to largest';
+  $('barcount').hidden = guessing || S.view !== 'bars';
+  $('bar-n').textContent = S.items.length;
+  $('btn-add').disabled = S.items.length >= MAX_BARS;
+  $('btn-remove').disabled = S.items.length <= 1;
+  $('btn-edit').hidden = guessing;
+  if (document.activeElement !== $('title-in')) $('title-in').value = S.title;
+  $('title-in').placeholder = 'What are you measuring?';
+  $('title-in').readOnly = guessing;
+  $('chart-sub').textContent = S.view === 'bars' ? (guessing ? 'The numbers are hidden until you guess' : 'Each bar is one data point') : 'Each dot is one data point';
 
-    /* =============================================================
-       TOOLTIPS — appear 2.5 seconds after the cursor enters a
-       .tooltip-trigger element. Cancelled if the cursor leaves
-       before the delay elapses.
-       =============================================================
-       Why 2.5s? An instant tooltip on hover is noisy and triggers
-       every time the cursor crosses the element by accident. A
-       slight delay communicates "you can hover for help" without
-       getting in the way during normal use.
+  var order = S.sorted && S.view === 'bars' ? st.order : null;
+  $('chart').innerHTML = chartHTML({ mode: 'work', lines: workLines(st), marks: workMarks(st), bracket: S.show.range && !guessing && !st.empty, order: order, hideValues: guessing });
 
-       Each trigger tracks its own timeout id so multiple triggers
-       on the page never step on each other.
-       ============================================================= */
-    function setupTooltips() {
-      document.querySelectorAll('.tooltip-trigger').forEach(function(el) {
-        var timeoutId = null;
+  /* phone rows */
+  $('prows').innerHTML = (!guessing && S.view === 'bars') ? S.items.map(function (it, i) {
+    return '<div class="prow"><b>' + esc(it.name) + '</b><button type="button" data-minus="' + i + '" aria-label="One less for ' + esc(it.name) + '"' + (it.value <= 0 ? ' disabled' : '') + '>−</button><span class="pv">' + it.value + '</span><button type="button" data-plus="' + i + '" aria-label="One more for ' + esc(it.name) + '"' + (it.value >= MAX_BLOCKS ? ' disabled' : '') + '>+</button></div>';
+  }).join('') : '';
 
-        el.addEventListener('mouseenter', function() {
-          /* Cancel any existing pending tooltip (defensive) */
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(function() {
-            el.classList.add('show-tooltip');
-          }, TOOLTIP_DELAY_MS);
-        });
+  if (guessing) {
+    $('work-hint').textContent = 'Look closely at the bars. Where would they all land if everyone shared evenly? Which one is in the middle?';
+  } else if (S.view === 'bars') {
+    $('work-hint').textContent = st.empty ? 'Click a bar to add a block, or use − and +. Right-click a bar to take a block away. Click a name to change it.' : 'Click a bar to add a block, or use − and +. Right-click a bar to take a block away. Click a name to change it.';
+  } else {
+    var modeNote = st.modes && st.modes.length ? ' Dots that stack up show values that repeat.' : '';
+    $('work-hint').textContent = (ok ? 'Each value is a dot on the number line.' : 'These numbers are too big or too many for blocks, so they show as a dot plot.') + modeNote;
+  }
+  $('side').innerHTML = guessing ? guessHTML(st) : sideHTML(st);
+  if (fkey) { var el = Array.prototype.filter.call(document.querySelectorAll(fkey), function (x) { return x.offsetParent !== null && !x.disabled; })[0]; if (el) el.focus(); }
+}
 
-        el.addEventListener('mouseleave', function() {
-          clearTimeout(timeoutId);
-          el.classList.remove('show-tooltip');
-        });
+function statCard(m, val, calc, on, empty) {
+  return '<div class="stat m-' + m + (on ? '' : ' off') + '"><span class="nm"><span class="sw' + (m === 'median' ? ' dash' : '') + '"></span>' + MEASURES[m].name + '</span>' +
+    '<span class="val">' + val + '</span><span class="calc">' + calc + '</span>' +
+    '<div class="foot"><button type="button" class="switch" role="switch" aria-checked="' + on + '" data-show="' + m + '"' + (empty ? ' disabled' : '') + '><i></i>On chart</button>' +
+    '<button type="button" class="how-link" data-how="' + m + '"' + (empty ? ' disabled' : '') + '>How it works' + svg(I.arw, 14) + '</button></div></div>';
+}
+function sideHTML(st) {
+  if (!st.n || st.empty) {
+    var dash = '—', blank = 'Add some blocks first';
+    return '<h3>Center</h3>' + statCard('mean', dash, blank, S.show.mean, true) + statCard('median', dash, '', S.show.median, true) + statCard('mode', dash, '', S.show.mode, true) +
+      '<h3>Spread</h3>' + statCard('range', dash, '', S.show.range, true);
+  }
+  var medCalc;
+  if (st.n % 2) medCalc = 'the middle of ' + st.n + ' values';
+  else { var a = st.sorted[st.n / 2 - 1], b = st.sorted[st.n / 2]; medCalc = '(' + fmt(a) + ' + ' + fmt(b) + ') ÷ 2 = ' + fmt(st.median); }
+  var modeVal = st.modes.length ? st.modes.map(fmt).join(', ') : 'None';
+  var modeCalc = !st.modes.length ? 'no value repeats' : st.modes.length === 1 ? fmt(st.modes[0]) + ' appears ' + st.maxFreq + ' times' : 'each appears ' + st.maxFreq + ' times';
+  return '<h3>Center</h3>' +
+    statCard('mean', fmt(st.mean), fmt(st.sum) + ' ÷ ' + st.n + ' ' + eq(st.mean) + ' ' + fmt(st.mean), S.show.mean) +
+    statCard('median', fmt(st.median), medCalc, S.show.median) +
+    statCard('mode', modeVal, modeCalc, S.show.mode) +
+    '<h3>Spread</h3>' +
+    statCard('range', fmt(st.range), fmt(st.max) + ' − ' + fmt(st.min) + ' = ' + fmt(st.range), S.show.range);
+}
+
+/* ---- Guess first ---- */
+function closeness(g, real) {
+  var d = Math.abs(g - real);
+  if (d < 0.26) return 'Spot on!';
+  if (d <= 1) return 'Close!';
+  return g < real ? 'A bit low.' : 'A bit high.';
+}
+function guessHTML(st) {
+  function block(m) {
+    var g = S.guess[m], name = MEASURES[m].name;
+    var res = g.done ? '<div class="result m-' + m + '">' + svg(I.chk, 18) + '<span>You guessed <b>' + fmt(+g.text) + '</b>. The ' + m + ' is <b>' + fmt(st[m]) + '</b>. ' + closeness(+g.text, st[m]) + ' Your guess is the dotted line.</span></div>' : '';
+    return '<div class="field"><label for="guess-' + m + '">' + name + '</label><div class="guess-row"><input class="inp" id="guess-' + m + '" inputmode="decimal" value="' + esc(g.text) + '"' + (g.done ? ' readonly' : '') + ' autocomplete="off">' +
+      (g.done ? '' : '<button type="button" class="btn m-' + m + ' btn-measure" data-check="' + m + '">Check</button>') + '</div>' + res + '</div>';
+  }
+  var both = S.guess.mean.done && S.guess.median.done;
+  return '<div class="explain"><h2>Make your guesses</h2><p class="intro">Talk with a partner, then type a number for each.</p>' + block('mean') + block('median') +
+    (both ? '<button type="button" class="btn btn-primary btn-big" id="reveal-all" style="width: 100%">' + svg(I.eye, 18) + 'Show the numbers</button><p style="font-size: 0.875rem; color: var(--ink-2)">Then try “How it works” to see why.</p>' : '') + '</div>';
+}
+
+/* =================================================================
+   8. HOW IT WORKS
+   Each measure is a list of steps. Each step says what the chart
+   shows, and which of the three explanation steps is active.
+   ================================================================= */
+function howSteps(m, st) {
+  var blocks = isBlocks();
+  var n = st.n, steps = [];
+  var all = S.items.map(function (it, i) { return i; });
+  if (m === 'mean') {
+    var vals = S.items.map(function (it) { return fmt(it.value); });
+    var sumLine = vals.length > 12 ? vals.slice(0, 6).join(' + ') + ' + … + ' + vals[vals.length - 1] : vals.join(' + ');
+    var badges = {}; all.forEach(function (i, k) { badges[i] = { badge: k + 1 }; });
+    steps = [
+      { t: 'Add up every value', sub: (blocks ? 'There are ' + fmt(st.sum) + ' blocks in all' : 'All together they add up to ' + fmt(st.sum)), p: 0, next: 'Count them', opts: {} },
+      { t: 'Count how many values', sub: plural(n, 'value', 'values') + ' in all', p: 1, next: blocks ? 'Even it out' : 'Find the balance point', opts: { marks: badges } },
+      { t: blocks ? 'Even it out' : 'The balance point', sub: blocks ? 'Blocks move from the tall bars to the short ones until every bar is the same' : 'Share the total evenly and every value would be ' + fmt(st.mean), p: 2, last: true,
+        opts: blocks ? { level: st.mean, lines: [{ v: st.mean, m: 'mean', label: 'Mean ' + fmt(st.mean) }] } : { lines: [{ v: st.mean, m: 'mean', label: 'Mean ' + fmt(st.mean) }] }, legend: blocks }
+    ];
+    return { h: 'How the mean works', items: [
+      ['Add up every value', sumLine + ' = <strong>' + fmt(st.sum) + '</strong>'],
+      ['Count how many values', '<strong>' + n + '</strong> ' + (n === 1 ? 'value' : 'values')],
+      ['Divide', fmt(st.sum) + ' ÷ ' + n + ' ' + eq(st.mean) + ' <strong>' + fmt(st.mean) + '</strong>']
+    ], steps: steps, take: (blocks ? 'If the blocks were shared out evenly, every bar would have ' + fmt(st.mean) + '.' : 'If the total were shared out evenly, each value would be ' + fmt(st.mean) + '.') + (Math.abs(st.mean - st.median) > 1 ? ' The mean and median are far apart here. A very big or very small value pulls the mean toward it.' : '') };
+  }
+  if (m === 'median') {
+    var pairs = Math.floor((n - 1) / 2);
+    function marksFor(k, final) {
+      var mk = {};
+      st.order.forEach(function (i, pos) {
+        if (pos < k || pos >= n - k) mk[i] = { cls: 'dim', cross: true };
+        else if (final) mk[i] = { cls: 'hi-median' };
       });
+      return mk;
     }
+    steps.push({ t: 'Line them up', sub: 'Smallest to largest', p: 0, next: pairs ? 'Cross off the ends' : 'Find the middle', opts: { order: st.order, marks: {} }, chips: { k: 0 } });
+    for (var k = 1; k <= pairs; k++) {
+      steps.push({ t: 'Cross off the ends', sub: plural(k, 'value', 'values') + ' crossed off on each side', p: 1, next: k < pairs ? 'Cross off the next pair' : 'Find the middle', opts: { order: st.order, marks: marksFor(k) }, chips: { k: k } });
+    }
+    steps.push({ t: 'Find the middle', sub: n % 2 ? 'One value is left in the middle' : 'Two values are left, so find the number halfway between them', p: 2, last: true, opts: { order: st.order, marks: marksFor(pairs, true), lines: [{ v: st.median, m: 'median', label: 'Median ' + fmt(st.median), side: 'l', dash: true }] }, chips: { k: pairs, final: true } });
+    var mid = n % 2 ? 'One is left: <strong>' + fmt(st.median) + '</strong>' : 'Two are left: ' + fmt(st.sorted[n / 2 - 1]) + ' and ' + fmt(st.sorted[n / 2]) + '<br>Halfway: (' + fmt(st.sorted[n / 2 - 1]) + ' + ' + fmt(st.sorted[n / 2]) + ') ÷ 2 = <strong>' + fmt(st.median) + '</strong>';
+    var line = st.sorted.length > 14 ? st.sorted.slice(0, 7).map(fmt).join(', ') + ', …' : st.sorted.map(fmt).join(', ');
+    return { h: 'How the median works', items: [
+      ['Line them up', 'Smallest to largest: ' + line],
+      ['Cross off one from each end', 'Again and again until the middle is left'],
+      ['Find the middle', mid]
+    ], steps: steps, take: 'Half the values are at or below ' + fmt(st.median) + ', and half are at or above it.' };
+  }
+  if (m === 'mode') {
+    var mk3 = {}, has = st.modes.length > 0;
+    all.forEach(function (i) { var v = S.items[i].value; mk3[i] = has && st.modes.indexOf(v) > -1 ? { cls: 'hi-mode' } : { cls: 'dim' }; });
+    steps = [
+      { t: 'Look for values that repeat', sub: blocks ? 'Bars that are the same height have the same value' : 'Dots that stack up have the same value', p: 0, next: 'Count each value', opts: { order: st.order }, chips: { mode: 0 } },
+      { t: 'Count each value', sub: 'How many times does each one show up?', p: 1, next: 'Find the most common', opts: { order: st.order }, chips: { mode: 1 } },
+      { t: has ? 'Find the most common' : 'No value repeats', sub: has ? listJoin(st.modes.map(fmt)) + (st.modes.length > 1 ? ' tie for most common' : ' shows up the most') : 'Every value shows up just once', p: 2, last: true, opts: { order: st.order, marks: mk3 }, chips: { mode: 2 } }
+    ];
+    var counted = Object.keys(st.freq).map(Number).sort(function (a, b) { return a - b; }).filter(function (v) { return st.freq[String(v)] > 1; });
+    return { h: 'How the mode works', items: [
+      ['Look for values that repeat', counted.length ? 'Repeats: ' + counted.map(fmt).join(', ') : 'Every value is different'],
+      ['Count each value', counted.length ? counted.map(function (v) { return fmt(v) + ' shows up ' + st.freq[String(v)] + ' times'; }).join('<br>') : 'Each one shows up 1 time'],
+      ['The most common value is the mode', has ? (st.modes.length > 1 ? 'The modes are <strong>' + listJoin(st.modes.map(fmt)) + '</strong>' : 'The mode is <strong>' + fmt(st.modes[0]) + '</strong>') : 'There is <strong>no mode</strong>']
+    ], steps: steps, take: has ? (st.modes.length > 1 ? 'A data set can have more than one mode. Here ' + listJoin(st.modes.map(fmt)) + ' each show up ' + st.maxFreq + ' times.' : fmt(st.modes[0]) + ' shows up more than any other value.') : 'When nothing repeats, there is no mode.' };
+  }
+  /* range */
+  function rmarks(lo, hi2) {
+    var mk = {};
+    all.forEach(function (i) { var v = S.items[i].value; mk[i] = (hi2 && v === st.max) || (lo && v === st.min) ? { cls: 'hi-range' } : { cls: 'dim' }; });
+    return mk;
+  }
+  steps = [
+    { t: 'Find the largest value', sub: 'The tallest bar is ' + fmt(st.max), p: 0, next: 'Find the smallest', opts: { marks: rmarks(false, true) } },
+    { t: 'Find the smallest value', sub: 'The shortest bar is ' + fmt(st.min), p: 1, next: 'Subtract', opts: { marks: rmarks(true, true) } },
+    { t: 'Subtract', sub: 'The bracket shows the distance from smallest to largest', p: 2, last: true, opts: { marks: rmarks(true, true), bracket: true } }
+  ];
+  if (!blocks) { steps[0].sub = 'The dot farthest right is ' + fmt(st.max); steps[1].sub = 'The dot farthest left is ' + fmt(st.min); }
+  return { h: 'How the range works', items: [
+    ['Find the largest value', 'Largest: ' + fmt(st.max)],
+    ['Find the smallest value', 'Smallest: ' + fmt(st.min)],
+    ['Subtract', fmt(st.max) + ' − ' + fmt(st.min) + ' = <strong>' + fmt(st.range) + '</strong>']
+  ], steps: steps, take: 'From smallest to largest is a spread of ' + fmt(st.range) + '. A bigger range means the data is more spread out.' };
+}
 
+function chipsHTML(st, c, m) {
+  if (!c) return '';
+  var n = st.n;
+  if (m === 'median') {
+    var out = '';
+    st.sorted.forEach(function (v, pos) {
+      var cls = (pos < c.k || pos >= n - c.k) ? 'x' : (c.final ? 'm' : '');
+      if (c.final && n % 2 === 0 && pos === n / 2) out += '<span class="half">← ' + fmt(st.median) + ' →</span>';
+      out += '<span class="' + cls + '">' + fmt(v) + '</span>';
+    });
+    return out;
+  }
+  /* mode: one chip per distinct value, with a count badge */
+  var keys = Object.keys(st.freq).map(Number).sort(function (a, b) { return a - b; });
+  return keys.map(function (v) {
+    var f = st.freq[String(v)];
+    var hit = c.mode === 2 && st.modes.indexOf(v) > -1;
+    return '<span class="' + (hit ? 'm' : '') + '">' + fmt(v) + (c.mode >= 1 ? '<small>×' + f + '</small>' : '') + '</span>';
+  }).join('');
+}
 
-    /* ============================================================
-       STARTUP
-       ============================================================ */
-    init();
+function renderHow() {
+  var st = stats();
+  var m = how.m, H = howSteps(m, st);
+  how.step = Math.max(0, Math.min(how.step, H.steps.length - 1));
+  var s = H.steps[how.step];
+  document.querySelectorAll('#how-tabs button').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.m === m)); });
+  $('how-panel').className = 'explain m-' + m;
+  $('how-h').textContent = H.h;
+  $('how-steps').innerHTML = H.items.map(function (it, i) {
+    return '<li class="' + (i > s.p ? 'next' : '') + '"><span class="n">' + (i + 1) + '</span><div><b>' + it[0] + '</b><p>' + it[1] + '</p></div></li>';
+  }).join('');
+  $('how-take').hidden = !s.last;
+  $('how-take').textContent = H.take;
+  $('how-title').textContent = s.t;
+  $('how-sub').textContent = s.sub;
+  var o = s.opts; o.mode = 'how';
+  $('how-chart').innerHTML = chartHTML(o);
+  $('how-legend').hidden = !s.legend;
+  $('how-legend').innerHTML = '<span><i style="background:var(--blk)"></i>Stayed put</span><span><i style="border:2px dashed #E0C48C"></i>Moved away</span><span><i style="background:var(--mean)"></i>Landed here</span>';
+  var showChips = (m === 'median' || m === 'mode') && s.chips;
+  $('how-chips').hidden = !showChips;
+  $('how-chips').className = 'chips m-' + m;
+  $('how-chips').innerHTML = showChips ? chipsHTML(st, s.chips, m) : '';
+  $('how-prev').disabled = how.step === 0;
+  var nx = $('how-next');
+  nx.className = 'btn btn-big btn-measure m-' + m;
+  nx.innerHTML = s.last ? svg(I.again, 18) + 'Play it again' : esc(s.next) + ' ' + svg(I.arw, 18);
+  $('how-note').textContent = 'Step ' + (how.step + 1) + ' of ' + H.steps.length;
+  announce(s.t + '. ' + s.sub);
+}
+function openHow(m) { how.m = m; how.step = 0; showScreen('how'); renderHow(); $('how-next').focus(); }
 
-  </script>
+/* =================================================================
+   9. TYPE YOUR OWN NUMBERS
+   ================================================================= */
+var draft = { title: '', rows: [] };   /* rows: [{name, text}] */
+function parseNum(t) {
+  t = String(t).trim().replace(/,/g, '');
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
+  return parseFloat(t);
+}
+function openNumbers(fresh) {
+  if (fresh) draft = { title: '', rows: [] };
+  else draft = { title: S.title, rows: S.items.map(function (it) { return { name: it.name, text: fmt(it.value) }; }) };
+  $('ed-title').value = draft.title;
+  $('ed-msg').hidden = true;
+  renderRows();
+  showScreen('numbers');
+  $('crumb-here').textContent = draft.title || 'My data';
+}
+function draftItems() {
+  return draft.rows.map(function (r) { return { name: r.name.trim(), value: parseNum(r.text) }; }).filter(function (it) { return it.value !== null; });
+}
+function renderRows() {
+  $('ed-rows').innerHTML = draft.rows.length ? draft.rows.map(function (r, i) {
+    var bad = parseNum(r.text) === null;
+    return '<li class="row' + (bad ? ' bad' : '') + '" data-i="' + i + '"><span class="n">' + (i + 1) + '</span>' +
+      '<input class="inp" data-f="name" value="' + esc(r.name) + '" placeholder="Name" aria-label="Name ' + (i + 1) + '" autocomplete="off">' +
+      '<input class="inp num-in" data-f="text" value="' + esc(r.text) + '" inputmode="decimal" aria-label="Number ' + (i + 1) + '" autocomplete="off">' +
+      '<button type="button" class="icon-btn" data-del aria-label="Remove number ' + (i + 1) + '">' + svg(I.tr, 18) + '</button></li>';
+  }).join('') : '<li class="empty-rows">No numbers yet. Type one below, or paste a list.</li>';
+  $('new-n').textContent = draft.rows.length + 1;
+  renderDraftStats();
+}
+function renderDraftStats() {
+  var items = draftItems(), bad = draft.rows.length - items.length;
+  var keep = S.items; S.items = items;
+  var st = stats(); S.items = keep;
+  $('ed-count').textContent = items.length ? plural(items.length, 'number', 'numbers') + ' so far' : 'No numbers yet';
+  $('ed-stats').innerHTML = items.length ? [['mean', fmt(st.mean)], ['median', fmt(st.median)], ['mode', st.modes.length ? st.modes.map(fmt).join(', ') : 'None'], ['range', fmt(st.range)]].map(function (p) {
+    return '<div class="m-' + p[0] + '"><span>' + MEASURES[p[0]].name + '</span><b>' + p[1] + '</b></div>';
+  }).join('') : '';
+  var big = items.length && !(items.length <= MAX_BAR_ITEMS && items.every(function (it) { return isWhole(it.value) && it.value >= 0 && it.value <= MAX_BLOCKS; }));
+  $('ed-note').textContent = (bad ? plural(bad, 'row isn’t a number', 'rows aren’t numbers') + ' yet, so ' + (bad === 1 ? 'it’s' : 'they’re') + ' left out. ' : '') + (items.length ? (big ? 'These will show as a dot plot.' : 'These can show as bars of blocks or as a dot plot.') : '');
+  $('ed-go').disabled = !items.length;
+}
+$('ed-title').addEventListener('input', function () { draft.title = this.value; dirty = true; $('crumb-here').textContent = this.value || 'My data'; });
+$('ed-rows').addEventListener('input', function (e) {
+  var li = e.target.closest('.row'); if (!li) return;
+  draft.rows[+li.dataset.i][e.target.dataset.f] = e.target.value; dirty = true;
+  li.classList.toggle('bad', parseNum(draft.rows[+li.dataset.i].text) === null);
+  renderDraftStats();
+});
+$('ed-rows').addEventListener('click', function (e) {
+  if (!e.target.closest('[data-del]')) return;
+  var i = +e.target.closest('.row').dataset.i;
+  draft.rows.splice(i, 1); dirty = true; renderRows();
+  var b = $('ed-rows').querySelectorAll('[data-del]')[Math.min(i, draft.rows.length - 1)];
+  (b || $('new-num')).focus();
+});
+function addNew() {
+  var t = $('new-num').value.trim();
+  if (parseNum(t) === null) { $('ed-msg').hidden = false; $('ed-msg').textContent = t ? '“' + t + '” isn’t a number. Try something like 82 or 3.5.' : 'Type a number first.'; $('new-num').focus(); return; }
+  draft.rows.push({ name: $('new-name').value.trim(), text: t }); dirty = true;
+  $('new-name').value = ''; $('new-num').value = ''; $('ed-msg').hidden = true;
+  renderRows(); announce('Added ' + t); $('new-name').value ? $('new-num').focus() : $('new-num').focus();
+}
+$('new-add').addEventListener('click', addNew);
+['new-name', 'new-num'].forEach(function (id) { $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addNew(); } }); });
+function parseList(text) {
+  var lines = text.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+  var out = [];
+  /* "name, number" or "name<tab>number" on each line */
+  var paired = lines.length && lines.every(function (l) { var p = l.split(/\t|,/); return p.length === 2 && parseNum(p[1]) !== null && parseNum(p[0]) === null; });
+  if (paired) return lines.map(function (l) { var p = l.split(/\t|,/); return { name: p[0].trim().replace(/^"|"$/g, ''), text: p[1].trim() }; });
+  text.split(/[\s,;]+/).forEach(function (t) { if (t.trim()) out.push({ name: '', text: t.trim() }); });
+  return out;
+}
+$('paste-add').addEventListener('click', function () {
+  var add = parseList($('paste').value);
+  if (!add.length) { $('paste').focus(); return; }
+  /* drop a header word like "score" at the top */
+  if (add.length > 1 && parseNum(add[0].text) === null && !add[0].name) add.shift();
+  draft.rows = draft.rows.concat(add); dirty = true;
+  $('paste').value = '';
+  renderRows();
+  var bad = add.filter(function (r) { return parseNum(r.text) === null; }).length;
+  $('ed-msg').hidden = false;
+  $('ed-msg').textContent = 'Added ' + plural(add.length, 'value', 'values') + '.' + (bad ? ' ' + plural(bad, 'isn’t a number', 'aren’t numbers') + ' and ' + (bad === 1 ? 'is' : 'are') + ' marked in red.' : '');
+});
+$('ed-go').addEventListener('click', function () {
+  var items = draftItems();
+  if (!items.length) return;
+  S.title = draft.title.trim();
+  S.items = items.map(function (it, i) { return { name: it.name || (i < NAMES.length ? NAMES[i] : '#' + (i + 1)), value: it.value }; });
+  S.guess = null; S.sorted = false;
+  S.view = barsOK() ? 'bars' : 'dots';
+  showScreen('work'); renderWork();
+});
 
+/* ---- Save and open data files ---- */
+function fileName() { return ((S.title || draft.title || 'my data').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'my-data') + '.json'; }
+async function saveData() {
+  var items = draftItems();
+  if (!items.length) { $('ed-msg').hidden = false; $('ed-msg').textContent = 'Add some numbers before saving.'; return; }
+  var data = JSON.stringify({ app: 'center-and-spread', version: 1, title: draft.title.trim() || 'My data', values: items }, null, 2);
+  var name = ((draft.title || 'my data').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'my-data') + '.json';
+  if (window.showSaveFilePicker) {
+    try {
+      var h = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Center and Spread data', accept: { 'application/json': ['.json'] } }] });
+      var w = await h.createWritable(); await w.write(data); await w.close();
+      dirty = false; $('ed-msg').hidden = false; $('ed-msg').textContent = 'Saved “' + h.name + '” to your computer.';
+    } catch (err) { if (err && err.name !== 'AbortError') { $('ed-msg').hidden = false; $('ed-msg').textContent = 'That didn’t save. Try again.'; } }
+    return;
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  dirty = false; $('ed-msg').hidden = false; $('ed-msg').textContent = 'Saved “' + name + '” to your Downloads folder.';
+}
+$('ed-save').addEventListener('click', saveData);
+function loadText(text, fname) {
+  var title = fname.replace(/\.(json|csv|txt)$/i, '').replace(/[-_]+/g, ' '), rows = null;
+  try {
+    var d = JSON.parse(text), arr = Array.isArray(d) ? d : d.values;
+    if (!Array.isArray(arr)) throw new Error('no values');
+    if (d.title) title = d.title;
+    rows = arr.map(function (v) { return typeof v === 'object' && v ? { name: String(v.name || ''), text: String(v.value) } : { name: '', text: String(v) }; });
+  } catch (e) {
+    rows = parseList(text);
+    if (rows.length > 1 && parseNum(rows[0].text) === null) rows.shift();
+  }
+  rows = (rows || []).filter(function (r) { return String(r.text).trim(); });
+  if (!rows.length) { $('ed-msg').hidden = false; $('ed-msg').textContent = 'No numbers found in “' + fname + '”.'; return; }
+  if (dirty && draft.rows.length && !confirm('Replace the numbers you have now with “' + title + '”? Unsaved changes will be lost.')) return;
+  draft = { title: title, rows: rows }; dirty = false;
+  $('ed-title').value = title; $('crumb-here').textContent = title;
+  renderRows();
+  $('ed-msg').hidden = false; $('ed-msg').textContent = 'Opened “' + fname + '” with ' + plural(rows.length, 'value', 'values') + '.';
+}
+function readFile(f) { if (!f) return; var r = new FileReader(); r.onload = function () { loadText(String(r.result), f.name); }; r.readAsText(f); }
+$('ed-open').addEventListener('click', function () { $('file-input').value = ''; $('file-input').click(); });
+$('file-input').addEventListener('change', function () { readFile(this.files[0]); });
+var dragDepth = 0;
+function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') > -1; }
+window.addEventListener('dragenter', function (e) { if (!hasFiles(e) || screen !== 'numbers') return; dragDepth++; $('drop-hint').hidden = false; });
+window.addEventListener('dragleave', function (e) { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('drop-hint').hidden = true; });
+window.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('drop', function (e) { if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('drop-hint').hidden = true; if (screen === 'numbers') readFile(e.dataTransfer.files[0]); });
+window.addEventListener('beforeunload', function (e) { if (dirty && draft.rows.length) { e.preventDefault(); e.returnValue = ''; } });
+
+/* =================================================================
+   10. STARTING POINTS
+   ================================================================= */
+function loadValues(title, values) {
+  S.title = title;
+  S.items = values.map(function (v, i) { return { name: NAMES[i % NAMES.length], value: v }; });
+  S.sorted = false; S.guess = null;
+  S.view = barsOK() ? 'bars' : 'dots';
+  S.show = { mean: true, median: true, mode: false, range: false };
+}
+function startBlocks() { loadValues('', [0, 0, 0, 0, 0, 0]); showScreen('work'); renderWork(); }
+function startGuess(avoid) {
+  var pool = EXAMPLES.filter(function (x) { return x.title !== avoid; });
+  var ex = pool[Math.floor(Math.random() * pool.length)];
+  loadValues(ex.title, ex.values);
+  S.guess = { mean: { text: '', done: false }, median: { text: '', done: false } };
+  showScreen('work'); renderWork();
+  $('guess-mean').focus();
+}
+$('examples').innerHTML = EXAMPLES.map(function (ex, i) {
+  var mx = Math.max.apply(null, ex.values);
+  return '<li><button type="button" class="example" data-ex="' + i + '"><span class="ex-bars" aria-hidden="true">' + ex.values.map(function (v) { return '<i style="height:' + Math.max(3, v / mx * 40) + 'px"></i>'; }).join('') + '</span><span><b>' + esc(ex.title) + '</b><br><span>' + esc(ex.note || plural(ex.values.length, 'student', 'students')) + '</span></span></button></li>';
+}).join('');
+$('examples').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-ex]'); if (!b) return;
+  var ex = EXAMPLES[+b.dataset.ex];
+  loadValues(ex.title, ex.values); showScreen('work'); renderWork();
+});
+$('go-blocks').addEventListener('click', startBlocks);
+$('go-numbers').addEventListener('click', function () { openNumbers(true); $('ed-title').focus(); });
+$('go-guess').addEventListener('click', function () { startGuess(); });
+
+/* =================================================================
+   11. CLICKS ON THE WORKING SCREEN
+   ================================================================= */
+function setValue(i, v) {
+  v = Math.max(0, Math.min(MAX_BLOCKS, v));
+  if (S.items[i].value === v) return;
+  S.items[i].value = v; renderWork();
+}
+$('work').addEventListener('click', function (e) {
+  var t = e.target;
+  var minus = t.closest('[data-minus]'), plus = t.closest('[data-plus]'), col = t.closest('.col');
+  if (minus) { setValue(+minus.dataset.minus, S.items[+minus.dataset.minus].value - 1); return; }
+  if (plus) { setValue(+plus.dataset.plus, S.items[+plus.dataset.plus].value + 1); return; }
+  if (col && !col.disabled) { setValue(+col.dataset.i, S.items[+col.dataset.i].value + 1); return; }
+  var sw = t.closest('[data-show]');
+  if (sw) { S.show[sw.dataset.show] = !S.show[sw.dataset.show]; renderWork(); var again = document.querySelector('[data-show="' + sw.dataset.show + '"]'); if (again) again.focus(); return; }
+  var hw = t.closest('[data-how]');
+  if (hw) { openHow(hw.dataset.how); return; }
+  var ck = t.closest('[data-check]');
+  if (ck) { checkGuess(ck.dataset.check); return; }
+  if (t.closest('#reveal-all')) { S.guess = null; showScreen('work'); renderWork(); announce('The numbers are showing now.'); return; }
+  var vw = t.closest('[data-view]');
+  if (vw && !vw.disabled) { S.view = vw.dataset.view; renderWork(); return; }
+});
+$('work').addEventListener('contextmenu', function (e) {
+  var col = e.target.closest('.col');
+  if (!col || col.disabled) return;
+  e.preventDefault();
+  setValue(+col.dataset.i, S.items[+col.dataset.i].value - 1);
+});
+$('work').addEventListener('input', function (e) {
+  if (e.target.dataset.name != null) S.items[+e.target.dataset.name].name = e.target.value;
+  if (e.target.id === 'title-in') { S.title = e.target.value; $('crumb-here').textContent = S.title || 'My data'; }
+});
+$('work').addEventListener('keydown', function (e) {
+  var g = e.target.id && e.target.id.indexOf('guess-') === 0;
+  if (g && e.key === 'Enter') { e.preventDefault(); checkGuess(e.target.id.slice(6)); }
+  if (e.target.classList.contains('col') && (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowDown')) { e.preventDefault(); setValue(+e.target.dataset.i, S.items[+e.target.dataset.i].value - 1); }
+  if (e.target.classList.contains('col') && e.key === 'ArrowUp') { e.preventDefault(); setValue(+e.target.dataset.i, S.items[+e.target.dataset.i].value + 1); }
+});
+function checkGuess(m) {
+  var input = $('guess-' + m), v = parseNum(input.value);
+  if (v === null) { input.focus(); input.select(); announce('Type a number for your ' + m + ' guess.'); return; }
+  S.guess[m] = { text: String(v), done: true };
+  renderWork();
+  var st = stats();
+  announce('You guessed ' + fmt(v) + '. The ' + m + ' is ' + fmt(st[m]) + '. ' + closeness(v, st[m]));
+  var next = m === 'mean' && !S.guess.median.done ? $('guess-median') : $('reveal-all');
+  if (next) next.focus();
+}
+$('btn-sort').addEventListener('click', function () { S.sorted = !S.sorted; renderWork(); });
+$('btn-add').addEventListener('click', function () {
+  if (S.items.length >= MAX_BARS) return;
+  var used = S.items.map(function (it) { return it.name; });
+  var name = NAMES.filter(function (n) { return used.indexOf(n) < 0; })[0] || ('#' + (S.items.length + 1));
+  S.items.push({ name: name, value: 0 }); renderWork();
+});
+$('btn-remove').addEventListener('click', function () { if (S.items.length > 1) { S.items.pop(); renderWork(); } });
+$('btn-edit').addEventListener('click', function () { openNumbers(false); });
+$('btn-big').addEventListener('click', function () {
+  S.big = !S.big; document.body.classList.toggle('big', S.big); this.setAttribute('aria-pressed', String(S.big));
+  if (screen === 'work') renderWork(); else if (screen === 'how') renderHow();
+});
+$('btn-over').addEventListener('click', function () {
+  if (S.items.some(function (it) { return it.value; }) && !confirm('Start over? The data on screen will be cleared.')) return;
+  S.guess = null; showScreen('landing');
+});
+$('btn-newdata').addEventListener('click', function () { startGuess(S.title); });
+$('btn-back').addEventListener('click', function () {
+  if (screen === 'how') { showScreen('work'); renderWork(); return; }
+  if (screen === 'numbers') { if (S.items.length && !S.guess) { showScreen('work'); renderWork(); } else showScreen('landing'); }
+});
+
+/* How it works controls */
+$('how-tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-m]'); if (b) { how.m = b.dataset.m; how.step = 0; renderHow(); } });
+$('how-tabs').addEventListener('keydown', function (e) {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  var keys = ['mean', 'median', 'mode', 'range'], i = keys.indexOf(how.m);
+  how.m = keys[(i + (e.key === 'ArrowRight' ? 1 : 3)) % 4]; how.step = 0; renderHow();
+  document.querySelector('#how-tabs [data-m="' + how.m + '"]').focus();
+});
+$('how-next').addEventListener('click', function () {
+  var H = howSteps(how.m, stats());
+  how.step = how.step >= H.steps.length - 1 ? 0 : how.step + 1;
+  renderHow();
+});
+$('how-prev').addEventListener('click', function () { if (how.step > 0) { how.step--; renderHow(); } });
+
+/* Redraw charts if the window changes between phone and desktop sizes */
+var lastPhone = window.matchMedia('(max-width: 600px)').matches;
+window.addEventListener('resize', function () {
+  var p = window.matchMedia('(max-width: 600px)').matches;
+  if (p === lastPhone) return; lastPhone = p;
+  if (screen === 'work') renderWork(); else if (screen === 'how') renderHow();
+});
+
+showScreen('landing');
+</script>
 </body>
 </html>

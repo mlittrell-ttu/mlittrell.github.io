@@ -11,7 +11,7 @@ Home page: https://mlittrell-ttu.github.io/mlittrell.github.io/
 | Classroom Timer | [timer.html](https://mlittrell-ttu.github.io/mlittrell.github.io/timer.html) | Live |
 | Flashcards | [flashcards.html](https://mlittrell-ttu.github.io/mlittrell.github.io/flashcards.html) | Live |
 | Percentages | [percentages.html](https://mlittrell-ttu.github.io/mlittrell.github.io/percentages.html) | Live |
-| Center and Spread | spread.html | Being redesigned |
+| Center and Spread | [spread.html](https://mlittrell-ttu.github.io/mlittrell.github.io/spread.html) | Live |
 | Noun Match | [noun-matching-game.html](https://mlittrell-ttu.github.io/mlittrell.github.io/noun-matching-game.html) | Live |
 | Well-Being Tracker | mwb-tracker.html | Being redesigned |
 
