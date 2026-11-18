@@ -250,6 +250,15 @@ h1 { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -
 .ranges button { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--rule); font-size: 0.875rem; font-weight: 600; background: #FFFFFF; color: var(--ink-2); cursor: pointer; }
 .ranges button[aria-pressed="true"] { background: var(--soft); border-color: var(--soft-edge); color: var(--ink); }
 .side { display: flex; flex-direction: column; gap: 14px; }
+.qtip { position: relative; display: inline-flex; }
+.qbtn { width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.qbtn:hover, .qbtn[aria-expanded="true"] { background: var(--app-bg); }
+.qbtn svg { stroke: var(--app-dark); }
+.qpop { position: absolute; right: -8px; top: calc(100% + 8px); width: 300px; padding: 14px 16px; border-radius: 14px; background: var(--ink); color: #FFFFFF; font-size: 0.8125rem; line-height: 1.45; box-shadow: 0 10px 28px rgba(0,0,0,0.22); z-index: 30; display: none; flex-direction: column; gap: 8px; text-align: left; }
+.qpop::before { content: ""; position: absolute; right: 18px; top: -6px; width: 12px; height: 12px; background: var(--ink); transform: rotate(45deg); }
+.qpop > b { font-size: 0.875rem; }
+.qrule b { color: #CFEBEE; }
+.qtip:hover .qpop, .qbtn:focus-visible + .qpop, .qbtn[aria-expanded="true"] + .qpop { display: flex; }
 .wl { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .wl li { display: flex; gap: 10px; font-size: 0.9375rem; }
 .wl li svg { stroke: var(--ink-2); flex: none; margin-top: 3px; }
@@ -449,7 +458,10 @@ h1 { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -
             <div class="legend" id="legend-lb" style="margin-top: 14px"></div>
           </div>
           <div class="side">
-            <div class="card"><h2>Worth a look</h2><ul class="wl" id="worth"></ul><p class="fine">These are patterns in your own numbers. You decide what they mean.</p></div>
+            <div class="card"><div class="card-head"><h2>Worth a look</h2><span class="qtip"><button type="button" class="qbtn" id="worth-q" aria-label="What shows up here?" aria-describedby="worth-tip" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg></button><span class="qpop" role="tooltip" id="worth-tip"><b>What shows up here</b>
+<span class="qrule"><b>Lower than usual.</b> A student’s last 3 check-ins are all further from 1 than their usual number. Their usual is the number they get most often. They need at least 6 check-ins, and the last 3 must fall within the last 5 school days.</span>
+<span class="qrule"><b>No check-in lately.</b> A student has no check-in in the last 5 school days while the rest of the class does.</span>
+<span class="qrule"><b>A weekday pattern.</b> One weekday’s average is noticeably further from 1 than the class’s overall average. This needs at least 20 check-ins.</span></span></span></div><ul class="wl" id="worth"></ul><p class="fine">These are patterns in your own numbers. You decide what they mean.</p></div>
             <div class="card"><h2>Class average by day</h2><p class="sub">1 is at the top</p><div class="svgchart" id="avg-chart" style="margin-top: 8px"></div></div>
             <div class="card"><h2>Average by weekday</h2><div class="wd" id="weekday"></div></div>
           </div>
@@ -881,6 +893,11 @@ function renderStudent() {
   $('st-chart').innerHTML = lineChart(vals, days, 1100, 230, true);
   $('st-notes').innerHTML = notes.length ? notes.map(function (c) { return '<li><span class="sub">' + nice(c.date, true) + '</span><span class="dotn" style="background:' + color(c.value) + '">' + c.value + '</span><span>' + esc(c.note) + '</span></li>'; }).join('') : '<li><span class="sub" style="grid-column: 1 / -1">No notes yet. Add one on the Check in screen.</span></li>';
 }
+
+/* Tap the ? to keep the explanation open (phones); Escape or a tap elsewhere closes it */
+$('worth-q').addEventListener('click', function (e) { e.stopPropagation(); this.setAttribute('aria-expanded', String(this.getAttribute('aria-expanded') !== 'true')); });
+document.addEventListener('click', function () { $('worth-q').setAttribute('aria-expanded', 'false'); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('worth-q').setAttribute('aria-expanded', 'false'); });
 $('tab-look').addEventListener('click', function (e) {
   var o = e.target.closest('[data-open]');
   if (o) { view.student = o.dataset.open; render(); window.scrollTo(0, 0); }
