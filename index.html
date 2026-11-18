@@ -44,7 +44,7 @@
   --pct-bg:     #ECE7F5; --pct:     #73639F;
   --spread-bg:  #F8E9C9; --spread:  #A57A2E;
   --noun-bg:    #F5D3D0; --noun:    #BE4A43;
-  --mwb-bg:     #CBE8EC; --mwb:     #26818F;
+  --mwb-bg:     #D8ECEE; --mwb:     #3F848C;
 
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
@@ -461,17 +461,19 @@ a:hover { color: var(--focus); }
         </div>
       </li>
 
-      <li class="app-card is-soon" style="--tint:var(--mwb-bg);--mark:var(--mwb)">
+      <li class="app-card" style="--tint:var(--mwb-bg);--mark:var(--mwb)">
         <div class="app-top">
           <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15.5c0-3-2.5-5.5-7-5.5 0 3 2.5 5.5 7 5.5z"/></svg></span>
-          <span class="pill pill-soon">Coming soon</span>
         </div>
         <div>
           <p class="app-kind">Classroom</p>
           <h3>Well-Being Tracker</h3>
-          <p class="desc">Record quick, private observations of how students are doing and look back at patterns over time.</p>
+          <p class="desc">Check in on each student in a few seconds, then look back over the weeks. Names stay hidden until you show them.</p>
         </div>
-        <p class="soon-note">Being redesigned. Check back soon.</p>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="mwb-tracker.html" aria-label="Open Well-Being Tracker">Open</a>
+          <a class="btn" href="mwb-tracker.html" download="mwb-tracker.html" aria-label="Download Well-Being Tracker">Download</a>
+        </div>
       </li>
 
     </ul>

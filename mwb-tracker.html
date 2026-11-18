@@ -1,1345 +1,1255 @@
 <!DOCTYPE html>
 <!--
-  CLASSROOM MENTAL WELL-BEING OBSERVATION TRACKER
+  WELL-BEING TRACKER  (part of Teacher Apps)
+  =================================================================
+  One self-contained file: structure (HTML), look (CSS) and
+  behaviour (JavaScript) all live here. Nothing is loaded from the
+  internet, nothing is sent anywhere, and nothing is remembered by
+  the browser. A class lives in a .json file the teacher saves on
+  their own computer; that file is the only copy.
 
-  DATA MODEL:
-  All observations live in one flat array — allRecords[].
-  Each record: { rid, name, date, period, state, note }
-  The Enter table and Analyze charts both read from allRecords.
-  No separate "session" concept — records accumulate freely.
+  A teacher checks in on each student with a number on their own
+  scale (1 is always the top), once per day, with an optional note.
+  "Look back" shows the class and each student over time.
+  Names show as "Student 1", "Student 2"... unless revealed.
+
+  How the file is laid out:
+    1. <style>  ... design tokens, then one block per part of the page
+    2. <body>   ... Teacher Apps header, then the screens:
+                    landing, class setup, and the class itself
+                    (Check in / Look back / All entries)
+    3. <script> ... state, file saving and opening, then one section
+                    per screen
 -->
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Student Mental Well-Being Observation Tracker</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Well-Being Tracker · Teacher Apps</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
 
-  <style>
-    /* ── VARIABLES ─────────────────────────────────────────── */
-    :root {
-      --bg:        #f7f8f8;
-      --card:      #ffffff;
-      --accent:    #4a9e8f;
-      --accent-lt: #e6f4f2;
-      --accent-dk: #357a6e;
-      --text:      #2c3333;
-      --muted:     #6b7676;
-      --border:    #e4e9e8;
-      --danger:    #d96060;
-      --radius:    8px;
-      --s1: #4a9e8f;
-      --s2: #6aaecc;
-      --s3: #e8c44a;
-      --s4: #e8904a;
-      --s5: #d96060;
-      /* System font stacks — no external requests */
-      --font-serif: Georgia, 'Times New Roman', serif;
-      --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    }
+<style>
+/* =================================================================
+   1. DESIGN TOKENS
+   Shared Teacher Apps colours, plus this app's own colour (teal).
+   ================================================================= */
+:root {
+  --paper:      #F5F7F6;
+  --surface:    #FFFFFF;
+  --surface-2:  #EEF2F1;
+  --ink:        #1C2730;
+  --ink-2:      #4A5862;
+  --rule:       #D3DBDA;
+  --field-edge: #85918F;
+  --focus:      #1D5FD1;
 
-    /* ── RESET ─────────────────────────────────────────────── */
-    /* This is a CSS reset — removes browser default spacing and 
-   standardizes the box model across all elements */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    /* A CSS rule — selector + declaration block */
-    body {
-      font-family: var(--font-sans); /* declaration: property + value */
-      font-size: 15px;
-      background: var(--bg);
-      color: var(--text); /* same as writing color: #2c3333 */
-      display: flex;
-      min-height: 100vh;
-      line-height: 1.65;
-    }
+  --app:        #367F88;  /* Well-Being teal */
+  --app-bg:     #E2F0F1;
+  --app-dark:   #2C6A72;
 
-    /* ── SIDEBAR ───────────────────────────────────────────── */
-    #sidebar { /* # targets a unique id, not a class like .*/
-  width: 230px;          /* fixed sidebar width */
-  min-height: 100vh;     /* stretch full viewport height */
-  background: var(--card);
-  border-right: 1px solid var(--border); /* dividing line between sidebar and main */
-  display: flex;
-  flex-direction: column; /* stack nav items vertically */
-  position: fixed;        /* stays in place when page scrolls */
-  top: 0; left: 0;        /* pinned to top-left corner */
-  z-index: 100;           /* float above other page content */
-    }
-    .brand { padding: 1.5rem 1.3rem 1.1rem; border-bottom: 1px solid var(--border); } /* .brand = . is class selector. anything with class brand targetted */
-    .brand-icon {
-      width: 34px; height: 34px; background: var(--accent-lt);
-      border-radius: 8px; display: flex; align-items: center;
-      justify-content: center; font-size: 1rem; margin-bottom: 0.6rem;
-    }
-    .brand h1 { font-family: var(--font-serif); font-size: 0.92rem; line-height: 1.3; }
-    .brand p  { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
-    .nav-label {
-      font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.1em;
-      color: var(--muted); padding: 1rem 1.3rem 0.25rem; font-weight: 600;
-    }
-    .nav-item {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.5rem 1.3rem; cursor: pointer; font-size: 0.855rem;
-      color: var(--muted); border-left: 2px solid transparent; transition: all 0.12s;
-    }
-    .nav-item:hover { color: var(--text); background: var(--bg); }
-    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-lt); font-weight: 600; }
-    .nav-icon { font-size: 0.9rem; }
-    /* record count badge next to nav items */
-    .nav-count {
-      margin-left: auto; background: var(--accent-lt); color: var(--accent-dk);
-      font-size: 0.68rem; font-weight: 600; padding: 0.1rem 0.45rem;
-      border-radius: 20px; display: none;
-    }
-    .nav-count.show { display: inline-block; }
-    .state-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-    .sidebar-footer { margin-top: auto; padding: 0.9rem 1.3rem; border-top: 1px solid var(--border); }
-    /* sidebar states reference */
-    .states-ref { padding: 0 1.3rem 0.5rem; }
-    .states-ref-row { display: flex; align-items: center; gap: 0.45rem; font-size: 0.73rem; color: var(--muted); margin-bottom: 0.22rem; }
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
 
-    /* ── MAIN ──────────────────────────────────────────────── */
-    #main { margin-left: 230px; flex: 1; padding: 2rem 2.6rem; max-width: 1020px; }
-    .view { display: none; }
-    .view.active { display: block; }
-    .page-title { font-family: var(--font-serif); font-size: 1.65rem; margin-bottom: 0.2rem; }
-    .page-sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 1.8rem; }
+/* =================================================================
+   2. BASICS
+   ================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--font); line-height: 1.5; }
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-    /* ── CARDS ─────────────────────────────────────────────── */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
-    .card h2 { font-family: var(--font-serif); font-size: 1.1rem; margin-bottom: 0.45rem; }
-    .card h3 { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.3rem; }
-    .card p  { font-size: 0.86rem; color: var(--muted); margin-bottom: 0.65rem; line-height: 1.65; }
-    .card p:last-child { margin-bottom: 0; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--field-edge); background: var(--surface); color: var(--ink);
+  font-size: 0.9375rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.btn-primary:hover { background: var(--app-dark); border-color: var(--app-dark); }
+.btn-big { min-height: 52px; padding: 0 24px; font-size: 1.0625rem; }
+.btn-dashed { min-height: 48px; border: 2px dashed var(--app); background: transparent; color: var(--app); }
+.btn-dashed:hover { background: var(--app-bg); }
 
-    /* ── BUTTONS ───────────────────────────────────────────── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      padding: 0.5rem 1rem; border-radius: 6px;
-      font-family: var(--font-sans); font-size: 0.84rem;
-      font-weight: 500; cursor: pointer; border: none; transition: all 0.12s;
-    }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-dk); }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-danger  { background: transparent; border: 1px solid #f0c8c8; color: var(--danger); }
-    .btn-danger:hover { background: #fff0f0; }
-    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
-    .btn-ghost { background: transparent; border: none; color: var(--muted); font-size: 0.8rem; cursor: pointer; font-family: var(--font-sans); padding: 0; }
-    .btn-ghost:hover { color: var(--danger); }
+/* =================================================================
+   3. TEACHER APPS HEADER
+   ================================================================= */
+.app-stripe { height: 4px; background: var(--app); }
+.app-bar { border-bottom: 1px solid var(--rule); }
+.app-bar-inner {
+  max-width: 1060px; margin: 0 auto; padding: 14px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+}
+.app-id { display: flex; align-items: center; gap: 14px; }
+.home-link { display: inline-flex; border-radius: 10px; }
+.logo-mark { width: 32px; height: 32px; padding: 6px; border-radius: 9px; background: #1C2730; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.logo-mark span:nth-child(1) { background: #7FA6F0; border-radius: 3px 3px 3px 1.5px; }
+.logo-mark span:nth-child(2) { background: #5FC49A; border-radius: 50%; }
+.logo-mark span:nth-child(3) { background: #E2AB4C; border-radius: 3px; }
+.logo-mark span:nth-child(4) { background: #EEF2F1; border-radius: 3px 1.5px 3px 3px; }
+.bar-divider { width: 1px; height: 24px; background: var(--rule); }
+.app-name { display: inline-flex; align-items: center; gap: 10px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-icon { width: 32px; height: 32px; border-radius: 9px; background: var(--app-bg); display: inline-flex; align-items: center; justify-content: center; }
+.app-icon svg { stroke: var(--app); }
 
-    /* ── TOOLTIPS ──────────────────────────────────────────── */
-    .tip-wrap { position: relative; display: inline-flex; align-items: center; }
-    .tip-icon {
-      width: 15px; height: 15px; border-radius: 50%; background: var(--border);
-      color: var(--muted); font-size: 0.6rem; font-weight: 700;
-      display: inline-flex; align-items: center; justify-content: center;
-      cursor: help; flex-shrink: 0; transition: background 0.12s; margin-left: 0.3rem;
-    }
-    .tip-icon:hover { background: var(--accent); color: #fff; }
-    .tip-box {
-      display: none; position: absolute; bottom: calc(100% + 7px); left: 50%;
-      transform: translateX(-50%); background: var(--text); color: #f0f4f3;
-      font-size: 0.77rem; padding: 0.5rem 0.7rem; border-radius: 6px;
-      width: 210px; line-height: 1.5; z-index: 400;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.15); pointer-events: none;
-    }
-    .tip-wrap:hover .tip-box { display: block; }
+/* =================================================================
+   4. THIS APP'S COLOURS
+   A calm teal for the app, and a fixed colour for each level of
+   the scale (1 is always the top of the scale).
+   ================================================================= */
+:root {
+  --app: #5A9FA7; --app-bg: #E4F2F3; --app-dark: #2C6A72;
+  --soft: #CBE6E8; --soft-edge: #8FC4C9; --soft-hover: #B9DEE1;
+  --l1: #62B0A3; --l2: #9ED0C4; --l3: #F1D9A0; --l4: #EFAE8A; --l5: #D9787A;
+  --flag: #A1452F;
+}
+[hidden] { display: none !important; }
+.app-bar-inner { max-width: 1200px; padding-left: 32px; padding-right: 32px; }
+.app-icon { background: var(--app-bg); }
+.btn svg { stroke: currentColor; }
+.btn-primary { background: var(--soft); border-color: var(--soft-edge); color: var(--ink); }
+.btn-primary:hover { background: var(--soft-hover); border-color: var(--soft-edge); }
+.btn-danger { color: #8E2F22; border-color: #D9A096; }
+.btn-danger:hover { background: #FBEDEA; }
 
-    /* ── ALERTS ────────────────────────────────────────────── */
-    .alert { padding: 0.7rem 0.95rem; border-radius: 6px; font-size: 0.84rem; margin-bottom: 1rem; line-height: 1.55; }
-    .alert-info { background: var(--accent-lt); border: 1px solid #c0ddd9; color: #2a6b62; }
-    .alert-warn { background: #fef9ec; border: 1px solid #f0d88a; color: #7a5c10; }
+/* Header extras */
+.crumb { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.crumb .sep { color: var(--field-edge); font-size: 1.125rem; }
+.crumb .here { font-size: 1.125rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 28ch; }
+.bar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.privacy { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--ink-2); }
+.privacy svg { stroke: var(--app); }
+.link-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); cursor: pointer; }
+.link-btn:hover { background: var(--surface-2); color: var(--ink); }
+.link-btn[aria-pressed="true"] { background: var(--app-bg); color: var(--ink); }
+.link-btn svg { stroke: currentColor; }
+.unsaved { font-size: 0.8125rem; font-weight: 700; color: #8A4F15; background: #FCEFD9; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.saved-ok { font-size: 0.8125rem; font-weight: 600; color: var(--app-dark); white-space: nowrap; }
+.tip { display: inline-flex; align-items: flex-start; gap: 6px; font-size: 0.8125rem; color: var(--ink-2); }
+.tip svg { stroke: var(--app); flex: none; margin-top: 1px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #FFFFFF; padding: 12px 18px; border-radius: 12px; font-size: 0.9375rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 60; max-width: min(92vw, 560px); }
+.banner { max-width: 1200px; margin: 14px auto 0; padding: 0 32px; }
+.banner > div { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: #FFF6E0; border: 1px solid #F0DCA0; font-size: 0.9375rem; }
+.banner svg { stroke: #9A7414; flex: none; }
 
-    /* ── FLEX HELPERS ──────────────────────────────────────── */
-    .flex-between { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.7rem; }
-    .flex-gap     { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+/* =================================================================
+   5. LANDING
+   ================================================================= */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 48px 32px 64px; }
+h1 { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -0.025em; line-height: 1.1; }
+.lede { margin-top: 12px; font-size: 1.1875rem; color: var(--ink-2); max-width: 58ch; }
+.starts { margin-top: 32px; display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; }
+.start { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-height: 220px; padding: 24px; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; cursor: pointer; }
+.start:hover { border-color: var(--soft-edge); }
+.start.primary { background: var(--app-bg); border-color: var(--soft-edge); }
+.start.primary:hover { border-color: var(--app); }
+.start-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--app-bg); display: flex; align-items: center; justify-content: center; }
+.start-icon svg { stroke: var(--app-dark); }
+.start.primary .start-icon { background: var(--soft); }
+.start-title { margin-top: 6px; font-size: 1.25rem; font-weight: 700; }
+.start-text { font-size: 0.9375rem; color: var(--ink-2); }
+.scale-mini { margin-top: auto; display: flex; gap: 6px; }
+.scale-mini i { width: 26px; height: 26px; border-radius: 8px; }
+.how3 { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.how3 > div { display: flex; gap: 12px; }
+.how3 .n { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--soft); font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.how3 b { display: block; }
+.how3 p { font-size: 0.9375rem; color: var(--ink-2); }
+.note-bar { margin-top: 28px; display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 14px; background: var(--app-bg); font-size: 0.9375rem; }
+.note-bar svg { stroke: var(--app-dark); flex: none; margin-top: 2px; }
+.drop-hint { position: fixed; inset: 12px; border: 3px dashed var(--app); border-radius: 24px; background: rgba(228,242,243,0.95); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: var(--app-dark); z-index: 50; pointer-events: none; }
 
-    /* ── THE DATA TABLE ────────────────────────────────────── */
-    /*
-      This is the core of the Enter Observations view.
-      A scrollable table where every cell is editable.
-      Each row = one observation record.
-    */
-    .data-table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--card);
-      margin-bottom: 1rem;
-    }
+/* =================================================================
+   6. CLASS SETUP
+   ================================================================= */
+.setup { max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.field { display: block; }
+.field-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 0.9375rem; font-weight: 700; margin-bottom: 6px; }
+.inp { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--field-edge); border-radius: 12px; background: #FFFFFF; font-size: 1rem; }
+.ta { width: 100%; min-height: 240px; padding: 12px 14px; border: 1px solid var(--field-edge); border-radius: 12px; font: inherit; font-size: 0.9375rem; line-height: 1.6; resize: vertical; background: #FFFFFF; }
+.seg { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--rule); }
+.seg button { min-height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; font-size: 0.875rem; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: #FFFFFF; color: var(--ink); box-shadow: 0 1px 3px rgba(28,39,48,0.15); }
+.seg button:disabled { opacity: 0.45; cursor: not-allowed; }
+.scale-ed { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.lv { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center; padding: 8px 10px; background: #FFFFFF; border: 1px solid var(--rule); border-radius: 14px; }
+.lv b { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+.roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow: auto; }
+.roster li { display: grid; grid-template-columns: 90px 1fr 40px; gap: 10px; align-items: center; padding: 6px 8px; background: #FFFFFF; border: 1px solid var(--rule); border-radius: 12px; }
+.roster .num { font-size: 0.8125rem; color: var(--ink-2); font-weight: 600; }
+.roster .inp { min-height: 38px; }
+.icon-btn { width: 38px; height: 38px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-2); }
+.icon-btn svg { stroke: var(--ink-2); }
+.setup-actions { margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap; }
+.err { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: #FBEDEA; color: #8E2F22; font-weight: 600; font-size: 0.9375rem; }
 
-    table.data-tbl { width: 100%; border-collapse: collapse; min-width: 700px; } /* table.data-tbl — compound selector. 
-    targets element w. both <table> tag and class data-tbl
-     No . means its a element selector. 
-     An element in html is a single building block (open tag, its content, closing tag) */
+/* =================================================================
+   7. THE CLASS (tabs)
+   ================================================================= */
+.page { max-width: 1200px; margin: 0 auto; padding: 20px 32px 48px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tabs { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--rule); }
+.tabs button { white-space: nowrap; min-height: 38px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: transparent; font-size: 0.9375rem; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.tabs button svg { stroke: currentColor; }
+.tabs button[aria-selected="true"] { background: #FFFFFF; color: var(--ink); box-shadow: 0 1px 3px rgba(28,39,48,0.15); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8125rem; color: var(--ink-2); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 16px; height: 16px; border-radius: 5px; }
 
+/* Check in */
+.datepick { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.datepick .icon-btn { border: 1px solid var(--field-edge); background: #FFFFFF; width: 40px; height: 40px; }
+.date-in { min-height: 40px; padding: 0 12px; border: 1px solid var(--field-edge); border-radius: 12px; background: #FFFFFF; font-weight: 700; font-size: 1rem; }
+.date-label { font-weight: 700; min-width: 0; }
+.bar2 { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.progress { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; font-weight: 700; }
+.pbar { width: 140px; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--app); }
+.rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.srow { display: grid; grid-template-columns: minmax(170px, 230px) auto minmax(0, 1fr); gap: 16px; align-items: center; padding: 10px 16px; background: #FFFFFF; border: 1px solid var(--rule); border-left: 5px solid var(--sc, transparent); border-radius: 16px; }
+.who { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 1rem; min-width: 0; }
+.who .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eye { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.eye:hover { background: var(--surface-2); }
+.eye svg { stroke: var(--ink-2); }
+.chips { display: flex; gap: 6px; }
+.chip { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--field-edge); background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: var(--ink); cursor: pointer; }
+.chip:hover { border-color: var(--ink); }
+.chip[aria-checked="true"] { background: var(--c); border-color: var(--c); box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 5px var(--c); }
+.note-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.note-wrap svg { stroke: var(--ink-2); flex: none; }
+.note-in { flex: 1; min-width: 0; min-height: 40px; border: 1px solid transparent; border-radius: 10px; padding: 0 10px; font-size: 0.9375rem; background: transparent; }
+.note-in:hover { border-color: var(--rule); }
+.note-in:focus { border-color: var(--field-edge); background: #FFFFFF; }
+.note-in:disabled { opacity: 0.5; }
+.empty { padding: 28px; text-align: center; color: var(--ink-2); border: 1px dashed var(--rule); border-radius: 16px; background: #FFFFFF; }
 
+/* Look back */
+.look { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.card { background: #FFFFFF; border: 1px solid var(--rule); border-radius: 20px; padding: 20px 22px; }
+.card h2 { font-size: 1.0625rem; font-weight: 700; }
+.card .sub { font-size: 0.875rem; color: var(--ink-2); }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.heat-scroll { margin-top: 14px; overflow-x: auto; padding-bottom: 4px; }
+.heat { display: grid; gap: 4px; align-items: center; min-width: max-content; }
+.heat .dh { font-size: 0.6875rem; color: var(--ink-2); text-align: center; font-weight: 600; line-height: 1.3; padding: 2px 0; border-radius: 6px; }
+.heat .dh.now { background: var(--soft); color: var(--ink); }
+.heat .nm { font-size: 0.8125rem; font-weight: 700; white-space: nowrap; padding: 4px 8px 4px 0; border: 0; background: transparent; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.heat .nm:hover { color: var(--app-dark); text-decoration: underline; }
+.heat .c { height: 24px; min-width: 18px; border-radius: 5px; }
+.heat .c.e { border: 1px dashed var(--rule); background: #FFFFFF; }
+.heat .c.has-note { box-shadow: inset 0 -3px 0 rgba(28,39,48,0.35); }
+.heat .fl { font-size: 0.75rem; color: var(--flag); font-weight: 700; white-space: nowrap; padding-left: 8px; display: flex; align-items: center; gap: 4px; }
+.heat .fl svg { stroke: var(--flag); }
+.ranges { display: inline-flex; gap: 6px; }
+.ranges button { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--rule); font-size: 0.875rem; font-weight: 600; background: #FFFFFF; color: var(--ink-2); cursor: pointer; }
+.ranges button[aria-pressed="true"] { background: var(--soft); border-color: var(--soft-edge); color: var(--ink); }
+.side { display: flex; flex-direction: column; gap: 14px; }
+.wl { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wl li { display: flex; gap: 10px; font-size: 0.9375rem; }
+.wl li svg { stroke: var(--ink-2); flex: none; margin-top: 3px; }
+.wl li.flag svg { stroke: var(--flag); }
+.wl button { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--ink); text-decoration: underline; text-decoration-color: var(--rule); cursor: pointer; }
+.fine { margin-top: 12px; font-size: 0.8125rem; color: var(--ink-2); }
+.svgchart svg { display: block; width: 100%; height: auto; }
+.wd { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+.wd div { border-radius: 12px; padding: 10px 4px; text-align: center; }
+.wd b { display: block; font-size: 1.125rem; }
+.wd span { font-size: 0.75rem; font-weight: 700; }
+.stud-head { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+.stud-head h2 { font-size: 1.75rem; font-weight: 750; letter-spacing: -0.02em; }
+.arrow { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--field-edge); background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.arrow svg { stroke: var(--ink); }
+.arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+.kpis { margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.kpi { background: #FFFFFF; border: 1px solid var(--rule); border-radius: 16px; padding: 14px 16px; }
+.kpi span { font-size: 0.8125rem; color: var(--ink-2); font-weight: 600; }
+.kpi b { display: block; font-size: 1.375rem; margin-top: 2px; }
+.kpi small { font-size: 0.8125rem; color: var(--ink-2); }
+.notes { list-style: none; margin: 10px 0 0; padding: 0; }
+.notes li { display: grid; grid-template-columns: 130px 36px 1fr; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid #EEF1F0; font-size: 0.9375rem; }
+.dotn { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.875rem; }
 
+/* All entries */
+.ent { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.thead, .trow { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto minmax(0, 1fr) 40px; gap: 12px; align-items: center; }
+.thead { padding: 0 14px; font-size: 0.75rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 12px; }
+.trow { margin-top: 6px; padding: 8px 14px; background: #FFFFFF; border: 1px solid var(--rule); border-radius: 14px; font-size: 0.9375rem; }
+.trow.new { border-style: dashed; background: transparent; }
+.sel { min-height: 38px; border: 1px solid var(--field-edge); border-radius: 10px; padding: 0 8px; background: #FFFFFF; font-size: 0.9375rem; width: 100%; }
+.mchips { display: flex; gap: 4px; }
+.mchip { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--field-edge); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.875rem; background: #FFFFFF; cursor: pointer; }
+.mchip[aria-checked="true"] { background: var(--c); border-color: var(--c); }
+.filters { margin-top: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 0.875rem; color: var(--ink-2); }
+.filters .sel { width: auto; }
+.panel { background: #FFFFFF; border: 1px solid var(--rule); border-radius: 20px; padding: 20px; }
+.panel h3 { font-size: 1.0625rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.panel h3 svg { stroke: var(--app-dark); }
+.panel p { font-size: 0.9375rem; color: var(--ink-2); margin-top: 4px; }
+.code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8125rem; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.875rem; min-height: 130px; }
+.msg { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--app-bg); font-size: 0.875rem; font-weight: 600; }
 
-    /* Descendant selector - Read left to right — each part drills deeper into the nesting:
-   
-   table.data-tbl   → a <table> with class="data-tbl"
-   thead            → inside that, a <thead> element
-   th               → inside that, a <th> element (table header cell)
-
-   Only <th> cells that live inside a <thead> that lives inside
-   that specific table get these styles. A <th> anywhere else
-   on the page is unaffected. 
-   thead = built in html table element; table head
-   th = is the header cell
-   td = the editable data cell*/
-
-    table.data-tbl thead th {
-      text-align: left; font-size: 0.72rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.07em;
-      color: var(--muted); padding: 0.6rem 0.8rem;
-      border-bottom: 2px solid var(--border);
-      background: var(--bg); white-space: nowrap;
-    }
-
-    table.data-tbl tbody tr { transition: background 0.08s; }
-    table.data-tbl tbody tr:hover { background: #f9fbfb; }
-    table.data-tbl tbody tr:last-child td { border-bottom: none; }
-
-    table.data-tbl td {
-      padding: 0.35rem 0.55rem;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-
-    /* Inline inputs inside the table cells */
-    .tbl-input {
-      width: 100%; border: 1px solid transparent; border-radius: 4px;
-      padding: 0.3rem 0.45rem; font-family: var(--font-sans);
-      font-size: 0.84rem; color: var(--text); background: transparent;
-      outline: none; transition: border-color 0.12s, background 0.12s;
-    }
-    .tbl-input:hover  { border-color: var(--border); background: var(--bg); }
-    .tbl-input:focus  { border-color: var(--accent); background: #fff; }
-
-    /* The state dropdown — color coded */
-    .state-select {
-      width: 100%; border: 1px solid transparent; border-radius: 4px;
-      padding: 0.28rem 0.4rem; font-family: var(--font-sans);
-      font-size: 0.84rem; background: transparent; outline: none;
-      cursor: pointer; transition: border-color 0.12s, background 0.12s;
-      -webkit-appearance: none; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7676'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 0.5rem center;
-      padding-right: 1.4rem;
-    }
-    .state-select:hover { border-color: var(--border); background-color: var(--bg); }
-    .state-select:focus { border-color: var(--accent); background-color: #fff; }
-
-    /* Color the dropdown by selected value using JS-applied classes */
-    .state-select.s0 { color: var(--muted); }
-    .state-select.s1 { color: var(--s1); font-weight: 600; }
-    .state-select.s2 { color: var(--s2); font-weight: 600; }
-    .state-select.s3 { color: var(--s3); font-weight: 600; }
-    .state-select.s4 { color: var(--s4); font-weight: 600; }
-    .state-select.s5 { color: var(--s5); font-weight: 600; }
-
-    /* Delete button in each row */
-    .del-btn {
-      width: 24px; height: 24px; border-radius: 4px; border: none;
-      background: transparent; color: var(--border); cursor: pointer;
-      font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s;
-    }
-    .del-btn:hover { background: #fff0f0; color: var(--danger); }
-
-    /* Empty state message when no records */
-    .empty-state {
-      text-align: center; padding: 2.5rem; color: var(--muted); font-size: 0.88rem;
-    }
-    .empty-state .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-
-    /* ── SUMMARY STRIP ─────────────────────────────────────── */
-    .summary-strip {
-      display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;
-    }
-    .s-chip {
-      display: flex; align-items: center; gap: 0.35rem;
-      padding: 0.3rem 0.65rem; border-radius: 20px;
-      font-size: 0.78rem; font-weight: 600;
-      border: 1px solid currentColor;
-    }
-
-    /* ── UPLOAD ZONE ───────────────────────────────────────── */
-    .upload-zone {
-      border: 2px dashed var(--border); border-radius: var(--radius);
-      padding: 1.5rem; text-align: center; cursor: pointer;
-      transition: all 0.15s; background: var(--bg);
-    }
-    .upload-zone:hover, .upload-zone.over { border-color: var(--accent); background: var(--accent-lt); }
-    .upload-zone p { font-size: 0.84rem; color: var(--muted); margin: 0; }
-
-    /* ── CHARTS ────────────────────────────────────────────── */
-    .chart-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.3rem; margin-bottom: 1rem; }
-    .chart-title { font-size: 0.86rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.2rem; }
-    .chart-sub   { font-size: 0.77rem; color: var(--muted); margin-bottom: 0.9rem; }
-    canvas { width: 100% !important; display: block; }
-    .legend { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.6rem; }
-    .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: var(--muted); }
-    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-
-    /* ── TABS ──────────────────────────────────────────────── */
-    .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.3rem; }
-    .tab { padding: 0.5rem 1rem; font-size: 0.84rem; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; }
-    .tab:hover { color: var(--text); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-
-    /* ── ABOUT PAGE ────────────────────────────────────────── */
-    .concept-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem; }
-    .concept-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; }
-    .concept-card .c-icon { font-size: 1.3rem; margin-bottom: 0.4rem; }
-    .concept-card h3 { font-size: 0.88rem; margin-bottom: 0.25rem; }
-    .concept-card p  { font-size: 0.81rem; color: var(--muted); margin: 0; line-height: 1.55; }
-    .state-explain { display: flex; align-items: flex-start; gap: 0.9rem; padding: 0.8rem 1rem; border-radius: 6px; margin-bottom: 0.45rem; border: 1px solid var(--border); background: var(--card); }
-    .state-explain .s-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; margin-top: 0.2rem; }
-    .state-explain h4 { font-size: 0.86rem; margin-bottom: 0.12rem; }
-    .state-explain p  { font-size: 0.81rem; color: var(--muted); margin: 0; }
-
-    /* ── BADGE ─────────────────────────────────────────────── */
-    .badge { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 20px; font-size: 0.68rem; font-weight: 600; }
-    .badge-teal { background: var(--accent-lt); color: var(--accent-dk); }
-
-    hr { border: none; border-top: 1px solid var(--border); margin: 1.1rem 0; }
-
-    /* ── FEEDBACK MODAL ────────────────────────────────────── */
-    #feedbackModal { display: none; position: fixed; inset: 0; background: rgba(44,51,51,0.45); z-index: 500; align-items: center; justify-content: center; }
-    #feedbackModal.open { display: flex; }
-    .modal-box { background: var(--card); border-radius: var(--radius); padding: 1.7rem; max-width: 450px; width: 92%; box-shadow: 0 8px 28px rgba(0,0,0,0.14); }
-    .modal-box h2 { font-family: var(--font-serif); font-size: 1.1rem; margin-bottom: 0.3rem; }
-    .modal-box > p { font-size: 0.83rem; color: var(--muted); margin-bottom: 1rem; }
-    .q-label { font-size: 0.83rem; font-weight: 600; display: block; margin-bottom: 0.3rem; }
-    .likert { display: flex; gap: 0.3rem; margin-bottom: 0.9rem; }
-    .likert button { flex: 1; padding: 0.38rem 0; border: 1px solid var(--border); border-radius: 5px; background: transparent; font-size: 0.78rem; cursor: pointer; font-family: var(--font-sans); color: var(--muted); transition: all 0.12s; }
-    .likert button:hover, .likert button.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
-    textarea.oe { width: 100%; border: 1px solid var(--border); border-radius: 5px; padding: 0.45rem 0.65rem; font-family: var(--font-sans); font-size: 0.83rem; min-height: 60px; resize: vertical; color: var(--text); outline: none; }
-    textarea.oe:focus { border-color: var(--accent); }
-    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
-  </style>
+/* =================================================================
+   8. SMALL SCREENS
+   ================================================================= */
+@media (max-width: 960px) {
+  .starts, .how3, .setup { grid-template-columns: 1fr; }
+  .start { min-height: 0; }
+  .look, .ent { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .srow { grid-template-columns: 1fr; gap: 8px; }
+}
+@media (max-width: 600px) {
+  .app-bar-inner { padding: 12px 16px; }
+  .privacy, .crumb .sep, .crumb .here { display: none !important; }
+  .link-btn .lbl, .btn .lbl { display: none; }
+  .bar-right .btn { min-height: 40px; padding: 0 12px; }
+  .wrap { padding: 28px 16px 48px; }
+  .setup, .page { padding: 14px 16px 32px; }
+  .banner { padding: 0 16px; }
+  .srow { padding: 12px 14px; }
+  .chips { justify-content: space-between; }
+  .chip { width: 52px; height: 52px; }
+  .thead { display: none; }
+  .trow { grid-template-columns: 1fr 40px; }
+  .trow > *:nth-child(3), .trow > *:nth-child(4) { grid-column: 1 / -1; }
+  .notes li { grid-template-columns: 1fr 36px; }
+  .notes li span:last-child { grid-column: 1 / -1; }
+  .top { gap: 10px; }
+  .tabs button { padding: 0 12px; font-size: 0.875rem; }
+  .tabs button svg { display: none; }
+}
+</style>
 </head>
 <body>
 
-<!-- FEEDBACK MODAL ─────────────────────────────────────────── -->
-<div id="feedbackModal">
-  <div class="modal-box">
-    <h2>👋 A quick note </h2>
-    <p>This tool was developed as part of an educational research project. Your feedback helps improve it.</p>
-    <label class="q-label">1. How useful is this tool to in your classroom?</label>
-    <div class="likert" id="fq1">
-      <button onclick="lk('fq1',1,this)">1<br><small>Not useful</small></button>
-      <button onclick="lk('fq1',2,this)">2</button>
-      <button onclick="lk('fq1',3,this)">3<br><small>Neutral</small></button>
-      <button onclick="lk('fq1',4,this)">4</button>
-      <button onclick="lk('fq1',5,this)">5<br><small>Very useful</small></button>
+<div class="app-stripe" aria-hidden="true"></div>
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <div class="app-id">
+      <a class="home-link" href="index.html" aria-label="Back to Teacher Apps"><span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span></a>
+      <span class="bar-divider" aria-hidden="true"></span>
+      <span class="crumb">
+        <span class="app-name"><span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V10"/><path d="M12 13c-3.5 0-6-2.2-6-6 3.5 0 6 2.2 6 6zM12 11c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5z"/></svg></span>Well-Being Tracker</span>
+        <span class="sep" id="crumb-sep" hidden>/</span><span class="here" id="crumb-here" hidden></span>
+      </span>
     </div>
-    <label class="q-label">2. How clear is the mental well-being content and guidance in this tool?</label>
-    <div class="likert" id="fq2">
-      <button onclick="lk('fq2',1,this)">1<br><small>Not clear</small></button>
-      <button onclick="lk('fq2',2,this)">2</button>
-      <button onclick="lk('fq2',3,this)">3<br><small>Neutral</small></button>
-      <button onclick="lk('fq2',4,this)">4</button>
-      <button onclick="lk('fq2',5,this)">5<br><small>Very clear</small></button>
-    </div>
-    <label class="q-label">3. How do rate the benefits of this tool?</label>
-    <div class="likert" id="fq3">
-      <button onclick="lk('fq3',1,this)">1<br><small>Not beneficial</small></button>
-      <button onclick="lk('fq3',2,this)">2</button>
-      <button onclick="lk('fq3',3,this)">3<br><small>Neutral</small></button>
-      <button onclick="lk('fq3',4,this)">4</button>
-      <button onclick="lk('fq3',5,this)">5<br><small>Very beneficial</small></button>
-    </div>
-    <label class="q-label">4. Any thoughts or suggestions? (Optional)</label>
-    <textarea class="oe" id="fq4" placeholder="Your response here..."></textarea>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeFeedback()">Skip</button>
-      <button class="btn btn-primary" onclick="sendFeedback()">📧 Send Feedback</button>
+    <div class="bar-right">
+      <span class="privacy" id="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Saved only to files on your computer</span>
+      <span class="unsaved" id="unsaved" hidden></span>
+      <span class="saved-ok" id="saved-ok" hidden>Saved</span>
+      <button type="button" class="link-btn" id="btn-names" aria-pressed="false" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3 3.7M6.6 6.6A17 17 0 0 0 2.5 12S6 18.5 12 18.5a9.3 9.3 0 0 0 4.4-1.1"/></svg><span class="lbl">Show names</span></button>
+      <button type="button" class="link-btn" id="btn-settings" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="lbl">Class settings</span></button>
+      <button type="button" class="link-btn" id="btn-back" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></button>
+      <button type="button" class="btn btn-primary" id="btn-save" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg><span class="lbl">Save file</span></button>
     </div>
   </div>
-</div>
+</header>
 
-
-<!-- SIDEBAR ─────────────────────────────────────────────────── -->
-<nav id="sidebar">
-  <div class="brand">
-    <div class="brand-icon">🌱</div>
-    <h1>Mental Well-Being Tracker</h1>
-    <p>Classroom Tool for Student Well-Being</p>
+<main>
+<!-- ============ LANDING ============ -->
+<section id="landing" class="wrap">
+  <h1>A quick snapshot of how your students are doing.</h1>
+  <p class="lede">Check in on each student in a few seconds, then look back over the weeks. You decide what each number means.</p>
+  <div class="starts">
+    <button type="button" class="start primary" id="go-new">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span class="start-title">Start a new class</span>
+      <span class="start-text">Paste your student names and choose your scale. Names stay hidden as Student 1, Student 2 and so on until you show them.</span>
+      <span class="scale-mini" aria-hidden="true"><i style="background:var(--l1)"></i><i style="background:var(--l2)"></i><i style="background:var(--l3)"></i><i style="background:var(--l4)"></i><i style="background:var(--l5)"></i></span>
+    </button>
+    <button type="button" class="start" id="go-open">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+      <span class="start-title">Open your class file</span>
+      <span class="start-text">Pick up where you left off. Open the file you saved last time, or drop it anywhere on this page.</span>
+    </button>
+    <button type="button" class="start" id="go-example">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg></span>
+      <span class="start-title">Try an example class</span>
+      <span class="start-text">12 made-up students and three weeks of check-ins, so you can see how it works before you start.</span>
+    </button>
   </div>
-
-  <div class="nav-label">Learn</div>
-  <div class="nav-item active" onclick="show('aboutView',this)"><span class="nav-icon">📖</span> About Well-Being</div>
-  <div class="nav-item" onclick="show('howView',this)"><span class="nav-icon">🧭</span> How to Use</div>
-
-  <div class="nav-label">Tool</div>
-  <div class="nav-item" onclick="show('enterView',this)">
-    <span class="nav-icon">✏️</span> Enter Observations
-    <span class="nav-count" id="recCount">0</span>
+  <div class="how3">
+    <div><span class="n">1</span><span><b>Check in</b><p>Tap a number for each student. Add a short note if you want.</p></span></div>
+    <div><span class="n">2</span><span><b>Save your file</b><p>Your class file is the only copy. Nothing is kept in the browser.</p></span></div>
+    <div><span class="n">3</span><span><b>Look back</b><p>See each student, and the whole class, across days and weeks.</p></span></div>
   </div>
-  <div class="nav-item" onclick="show('analyzeView',this); refreshAnalysis()">
-    <span class="nav-icon">📊</span> Analyze Data
+  <div class="note-bar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Everything stays in the file on your computer. When you close this page, the app forgets it all until you open your file again.</span></div>
+  <div class="err" id="open-err" hidden></div>
+</section>
+
+<!-- ============ CLASS SETUP (new class, or class settings) ============ -->
+<section id="setup" hidden>
+  <div class="setup">
+    <div>
+      <label class="field"><span class="field-label">Class name</span><input class="inp" id="su-name" style="font-size: 1.125rem; font-weight: 700" placeholder="3rd period" autocomplete="off"></label>
+      <div id="su-new-students" style="margin-top: 20px">
+        <label class="field" for="su-names"><span class="field-label">Students <span class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>One name per line. Copy a column from your gradebook.</span></span></label>
+        <textarea class="ta" id="su-names" placeholder="Ava Martinez&#10;Ben Okafor&#10;Cam Nguyen"></textarea>
+        <p class="tip" id="su-count" style="margin-top: 8px"></p>
+      </div>
+      <div id="su-edit-students" style="margin-top: 20px" hidden>
+        <div class="field-label">Students <span class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>Fix a name, remove a student, or add more below.</span></div>
+        <ul class="roster" id="su-roster"></ul>
+        <label class="field" style="margin-top: 14px"><span class="field-label" style="font-weight: 600">Add students (one per line)</span><textarea class="ta" id="su-add" style="min-height: 90px"></textarea></label>
+      </div>
+    </div>
+    <div>
+      <div class="field-label">Your scale <span class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>Use words that fit your class. You can change them later.</span></div>
+      <div class="seg" role="group" aria-label="Number of levels" id="su-levels">
+        <button type="button" data-levels="3" aria-pressed="false">3 levels</button>
+        <button type="button" data-levels="5" aria-pressed="true">5 levels</button>
+      </div>
+      <div class="scale-ed" id="su-scale"></div>
+      <p class="tip" style="margin-top: 10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg><span>1 is always the top of your scale. The colors stay the same so patterns are easy to spot.</span></p>
+      <p class="tip" id="su-levels-note" style="margin-top: 6px" hidden></p>
+      <div class="err" id="su-err" hidden></div>
+      <div class="setup-actions">
+        <button type="button" class="btn btn-primary btn-big" id="su-ok">Create class</button>
+        <button type="button" class="btn btn-big" id="su-cancel">Cancel</button>
+        <button type="button" class="btn btn-big btn-danger" id="su-close" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Close this class</button>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div class="nav-label" style="margin-top:0.3rem">States</div>
-  <div class="states-ref">
-    <div class="states-ref-row"><span class="state-dot" style="background:var(--s1)"></span> 1 — Ready</div>
-    <div class="states-ref-row"><span class="state-dot" style="background:var(--s2)"></span> 2 — Mostly Ready</div>
-    <div class="states-ref-row"><span class="state-dot" style="background:var(--s3)"></span> 3 — Unsettled</div>
-    <div class="states-ref-row"><span class="state-dot" style="background:var(--s4)"></span> 4 — Struggling</div>
-    <div class="states-ref-row"><span class="state-dot" style="background:var(--s5)"></span> 5 — Distressed</div>
-  </div>
-
-  <div class="sidebar-footer">
-    <button class="btn btn-outline" style="width:100%; font-size:0.78rem; color:var(--muted)" onclick="openFeedback()">💬 Share Feedback</button>
-  </div>
-</nav>
-
-
-<!-- MAIN ────────────────────────────────────────────────────── -->
-<main id="main">
-
-
-  <!-- ── VIEW: ABOUT ──────────────────────────────────────── -->
-  <div class="view active" id="aboutView">
-    <div class="page-title">About Student Mental Well-Being</div>
-    <div class="page-sub">Understanding student mental health and how teacher observation supports it in the classroom</div>
-
-    <div class="card">
-      <h2>What is Student Mental Well-Being?</h2>
-      <p>The World Health Organization defines mental health as a... [Insert informative content here.]</p>
-      <p> ...and here.</p>
+<!-- ============ THE CLASS ============ -->
+<section id="app" hidden>
+  <div class="banner" id="example-banner" hidden><div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg><span><b>This is an example class</b> with made-up students. Try anything. Nothing changes unless you save a file.</span><button type="button" class="btn" id="example-new" style="margin-left: auto; min-height: 36px">Start my own class</button></div></div>
+  <div class="page">
+    <div class="top">
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button type="button" role="tab" data-tab="checkin" aria-selected="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Check in</button>
+        <button type="button" role="tab" data-tab="look" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Look back</button>
+        <button type="button" role="tab" data-tab="all" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>All entries</button>
+      </div>
+      <div id="top-right"></div>
     </div>
 
-    <div class="card">
-      <h2>Why Does Teacher Observation Matter?</h2>
-      <p>Teachers occupy a unique position for observing the daily mental well-being of their students...</p>
-      <p>When observations are recorded consistently...</p>
-      <div class="alert alert-warn">⚠️ <strong>Important:</strong> Teacher observation of student mental states is a valuable professional data source but is not a clinical or diagnostic instrument.</div>
+    <!-- Check in -->
+    <div id="tab-checkin">
+      <div class="bar2"><div class="legend" id="legend-ci"></div><div class="progress" id="progress"></div></div>
+      <ul class="rows" id="ci-rows"></ul>
+      <p class="tip" style="margin-top: 12px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg><span>Tap a number, or press <b>1</b>–<b id="ci-max">5</b> and the next student comes up. Tap the same number again to clear it. Click the eye to show one name.</span></p>
     </div>
 
-    <div class="card">
-      <h2>The Five Observable States</h2>
-      <p>These states describe what a teacher <em>observes</em> about a student's apparent readiness and well-being in the classroom...</p>
-      <div style="margin-top:0.7rem">
-        <div class="state-explain"><span class="s-dot" style="background:var(--s1)"></span><div><h4>1 — Engaged and Ready</h4><p>The student appears calm, focused, and ready to learn. </p></div></div>
-        <div class="state-explain"><span class="s-dot" style="background:var(--s2)"></span><div><h4>2 — Mostly Ready</h4><p>The student is present and compliant but may appear tired or quietly disengaged. </p></div></div>
-        <div class="state-explain"><span class="s-dot" style="background:var(--s3)"></span><div><h4>3 — Mildly Unsettled</h4><p>The student shows mild signs of distraction, restlessness, or low-level friction.</p></div></div>
-        <div class="state-explain"><span class="s-dot" style="background:var(--s4)"></span><div><h4>4 — Struggling</h4><p>The student is visibly dysregulated — withdrawn, upset, acting out, or unavailable for learning.</p></div></div>
-        <div class="state-explain"><span class="s-dot" style="background:var(--s5)"></span><div><h4>5 — Distressed</h4><p>The student is in significant distress.</p></div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Research Foundation</h2>
-      <div class="concept-row">
-        <div class="concept-card"><div class="c-icon">🧠</div><h3>Mental Health &amp; Learning</h3><p>Psychological distress — including anxiety, social stress, and low self-efficacy...</p></div>
-        <div class="concept-card"><div class="c-icon">📊</div><h3>Teacher Observation as Data</h3><p>Structured observational records by classroom teachers constitute a recognized...</p></div>
-        <div class="concept-card"><div class="c-icon">📅</div><h3>Temporal Patterns</h3><p>Student mental well-being shows meaningful variation across days, weeks,...</p></div>
-        <div class="concept-card"><div class="c-icon">🔗</div><h3>Well-Being &amp; Achievement</h3><p>Higher levels of student well-being are prospectively associated with improved academic outcomes...</p></div>
-      </div>
-      <div style="margin-top:0.8rem">
-        <p style="font-size:0.78rem; color:var(--muted); line-height:1.7">
-          References:...
-        </p>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" onclick="show('enterView', document.querySelectorAll('.nav-item')[3])">→ Start Entering Observations</button>
-  </div>
-
-
-  <!-- ── VIEW: HOW TO USE ──────────────────────────────────── -->
-  <div class="view" id="howView">
-    <div class="page-title">How to Use This Tool</div>
-    <div class="page-sub">A practical guide from first entry to analysis</div>
-
-    <div class="card"><h2>Overview</h2><p>This tool works as a running observational log.. [Insert Instructional Content] </p><div class="alert alert-info">💡 <strong>Privacy first:</strong> Everything runs entirely in your browser. No data is sent anywhere. When you close the tab, all data is cleared. Remember to export your data before closing.</div></div>
-
-    <div class="card"><h3>Step 1 — Go to Enter Observations</h3><p>Click...[Insert Instructional Content] </p></div>
-
-    <div class="card"><h3>Step 2 — Add a Row for Each Observation</h3><p>Click...[Insert Instructional Content]</p></div>
-
-    <div class="card"><h3>Step 3 — Export &amp; Save Your Data</h3><p>Click...[Insert Instructional Content]</p></div>
-
-    <div class="card"><h3>Step 4 — Analyze</h3><p>Click...[Insert Instructional Content]</p></div>
-
-    <div class="card"><h3>What to Look For</h3><p><strong>Class level:</strong> Are certain days consistently showing states...</p></div>
-
-    <button class="btn btn-primary" onclick="show('enterView', document.querySelectorAll('.nav-item')[3])">→ Go to Enter Observations</button>
-  </div>
-
-
-  <!-- ── VIEW: ENTER OBSERVATIONS ─────────────────────────── -->
-  <div class="view" id="enterView">
-    <div class="page-title">Enter Observations</div>
-    <div class="page-sub">Add, edit, or delete observation records. Each row is one student on one date.</div>
-
-    <!-- toolbar -->
-    <div class="flex-between" style="margin-bottom:0.8rem">
-      <div class="flex-gap">
-        <button class="btn btn-primary" onclick="addRow()">+ Add Row</button>
-        <button class="btn btn-outline" onclick="downloadTemplate()">⬇ CSV Template</button>
-        <div class="tip-wrap">
-          <span class="tip-icon">i</span>
-          <div class="tip-box">Click + Add Row to enter observations one at a time. Or download the CSV template, fill it in, and import it to load many records at once.</div>
-        </div>
-      </div>
-      <div class="flex-gap">
-        <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">⬆ Import CSV</button>
-        <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(this.files[0])"/>
-        <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
-        <button class="btn btn-danger btn-sm" onclick="clearAll()">✕ Clear All</button>
-      </div>
-    </div>
-
-    <!-- live summary strip — updates as data changes -->
-    <div id="summaryStrip" style="display:none; margin-bottom:0.8rem">
-      <div class="summary-strip" id="summaryChips"></div>
-    </div>
-
-    <!-- the data table -->
-    <div class="data-table-wrap">
-      <table class="data-tbl">
-        <thead>
-          <tr>
-            <th style="width:160px">Student Name
-              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Type the student's first name, last name, or an ID. The same name across multiple rows will be treated as the same student in analysis.</div></div>
-            </th>
-            <th style="width:140px">Date
-              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Defaults to today. Click to change using the date picker. You can enter multiple rows for the same student on different dates.</div></div>
-            </th>
-            <th style="width:120px">Period / Class
-              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">e.g. "Period 2" or "Block B". Used to compare classes against each other in analysis.</div></div>
-            </th>
-            <th style="width:160px">Observed State
-              <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Select the state that best describes your observation of this student today. See the sidebar for the 5-state reference guide.</div></div>
-            </th>
-            <th>Note <span style="font-weight:400; color:var(--muted); font-size:0.78rem">(optional)</span></th>
-            <th style="width:36px"></th>
-          </tr>
-        </thead>
-        <tbody id="recBody">
-          <!-- rows injected by JS -->
-        </tbody>
-      </table>
-      <div id="emptyState" class="empty-state">
-        <div class="empty-icon">📋</div>
-        <p>No observations yet. Click <strong>+ Add Row</strong> to get started,<br>or import a CSV file.</p>
-      </div>
-    </div>
-
-  </div><!-- end enterView -->
-
-
-  <!-- ── VIEW: ANALYZE ─────────────────────────────────────── -->
-  <div class="view" id="analyzeView">
-    <div class="page-title">Analyze Data</div>
-    <div class="page-sub">Charts update automatically from your entered observations</div>
-
-    <!-- record count or empty prompt -->
-    <div id="analyzeHeader"></div>
-
-    <!-- optional CSV upload to merge in historical data -->
-    <div class="card" style="padding:1.1rem 1.5rem">
-      <div class="flex-between">
-        <div class="flex-gap">
-          <span style="font-size:0.84rem; font-weight:600">Add historical data from a CSV</span>
-          <div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Upload a previously exported CSV to merge it with your current data. Useful for bringing in records from a past session. Duplicate rows are added — clear first if you want a clean slate.</div></div>
-        </div>
-        <div class="flex-gap">
-          <button class="btn btn-outline btn-sm" onclick="document.getElementById('analyzeImport').click()">⬆ Upload CSV</button>
-          <input type="file" id="analyzeImport" accept=".csv" style="display:none" onchange="importAnalyzeCSV(this.files[0])"/>
-        </div>
-      </div>
-    </div>
-
-    <!-- charts section -->
-    <div id="chartsSection" style="display:none">
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab('overview',this)">Class Overview</div>
-        <div class="tab" onclick="switchTab('trends',this)">Trends Over Time</div>
-        <div class="tab" onclick="switchTab('students',this)">By Student</div>
-      </div>
-
-      <!-- TAB: Overview -->
-      <div id="tabOverview">
-        <div class="chart-wrap">
-          <div class="chart-title">State Distribution — All Records<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Total count of observations by state across all records. A healthy class shows most observations at 1–2.</div></div></div>
-          <div class="chart-sub">How often each state was observed overall</div>
-          <canvas id="cOverviewBar" height="220"></canvas>
-          <div class="legend" id="cOverviewLegend"></div>
-        </div>
-        <div class="chart-wrap">
-          <div class="chart-title">Average State by Session Date<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Class mean state per unique date. Lower = better regulated. Spikes may coincide with tests, events, or curriculum changes.</div></div></div>
-          <div class="chart-sub">Mean observed state across all students per date</div>
-          <canvas id="cOverviewLine" height="200"></canvas>
-        </div>
-      </div>
-
-      <!-- TAB: Trends -->
-      <div id="tabTrends" style="display:none">
-        <div class="chart-wrap">
-          <div class="chart-title">Average State by Day of Week<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Are Mondays consistently more dysregulated than Thursdays? This aggregates by weekday to surface weekly patterns.</div></div></div>
-          <div class="chart-sub">Mean observed state grouped by weekday</div>
-          <canvas id="cDowBar" height="220"></canvas>
-        </div>
-        <div class="chart-wrap">
-          <div class="chart-title">% Elevated States Over Time<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">Percentage of students observed at state 3 or above per date. A rising trend may indicate increasing classroom stress.</div></div></div>
-          <div class="chart-sub">% of observations at state 3, 4, or 5 per date</div>
-          <canvas id="cElevatedLine" height="200"></canvas>
-        </div>
-      </div>
-
-      <!-- TAB: By Student -->
-      <div id="tabStudents" style="display:none">
-        <div class="card" style="margin-bottom:1rem">
-          <div class="flex-gap">
-            <label style="font-size:0.84rem; font-weight:600">Select a student:</label>
-            <select id="studentSelect" onchange="drawStudentCharts()"
-              style="border:1px solid var(--border); border-radius:5px; padding:0.3rem 0.7rem; font-family:var(--font-sans); font-size:0.84rem; color:var(--text); outline:none">
-              <option value="">— Choose student —</option>
-            </select>
+    <!-- Look back -->
+    <div id="tab-look" hidden>
+      <div id="look-class">
+        <div class="look">
+          <div class="card">
+            <div class="card-head"><div><h2>Every check-in, day by day</h2><p class="sub">Each square is one check-in. Click a student to see their notes.</p></div><span class="tip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>Empty squares are days without a check-in</span></div>
+            <div class="heat-scroll" id="heat"></div>
+            <div class="legend" id="legend-lb" style="margin-top: 14px"></div>
+          </div>
+          <div class="side">
+            <div class="card"><h2>Worth a look</h2><ul class="wl" id="worth"></ul><p class="fine">These are patterns in your own numbers. You decide what they mean.</p></div>
+            <div class="card"><h2>Class average by day</h2><p class="sub">1 is at the top</p><div class="svgchart" id="avg-chart" style="margin-top: 8px"></div></div>
+            <div class="card"><h2>Average by weekday</h2><div class="wd" id="weekday"></div></div>
           </div>
         </div>
-        <div class="chart-wrap">
-          <div class="chart-title">State Over Time<div class="tip-wrap"><span class="tip-icon">i</span><div class="tip-box">This student's observed state across all dates. A consistently elevated score (3+) across multiple sessions may warrant a check-in.</div></div></div>
-          <div class="chart-sub">Observed state per date for selected student</div>
-          <canvas id="cStudentLine" height="200"></canvas>
+      </div>
+      <div id="look-student" hidden>
+        <div class="stud-head">
+          <button type="button" class="arrow" id="st-prev" aria-label="Previous student"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <h2 id="st-name"></h2>
+          <button type="button" class="arrow" id="st-next" aria-label="Next student"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button type="button" class="link-btn" id="st-reveal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg><span id="st-reveal-text">Show this name</span></button>
         </div>
-        <div class="chart-wrap">
-          <div class="chart-title">State Distribution</div>
-          <div class="chart-sub">How often this student was observed in each state</div>
-          <canvas id="cStudentBar" height="180"></canvas>
-        </div>
+        <div class="kpis" id="st-kpis"></div>
+        <div class="card" style="margin-top: 14px"><div class="card-head"><h2>Check-ins over time</h2><div class="legend" id="legend-st"></div></div><div class="svgchart" id="st-chart" style="margin-top: 10px"></div></div>
+        <div class="card" style="margin-top: 14px"><h2>Notes</h2><ul class="notes" id="st-notes"></ul></div>
       </div>
     </div>
 
-    <!-- empty prompt when no data -->
-    <div id="analyzeEmpty" style="display:none" class="card" style="text-align:center">
-      <p>No observation data yet. Go to <strong>Enter Observations</strong> to add records, or upload a CSV above.</p>
-      <button class="btn btn-primary" style="margin-top:0.5rem" onclick="show('enterView', document.querySelectorAll('.nav-item')[3])">→ Enter Observations</button>
+    <!-- All entries -->
+    <div id="tab-all" hidden>
+      <div class="ent">
+        <div>
+          <div class="thead" aria-hidden="true"><span>Date</span><span>Student</span><span>Check-in</span><span>Note</span><span></span></div>
+          <div class="trow new">
+            <input type="date" class="sel" id="add-date" aria-label="Date for the new check-in">
+            <select class="sel" id="add-student" aria-label="Student for the new check-in"></select>
+            <div class="mchips" role="radiogroup" aria-label="Check-in for the new entry" id="add-chips"></div>
+            <input class="sel" id="add-note" placeholder="Note (optional)" aria-label="Note for the new check-in" autocomplete="off">
+            <button type="button" class="icon-btn" id="add-btn" aria-label="Add this check-in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          </div>
+          <div class="msg" id="add-msg" role="status" hidden></div>
+          <div class="filters"><label>Show <select class="sel" id="flt-student"></select></label><span id="all-count"></span></div>
+          <div id="all-rows"></div>
+          <button type="button" class="btn" id="all-more" style="margin-top: 12px" hidden>Show more</button>
+        </div>
+        <div class="side">
+          <div class="panel">
+            <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6"/></svg>Paste check-ins</h3>
+            <p>Copy rows from a spreadsheet, one check-in per line: <span class="code">name, date, number, note</span></p>
+            <label class="sr-only" for="paste">Check-ins to add</label>
+            <textarea class="ta mono" id="paste" placeholder="Ava Martinez, 2026-11-16, 2,&#10;Ben Okafor, 11/16/2026, 1, Great start"></textarea>
+            <button type="button" class="btn" id="paste-add" style="margin-top: 12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add these check-ins</button>
+            <div class="msg" id="paste-msg" role="status" hidden></div>
+            <p style="font-size: 0.8125rem; margin-top: 10px">New names are added to the class. Names you already have are matched up. A check-in for a day that already has one replaces it.</p>
+          </div>
+          <div class="panel">
+            <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Your class file</h3>
+            <p>Saved as <span class="code" id="file-name">class.json</span>. It holds your students, your scale and every check-in.</p>
+            <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap"><button type="button" class="btn btn-primary" id="save-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>Save file</button><button type="button" class="btn" id="open-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Open a different file</button></div>
+          </div>
+        </div>
+      </div>
     </div>
-
-  </div><!-- end analyzeView -->
-
-
+  </div>
+</section>
 </main>
 
+<input type="file" id="file-input" accept=".json,.csv,application/json,text/csv" hidden>
+<div class="drop-hint" id="drop-hint" hidden>Drop your class file to open it</div>
+<div class="toast" id="toast" role="status" hidden></div>
 
-<!-- JAVASCRIPT ──────────────────────────────────────────────── -->
 <script>
-// ============================================================
-// DATA MODEL
-// allRecords is the single source of truth for the whole app.
-// Every observation lives here as a flat record object.
-// Both the table and the charts read from this array.
-// ============================================================
+/* =================================================================
+   1. SETTINGS
+   ================================================================= */
+var LEVEL_COLORS = { 5: ['var(--l1)', 'var(--l2)', 'var(--l3)', 'var(--l4)', 'var(--l5)'], 3: ['var(--l1)', 'var(--l3)', 'var(--l5)'] };
+var DEFAULT_LABELS = { 5: ['Doing great', 'Doing okay', 'Unsettled', 'Struggling', 'Needs support'], 3: ['Doing well', 'So-so', 'Having a hard time'] };
+var DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+var DAY1 = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
+var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+var PAGE = 60;
+var I = { eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>', eyeoff: '<path d="M3 3l18 18"/><path d="M10.6 5.6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3 3.7M6.6 6.6A17 17 0 0 0 2.5 12S6 18.5 12 18.5a9.3 9.3 0 0 0 4.4-1.1"/>', note: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', tr: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>', grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', chk: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', left: '<path d="M15 6l-6 6 6 6"/>', right: '<path d="M9 6l6 6-6 6"/>' };
+function svg(p, s) { return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
 
-let allRecords = [];
-// An empty array — this is the app's entire data store.
-// Every observation row lives here as an object.
-// The comment shows the shape of each object inside it:
-// { rid: 1, name: 'Jim Smith', date: '2026-03-09', period: 'Period 1', state: 2, note: '' }
-// When you add a row, an object gets pushed in. Delete a row, it gets removed.
-// The table and charts both just read from this array.
+/* =================================================================
+   2. STATE
+   C is the open class. It is only ever in memory and in the file
+   the teacher saves. Check-ins are kept by "studentId|date".
+   ================================================================= */
+var C = null;                 /* { name, levels, labels[], students[{id,name}], checkins{} } */
+var showNames = false;        /* all names visible */
+var revealed = {};            /* student ids revealed one at a time (not saved) */
+var unsaved = 0;
+var isExample = false;
+var fileHandle = null;
+var view = { tab: 'checkin', date: todayISO(), range: 15, student: null, filter: '', shown: PAGE };
+var setupMode = 'new';        /* 'new' or 'edit' */
+var setupLevels = 5, setupLabels = DEFAULT_LABELS[5].slice();
 
-let ridSeq = 0;
-// A simple counter that increments by 1 each time a row is added.
-// Used to give each record a unique ID (rid = record ID).
-// So first row gets rid:1, second rid:2, etc.
-// This lets the app find and delete a specific row without confusion
-// even if rows get reordered or deleted.
-
-let feedbackVals = { fq1: null, fq2: null, fq3: null };
-// An object storing the three Likert responses from the feedback modal.
-// Starts as null (unanswered). When the teacher clicks a rating button,
-// the corresponding value gets set — e.g. feedbackVals.fq1 = 4
-// Then when they hit Send, these get packaged into the mailto body.
-
-const STATES = [
-  { num: 1, label: 'Ready',  color: '#4a9e8f', emoji: '🟢' },
-  { num: 2, label: 'Mostly Ready',   color: '#6aaecc', emoji: '🔵' },
-  { num: 3, label: 'Unsettled',  color: '#e8c44a', emoji: '🟡' },
-  { num: 4, label: 'Struggling', color: '#e8904a', emoji: '🟠' },
-  { num: 5, label: 'Distressed', color: '#d96060', emoji: '🔴' },
-];
-
-// Build a <select> options reusable HTML string for the state dropdown containing all 5 states.
-// 
-const STATE_OPTIONS = `<option value="">— State —</option>` +
-  STATES.map(s => `<option value="${s.num}">${s.emoji} ${s.num} — ${s.label}</option>`).join(''); //.map is built in JS method that loops over every array and transforms
-
-
-// ============================================================
-// NAVIGATION
-// ============================================================
-
-// nav function that shows one view and hides all others; highlights the clicked one
-function show(viewId, navEl) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(viewId).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (navEl) navEl.classList.add('active');
+/* =================================================================
+   3. HELPERS
+   ================================================================= */
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function todayISO() { return iso(new Date()); }
+function parseISO(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function addDays(s, n) { var d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); }
+function nice(s, long) { var d = parseISO(s); return (long ? DAY[d.getDay()] + ', ' : '') + MON[d.getMonth()] + ' ' + d.getDate(); }
+function isWeekend(s) { var g = parseISO(s).getDay(); return g === 0 || g === 6; }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+function color(v) { return LEVEL_COLORS[C.levels][v - 1]; }
+function label(v) { return C.labels[v - 1] || ''; }
+function key(id, date) { return id + '|' + date; }
+function displayName(s) {
+  var i = C.students.indexOf(s);
+  return (showNames || revealed[s.id]) ? s.name : 'Student ' + (i + 1);
+}
+function studentById(id) { for (var i = 0; i < C.students.length; i++) if (C.students[i].id === id) return C.students[i]; return null; }
+function newId() { var n = 1; while (C.students.some(function (s) { return s.id === 's' + n; })) n++; return 's' + n; }
+function toast(t) {
+  var el = $('toast'); el.textContent = t; el.hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(function () { el.hidden = true; }, 3200);
+}
+function checkinsFor(id) {
+  var out = [];
+  Object.keys(C.checkins).forEach(function (k) { var p = k.split('|'); if (p[0] === id) out.push({ date: p[1], value: C.checkins[k].value, note: C.checkins[k].note || '' }); });
+  return out.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+}
+function allDates() {
+  var set = {};
+  Object.keys(C.checkins).forEach(function (k) { set[k.split('|')[1]] = 1; });
+  return Object.keys(set).sort();
+}
+function modeOf(vals) {
+  var f = {}, best = null;
+  vals.forEach(function (v) { f[v] = (f[v] || 0) + 1; });
+  Object.keys(f).forEach(function (v) { v = +v; if (best === null || f[v] > f[best] || (f[v] === f[best] && v < best)) best = v; });
+  return best;
+}
+function markChanged() {
+  if (!isExample) unsaved++;
+  renderHeader();
 }
 
-
-// ============================================================
-// FEEDBACK MODAL
-// ============================================================
-
-function openFeedback()  { document.getElementById('feedbackModal').classList.add('open'); }
-function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }
-
-function lk(gid, val, btn) {
-  document.querySelectorAll(`#${gid} button`).forEach(b => b.classList.remove('sel'));
-  btn.classList.add('sel');
-  feedbackVals[gid] = val;
+/* =================================================================
+   4. SCREENS AND HEADER
+   ================================================================= */
+var screen = 'landing';
+function showScreen(name) {
+  screen = name;
+  ['landing', 'setup', 'app'].forEach(function (s) { $(s).hidden = s !== name; });
+  renderHeader();
+  window.scrollTo(0, 0);
+}
+function renderHeader() {
+  var inApp = screen === 'app';
+  $('privacy').hidden = screen !== 'landing';
+  $('btn-names').hidden = !inApp;
+  $('btn-settings').hidden = !inApp;
+  $('btn-save').hidden = !inApp;
+  $('btn-back').hidden = screen !== 'setup';
+  $('unsaved').hidden = !(inApp && unsaved > 0);
+  $('unsaved').textContent = plural(unsaved, 'unsaved change', 'unsaved changes');
+  $('saved-ok').hidden = !(inApp && unsaved === 0 && fileHandle);
+  $('btn-names').setAttribute('aria-pressed', String(showNames));
+  $('btn-names').innerHTML = svg(showNames ? I.eye : I.eyeoff, 16) + '<span class="lbl">' + (showNames ? 'Names shown' : 'Show names') + '</span>';
+  var here = screen === 'setup' ? (setupMode === 'new' ? 'New class' : 'Class settings') : (inApp && C ? C.name : '');
+  $('crumb-sep').hidden = $('crumb-here').hidden = !here;
+  $('crumb-here').textContent = here;
+  $('example-banner').hidden = !(inApp && isExample);
 }
 
-function sendFeedback() {
-  const oe = document.getElementById('fq4').value || '(no response)';
-  const body = [
-    'Mental Well-Being Tracker — User Feedback',
-    '=========================================',
-    `Q1 Usefulness: ${feedbackVals.fq1 ?? 'No response'} / 5`,
-    `Q2 Clarity: ${feedbackVals.fq2 ?? 'No response'} / 5`,
-    `Q3 Beneficial: ${feedbackVals.fq3 ?? 'No response'} / 5`,
-    '', 'Q4 Open-ended:', oe
-  ].join('\n');
-  // REPLACE with your email address
-  const email = 'researcher@yourinstitution.edu';
-  window.location.href = `mailto:${email}?subject=${encodeURIComponent('Mental Well-Being Tracker Feedback')}&body=${encodeURIComponent(body)}`;
-  closeFeedback();
+function render() {
+  if (!C) return;
+  renderHeader();
+  document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === view.tab)); });
+  $('tab-checkin').hidden = view.tab !== 'checkin';
+  $('tab-look').hidden = view.tab !== 'look';
+  $('tab-all').hidden = view.tab !== 'all';
+  var leg = legendHTML();
+  ['legend-ci', 'legend-lb', 'legend-st'].forEach(function (id) { $(id).innerHTML = leg; });
+  $('file-name').textContent = fileName();
+  if (view.tab === 'checkin') renderCheckin();
+  if (view.tab === 'look') renderLook();
+  if (view.tab === 'all') renderAll();
+}
+function legendHTML() {
+  return C.labels.map(function (l, i) { return '<span><i style="background:' + color(i + 1) + '"></i>' + (i + 1) + ' ' + esc(l) + '</span>'; }).join('');
 }
 
-window.addEventListener('load', () => {
-  document.getElementById('feedbackModal').classList.add('open');
-});
-
-
-// ============================================================
-// TABLE RENDERING
-// Rebuilds the entire tbody from allRecords.
-// Called after any data change.
-// ============================================================
-
-function renderTable() {
-  const tbody = document.getElementById('recBody');
-  const empty = document.getElementById('emptyState');
-
-  if (!allRecords.length) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    updateSummary();
-    updateNavCount();
+/* =================================================================
+   5. CHECK IN
+   ================================================================= */
+function topRightCheckin() {
+  var t = todayISO();
+  return '<div class="datepick"><button type="button" class="icon-btn" id="d-prev" aria-label="Previous school day">' + svg(I.left, 16) + '</button>' +
+    '<input type="date" class="date-in" id="d-in" value="' + view.date + '" aria-label="Check-in date">' +
+    '<button type="button" class="icon-btn" id="d-next" aria-label="Next school day">' + svg(I.right, 16) + '</button>' +
+    (view.date !== t ? '<button type="button" class="link-btn" id="d-today">Today</button>' : '<span class="tip" style="margin-left: 4px">Today</span>') + '</div>';
+}
+function chipsHTML(sid, v, small) {
+  var out = '';
+  for (var n = 1; n <= C.levels; n++) {
+    out += '<button type="button" role="radio" class="' + (small ? 'mchip' : 'chip') + '" style="--c:' + color(n) + '" data-sid="' + sid + '" data-v="' + n + '" aria-checked="' + (v === n) + '" aria-label="' + n + ' ' + esc(label(n)) + '" tabindex="' + ((v ? v === n : n === 1) ? '0' : '-1') + '">' + n + '</button>';
+  }
+  return out;
+}
+function renderCheckin() {
+  $('top-right').innerHTML = topRightCheckin();
+  $('ci-max').textContent = C.levels;
+  var done = 0;
+  if (!C.students.length) { $('ci-rows').innerHTML = '<li class="empty">No students yet. Add them in Class settings.</li>'; $('progress').innerHTML = ''; return; }
+  $('ci-rows').innerHTML = C.students.map(function (s) {
+    var ck = C.checkins[key(s.id, view.date)], v = ck ? ck.value : 0;
+    if (v) done++;
+    var shown = showNames || revealed[s.id];
+    return '<li class="srow" data-row="' + s.id + '" style="--sc:' + (v ? color(v) : 'transparent') + '">' +
+      '<span class="who"><button type="button" class="eye" data-reveal="' + s.id + '" aria-label="' + (shown ? 'Hide' : 'Show') + ' this name"' + (showNames ? ' disabled' : '') + '>' + svg(shown ? I.eye : I.eyeoff, 16) + '</button><span class="nm">' + esc(displayName(s)) + '</span></span>' +
+      '<span class="chips" role="radiogroup" aria-label="Check-in for ' + esc(displayName(s)) + '">' + chipsHTML(s.id, v) + '</span>' +
+      '<span class="note-wrap">' + svg(I.note, 16) + '<input class="note-in" data-note="' + s.id + '" value="' + esc(ck ? ck.note || '' : '') + '" placeholder="' + (v ? 'Add a note' : 'Pick a number to add a note') + '"' + (v ? '' : ' disabled') + ' aria-label="Note for ' + esc(displayName(s)) + '" autocomplete="off"></span></li>';
+  }).join('');
+  var pct = Math.round(done / C.students.length * 100);
+  $('progress').innerHTML = '<span>' + done + ' of ' + C.students.length + ' checked in</span><span class="pbar" aria-hidden="true"><i style="width:' + pct + '%"></i></span>';
+}
+function setCheckin(sid, date, v) {
+  var k = key(sid, date), cur = C.checkins[k];
+  if (cur && cur.value === v) { delete C.checkins[k]; }
+  else C.checkins[k] = { value: v, note: cur ? cur.note : '' };
+  markChanged();
+}
+function stepDay(dir) {
+  var d = view.date;
+  do { d = addDays(d, dir); } while (isWeekend(d));
+  view.date = d; render();
+}
+$('tab-checkin').addEventListener('click', function (e) {
+  var c = e.target.closest('.chip');
+  if (c) {
+    setCheckin(c.dataset.sid, view.date, +c.dataset.v);
+    render();
+    var again = document.querySelector('.chip[data-sid="' + c.dataset.sid + '"][data-v="' + c.dataset.v + '"]');
+    if (again) again.focus();
     return;
   }
-
-  empty.style.display = 'none';
-
-  tbody.innerHTML = allRecords.map(r => `
-    <tr id="row_${r.rid}">
-      <td>
-        <input class="tbl-input" type="text" value="${escHtml(r.name)}" placeholder="Student name..."
-          onchange="updateRec(${r.rid},'name',this.value)"
-          onkeydown="if(event.key==='Tab'){ event.preventDefault(); focusNext(${r.rid},'date'); }"/>
-      </td>
-      <td>
-        <input class="tbl-input" type="date" value="${r.date}"
-          onchange="updateRec(${r.rid},'date',this.value)"
-          onkeydown="if(event.key==='Tab'){ event.preventDefault(); focusNext(${r.rid},'period'); }"/>
-      </td>
-      <td>
-        <input class="tbl-input" type="text" value="${escHtml(r.period)}" placeholder="Period..."
-          onchange="updateRec(${r.rid},'period',this.value)"
-          onkeydown="if(event.key==='Tab'){ event.preventDefault(); focusNext(${r.rid},'state'); }"/>
-      </td>
-      <td>
-        <select class="state-select s${r.state || 0}" id="sel_${r.rid}"
-          onchange="updateRec(${r.rid},'state', this.value ? parseInt(this.value) : null); colorSelect(${r.rid})">
-          ${STATE_OPTIONS.replace(`value="${r.state}"`, `value="${r.state}" selected`)}
-        </select>
-      </td>
-      <td>
-        <input class="tbl-input" type="text" value="${escHtml(r.note)}" placeholder="Optional note..."
-          onchange="updateRec(${r.rid},'note',this.value)"
-          onkeydown="if(event.key==='Enter'){ addRow(); }"/>
-      </td>
-      <td>
-        <button class="del-btn" onclick="deleteRow(${r.rid})" title="Delete this row">✕</button>
-      </td>
-    </tr>
-  `).join('');
-
-  updateSummary();
-  updateNavCount();
-}
-
-// Escape HTML to avoid XSS in name/note fields
-function escHtml(s) {
-  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Update a single field on a record without re-rendering the whole table
-function updateRec(rid, field, value) {
-  const rec = allRecords.find(r => r.rid === rid);
-  if (rec) { rec[field] = value; updateSummary(); updateNavCount(); }
-}
-
-// Color the state dropdown after selection
-function colorSelect(rid) {
-  const sel = document.getElementById(`sel_${rid}`);
-  if (!sel) return;
-  sel.className = 'state-select s' + (sel.value || '0');
-}
-
-// Tab navigation between cells in a row
-function focusNext(rid, field) {
-  const row = document.getElementById(`row_${rid}`);
-  if (!row) return;
-  const inputs = { name: 0, date: 1, period: 2, state: 3, note: 4 };
-  const cells = row.querySelectorAll('input, select');
-  const target = cells[inputs[field]];
-  if (target) target.focus();
-}
-
-
-// ============================================================
-// ADD / DELETE ROWS
-// ============================================================
-
-function addRow() {
-  // Default date = today; default period = last used period
-  const today = new Date().toISOString().split('T')[0];
-  const lastPeriod = allRecords.length ? allRecords[allRecords.length - 1].period : '';
-  ridSeq++;
-  allRecords.push({ rid: ridSeq, name: '', date: today, period: lastPeriod, state: null, note: '' });
-  renderTable();
-  // Focus the name input of the new row
-  setTimeout(() => {
-    const newRow = document.getElementById(`row_${ridSeq}`);
-    if (newRow) newRow.querySelector('input').focus();
-  }, 30);
-}
-
-function deleteRow(rid) {
-  allRecords = allRecords.filter(r => r.rid !== rid);
-  renderTable();
-}
-
-function clearAll() {
-  if (allRecords.length && !confirm('Clear all observation records? This cannot be undone.')) return;
-  allRecords = [];
-  ridSeq = 0;
-  renderTable();
-}
-
-
-// ============================================================
-// SUMMARY STRIP — counts per state above the table
-// ============================================================
-
-function updateSummary() {
-  const strip = document.getElementById('summaryStrip');
-  const chips = document.getElementById('summaryChips');
-  const rated = allRecords.filter(r => r.state);
-
-  if (!rated.length) { strip.style.display = 'none'; return; }
-  strip.style.display = 'block';
-
-  const counts = [0,0,0,0,0];
-  rated.forEach(r => counts[r.state - 1]++);
-
-  chips.innerHTML = `<span style="font-size:0.78rem; color:var(--muted); align-self:center">${rated.length} rated of ${allRecords.length}</span>` +
-    STATES.map((s,i) => counts[i] ? `
-      <span class="s-chip" style="color:${s.color}; border-color:${s.color}40; background:${s.color}10">
-        <span class="state-dot" style="background:${s.color}"></span>${counts[i]}
-      </span>` : '').join('');
-}
-
-function updateNavCount() {
-  const el = document.getElementById('recCount');
-  el.textContent = allRecords.length;
-  el.classList.toggle('show', allRecords.length > 0);
-}
-
-
-// ============================================================
-// CSV TEMPLATE DOWNLOAD
-// ============================================================
-
-function downloadTemplate() {
-  const csv = [
-    'name,date,period,state,note',
-    // Jim Su — starts regulated, dips mid-week, recovers Friday
-    'Jim S,2026-03-09,Period 1,1,Engaged and on task',
-    'Jim S,2026-03-10,Period 1,2,',
-    'Jim S,2026-03-11,Period 1,3,Seemed distracted',
-    'Jim S,2026-03-12,Period 1,3,Restless again',
-    'Jim S,2026-03-13,Period 1,1,Back on track by Friday',
-    // Sara Lynn — consistently baseline with one good day
-    'Sara L,2026-03-09,Period 1,2,',
-    'Sara L,2026-03-10,Period 1,2,',
-    'Sara L,2026-03-11,Period 1,1,Great participation today',
-    'Sara L,2026-03-12,Period 1,2,',
-    'Sara L,2026-03-13,Period 1,2,',
-    // Marcus T — escalating trend across the week worth monitoring
-    'Marcus T,2026-03-09,Period 1,2,',
-    'Marcus T,2026-03-10,Period 1,2,',
-    'Marcus T,2026-03-11,Period 1,3,Quieter than usual',
-    'Marcus T,2026-03-12,Period 1,4,Withdrawn would not participate',
-    'Marcus T,2026-03-13,Period 1,4,Still struggling check in recommended',
-    // Priya K — regulated all week model student
-    'Priya K,2026-03-09,Period 1,1,',
-    'Priya K,2026-03-10,Period 1,1,',
-    'Priya K,2026-03-11,Period 1,1,',
-    'Priya K,2026-03-12,Period 1,2,Bit quieter today',
-    'Priya K,2026-03-13,Period 1,1,',
-    // DeShawn W — volatile pattern high and low throughout week
-    'DeShawn W,2026-03-09,Period 1,1,Energetic and engaged',
-    'DeShawn W,2026-03-10,Period 1,4,Conflict at lunch affecting focus',
-    'DeShawn W,2026-03-11,Period 1,2,',
-    'DeShawn W,2026-03-12,Period 1,1,Good day',
-    'DeShawn W,2026-03-13,Period 1,3,Tired end of week',
-    // Aaliyah R — gradual improvement across the week
-    'Aaliyah R,2026-03-09,Period 1,4,Seemed upset at start of class',
-    'Aaliyah R,2026-03-10,Period 1,3,Still unsettled',
-    'Aaliyah R,2026-03-11,Period 1,3,',
-    'Aaliyah R,2026-03-12,Period 1,2,Noticeably better',
-    'Aaliyah R,2026-03-13,Period 1,1,Strong finish to the week',
-    // Connor B — mostly baseline one distressed day
-    'Connor B,2026-03-09,Period 1,2,',
-    'Connor B,2026-03-10,Period 1,2,',
-    'Connor B,2026-03-11,Period 1,5,Very upset would not say why referral made',
-    'Connor B,2026-03-12,Period 1,3,Better but still off',
-    'Connor B,2026-03-13,Period 1,2,',
-    // Fatima H — regulated and engaged all week
-    'Fatima H,2026-03-09,Period 1,1,',
-    'Fatima H,2026-03-10,Period 1,1,Led group discussion well',
-    'Fatima H,2026-03-11,Period 1,1,',
-    'Fatima H,2026-03-12,Period 1,2,',
-    'Fatima H,2026-03-13,Period 1,1,',
-    // Tyler M — worsening trend ends week distressed
-    'Tyler M,2026-03-09,Period 1,2,',
-    'Tyler M,2026-03-10,Period 1,2,',
-    'Tyler M,2026-03-11,Period 1,3,Distracted',
-    'Tyler M,2026-03-12,Period 1,4,Agitated difficult to redirect',
-    'Tyler M,2026-03-13,Period 1,5,Crying in class parent contacted',
-    // Mei L — mid-week dip recovers
-    'Mei L,2026-03-09,Period 1,1,',
-    'Mei L,2026-03-10,Period 1,2,',
-    'Mei L,2026-03-11,Period 1,4,Mentioned argument with friend',
-    'Mei L,2026-03-12,Period 1,3,Still a bit off',
-    'Mei L,2026-03-13,Period 1,1,Resolved back to herself',
-  ].join('\n');
-  downloadBlob(csv, 'mwb_template.csv');
-}
-
-
-// ============================================================
-// IMPORT CSV — into Enter Observations table
-// Parses a CSV and appends records to allRecords.
-// ============================================================
-
-function importCSV(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const added = parseCSVIntoRecords(e.target.result);
-    renderTable();
-    document.getElementById('importFile').value = '';
-    if (added > 0) alert(`${added} records imported successfully.`);
-  };
-  reader.readAsText(file);
-}
-
-function parseCSVIntoRecords(text) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 2) return 0;
-
-  const parseRow = line => line.split(',').map(v => v.replace(/^"|"$/g,'').trim());
-  const headers = parseRow(lines[0]).map(h => h.toLowerCase());
-
-  const nameIdx   = headers.indexOf('name');
-  const dateIdx   = headers.indexOf('date');
-  const periodIdx = headers.indexOf('period');
-  const stateIdx  = headers.indexOf('state');
-  const noteIdx   = headers.indexOf('note');
-
-  if (nameIdx < 0 || stateIdx < 0) {
-    alert('CSV must have at least "name" and "state" columns.');
-    return 0;
-  }
-
-  let added = 0;
-  lines.slice(1).forEach(line => {
-    const cols = parseRow(line);
-    const stateVal = parseInt(cols[stateIdx]);
-    ridSeq++;
-    allRecords.push({
-      rid:    ridSeq,
-      name:   nameIdx   >= 0 ? cols[nameIdx]   : '',
-      date:   dateIdx   >= 0 ? cols[dateIdx]   : new Date().toISOString().split('T')[0],
-      period: periodIdx >= 0 ? cols[periodIdx] : '',
-      state:  (stateVal >= 1 && stateVal <= 5) ? stateVal : null,
-      note:   noteIdx   >= 0 ? cols[noteIdx]   : ''
-    });
-    added++;
-  });
-  return added;
-}
-
-
-// ============================================================
-// EXPORT CSV — from Enter Observations table
-// ============================================================
-
-function exportCSV() {
-  if (!allRecords.length) { alert('No records to export.'); return; }
-  const rows = [
-    ['name','date','period','state','state_label','note'],
-    ...allRecords.map(r => {
-      const s = r.state ? STATES[r.state-1] : null;
-      return [r.name, r.date, r.period, r.state||'', s ? s.label : '', r.note];
-    })
-  ];
-  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-  const date = new Date().toISOString().split('T')[0];
-  downloadBlob(csv, `mwb_observations_${date}.csv`);
-}
-
-function downloadBlob(content, filename) {
-  const blob = new Blob([content], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
-
-// ============================================================
-// ANALYZE VIEW
-// Reads from allRecords — no separate data store needed.
-// Also accepts an optional CSV upload to merge historical data.
-// ============================================================
-
-function refreshAnalysis() {
-  const header  = document.getElementById('analyzeHeader');
-  const charts  = document.getElementById('chartsSection');
-  const empty   = document.getElementById('analyzeEmpty');
-
-  const rated = allRecords.filter(r => r.state);
-
-  if (!rated.length) {
-    header.innerHTML = '';
-    charts.style.display = 'none';
-    empty.style.display = 'block';
+  var r = e.target.closest('[data-reveal]');
+  if (r) { revealed[r.dataset.reveal] = !revealed[r.dataset.reveal]; render(); var b = document.querySelector('[data-reveal="' + r.dataset.reveal + '"]'); if (b) b.focus(); }
+});
+$('tab-checkin').addEventListener('keydown', function (e) {
+  var c = e.target.closest('.chip');
+  if (!c) return;
+  var n = parseInt(e.key, 10);
+  if (n >= 1 && n <= C.levels) {
+    e.preventDefault();
+    var sid = c.dataset.sid;
+    var ck = C.checkins[key(sid, view.date)];
+    if (!(ck && ck.value === n)) setCheckin(sid, view.date, n);
+    render();
+    /* move to the next student */
+    var ids = C.students.map(function (s) { return s.id; }), i = ids.indexOf(sid);
+    var nextId = ids[i + 1] || sid;
+    var nv = C.checkins[key(nextId, view.date)];
+    var target = document.querySelector('.chip[data-sid="' + nextId + '"][data-v="' + (nv ? nv.value : 1) + '"]');
+    if (target) target.focus();
     return;
   }
-
-  empty.style.display = 'none';
-  charts.style.display = 'block';
-
-  // Count students and dates
-  const students = new Set(rated.map(r => r.name.trim()).filter(Boolean));
-  const dates    = new Set(rated.map(r => r.date).filter(Boolean));
-
-  header.innerHTML = `
-    <div class="card" style="padding:0.9rem 1.3rem; margin-bottom:1rem">
-      <div class="flex-gap">
-        <span class="badge badge-teal">${rated.length} observations</span>
-        <span class="badge badge-teal">${students.size} students</span>
-        <span class="badge badge-teal">${dates.size} dates</span>
-        <span style="font-size:0.8rem; color:var(--muted)">from current session data</span>
-      </div>
-    </div>`;
-
-  populateStudentSelect(rated);
-  // Defer drawing until after chartsSection is visible in the DOM
-  requestAnimationFrame(() => drawAllCharts(rated));
-}
-
-// Called when a CSV is uploaded from within the Analyze view
-function importAnalyzeCSV(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const added = parseCSVIntoRecords(e.target.result);
-    renderTable(); // keep Enter view in sync
-    document.getElementById('analyzeImport').value = '';
-    refreshAnalysis();
-    if (added > 0) alert(`${added} records merged from CSV.`);
-  };
-  reader.readAsText(file);
-}
-
-
-// ============================================================
-// TAB SWITCHING
-// ============================================================
-
-function switchTab(tab, el) {
-  ['Overview','Trends','Students'].forEach(t =>
-    document.getElementById('tab'+t).style.display = 'none'
-  );
-  // Make the tab visible FIRST so canvas clientWidth is readable
-  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).style.display = 'block';
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-
-  // Now redraw charts for the newly visible tab
-  const rated = allRecords.filter(r => r.state);
-  if (!rated.length) return;
-
-  requestAnimationFrame(() => {
-    if (tab === 'overview') { drawOverviewBar(rated); drawOverviewLine(rated); }
-    if (tab === 'trends')   { drawDowBar(rated); drawElevatedLine(rated); }
-    if (tab === 'students') {
-      const name = document.getElementById('studentSelect').value;
-      if (name) drawStudentCharts();
-    }
-  });
-}
-
-
-// ============================================================
-// STUDENT SELECT
-// ============================================================
-
-function populateStudentSelect(rated) {
-  const seen = new Set();
-  const students = [];
-  rated.forEach(r => {
-    const n = r.name.trim();
-    if (n && !seen.has(n)) { seen.add(n); students.push(n); }
-  });
-  students.sort();
-  const sel = document.getElementById('studentSelect');
-  sel.innerHTML = '<option value="">— Choose student —</option>' +
-    students.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
-}
-
-
-// ============================================================
-// DRAW ALL CHARTS
-// ============================================================
-
-function drawAllCharts(rated) {
-  drawOverviewBar(rated);
-  drawOverviewLine(rated);
-  drawDowBar(rated);
-  drawElevatedLine(rated);
-}
-
-function drawStudentCharts() {
-  const name = document.getElementById('studentSelect').value;
-  if (!name) return;
-  const rated = allRecords.filter(r => r.state && r.name.trim() === name);
-  drawStudentLine(rated);
-  drawStudentBar(rated);
-}
-
-
-// ============================================================
-// CANVAS CHART HELPERS
-// Simple bar and line charts drawn directly on <canvas>.
-// No external charting library needed.
-// ============================================================
-
-function prepCanvas(id, h) {
-  const c = document.getElementById(id);
-  if (!c) return null;
-
-  // Use devicePixelRatio so canvas is crisp on retina/HiDPI screens.
-  // We set the CSS size explicitly, then scale the drawing surface up.
-  const dpr = window.devicePixelRatio || 1;
-  const parent = c.parentElement;
-
-  // Must read CSS width from parent — the canvas itself may report 0
-  // if it was recently hidden (e.g. inside an inactive tab).
-  const cssW = parent.clientWidth - 28 || 600;
-  const cssH = h || 220;
-
-  c.style.width  = cssW + 'px';
-  c.style.height = cssH + 'px';
-  c.width  = Math.round(cssW  * dpr);
-  c.height = Math.round(cssH * dpr);
-
-  const ctx = c.getContext('2d');
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any previous transform
-  ctx.scale(dpr, dpr);                 // scale all drawing ops to match DPI
-
-  return { ctx, W: cssW, H: cssH };
-}
-
-function drawBarChart(id, data, yMax) {
-  const cv = prepCanvas(id);
-  if (!cv) return;
-  const { ctx, W, H } = cv;
-  const pad = { t:20, r:20, b:42, l:46 };
-  const cW = W - pad.l - pad.r;
-  const cH = H - pad.t - pad.b;
-  const max = yMax || Math.max(...data.map(d => d.value), 1);
-  const bW = (cW / data.length) * 0.55;
-  const bGap = cW / data.length;
-
-  // grid lines
-  ctx.strokeStyle = '#e8eeed'; ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + cH - (i/4)*cH;
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#9aabaa'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(((i/4)*max).toFixed(max < 10 ? 1 : 0), pad.l-5, y+4);
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    var sib = e.key === 'ArrowRight' ? c.nextElementSibling : c.previousElementSibling;
+    if (sib) sib.focus();
   }
-
-  data.forEach((d, i) => {
-    const x = pad.l + i*bGap + (bGap-bW)/2;
-    const bH = Math.max((d.value/max)*cH, d.value>0?2:0);
-    const y  = pad.t + cH - bH;
-    ctx.fillStyle = d.color || '#4a9e8f';
-    ctx.beginPath(); ctx.roundRect(x, y, bW, bH, [3,3,0,0]); ctx.fill();
-    if (d.value > 0) {
-      ctx.fillStyle = '#3a5555'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(typeof d.value === 'number' && d.value % 1 !== 0 ? d.value.toFixed(2) : d.value, x+bW/2, y-4);
-    }
-    // x label — may be long, wrap or truncate
-    ctx.fillStyle = '#6b7676'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center';
-    const lbl = String(d.label).length > 10 ? String(d.label).slice(0,9)+'…' : d.label;
-    ctx.fillText(lbl, x+bW/2, pad.t+cH+16);
-    if (d.sub) {
-      ctx.font = '10px system-ui,sans-serif'; ctx.fillStyle = '#9aabaa';
-      ctx.fillText(d.sub, x+bW/2, pad.t+cH+28);
-    }
-  });
-}
-
-function drawLineChart(id, series, yDomain) {
-  const cv = prepCanvas(id);
-  if (!cv || !series.length || !series[0].data.length) return;
-  const { ctx, W, H } = cv;
-  const pad = { t:20, r:20, b:42, l:46 };
-  const cW = W - pad.l - pad.r;
-  const cH = H - pad.t - pad.b;
-
-  const allX  = [...new Set(series.flatMap(s => s.data.map(d => d.x)))].sort();
-  const yMin  = yDomain ? yDomain[0] : 0;
-  const yMax  = yDomain ? yDomain[1] : Math.max(...series.flatMap(s => s.data.map(d => d.y)), 1);
-
-  // grid
-  ctx.strokeStyle = '#e8eeed'; ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + cH - (i/4)*cH;
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#9aabaa'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText((yMin+(i/4)*(yMax-yMin)).toFixed(1), pad.l-5, y+4);
-  }
-
-  // x labels
-  const step = allX.length > 10 ? Math.ceil(allX.length/8) : 1;
-  allX.forEach((x, i) => {
-    if (i % step !== 0) return;
-    const px = pad.l + (i/(allX.length-1||1))*cW;
-    ctx.fillStyle = '#6b7676'; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(x.length>8 ? x.slice(5) : x, px, pad.t+cH+16);
-  });
-
-  series.forEach(s => {
-    const pts = allX.map(x => { const f = s.data.find(d => d.x===x); return f ? f.y : null; });
-    ctx.strokeStyle = s.color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-    ctx.beginPath(); let started = false;
-    pts.forEach((y, i) => {
-      if (y===null) { started=false; return; }
-      const px = pad.l+(i/(allX.length-1||1))*cW;
-      const py = pad.t+cH-((y-yMin)/(yMax-yMin))*cH;
-      if (!started) { ctx.moveTo(px,py); started=true; } else ctx.lineTo(px,py);
-    });
-    ctx.stroke();
-    // dots
-    pts.forEach((y,i) => {
-      if (y===null) return;
-      const px = pad.l+(i/(allX.length-1||1))*cW;
-      const py = pad.t+cH-((y-yMin)/(yMax-yMin))*cH;
-      ctx.fillStyle=s.color; ctx.beginPath(); ctx.arc(px,py,4,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2); ctx.fill();
-    });
-  });
-}
-
-
-// ============================================================
-// INDIVIDUAL CHART FUNCTIONS
-// ============================================================
-
-function drawOverviewBar(rated) {
-  const counts = [0,0,0,0,0];
-  rated.forEach(r => counts[r.state-1]++);
-  drawBarChart('cOverviewBar', STATES.map((s,i)=>({ label: `${s.emoji} ${s.label}`, value: counts[i], color: s.color })));
-  document.getElementById('cOverviewLegend').innerHTML =
-    STATES.map(s=>`<div class="legend-item"><span class="legend-dot" style="background:${s.color}"></span>${s.label}</div>`).join('');
-}
-
-function drawOverviewLine(rated) {
-  const byDate = {};
-  rated.forEach(r => { if(!byDate[r.date]) byDate[r.date]=[]; byDate[r.date].push(r.state); });
-  const data = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b))
-    .map(([date,states]) => ({ x:date, y:parseFloat((states.reduce((a,b)=>a+b,0)/states.length).toFixed(2)) }));
-  drawLineChart('cOverviewLine', [{label:'Class Average', data, color:'#4a9e8f'}], [1,5]);
-}
-
-function drawDowBar(rated) {
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const sums=[0,0,0,0,0,0,0], cnts=[0,0,0,0,0,0,0];
-  rated.forEach(r => {
-    if (!r.date) return;
-    const dow = new Date(r.date+'T12:00:00').getDay();
-    sums[dow]+=r.state; cnts[dow]++;
-  });
-  const data = days.map((d,i)=>({ label:d.slice(0,3), value: cnts[i]?parseFloat((sums[i]/cnts[i]).toFixed(2)):0, color:'#6aaecc', hasData: cnts[i]>0 }))
-    .filter(d=>d.hasData);
-  drawBarChart('cDowBar', data, 5);
-}
-
-function drawElevatedLine(rated) {
-  const byDate = {};
-  rated.forEach(r => {
-    if(!byDate[r.date]) byDate[r.date]={total:0,elevated:0};
-    byDate[r.date].total++;
-    if(r.state>=3) byDate[r.date].elevated++;
-  });
-  const data = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b))
-    .map(([date,d])=>({ x:date, y:parseFloat(((d.elevated/d.total)*100).toFixed(1)) }));
-  drawLineChart('cElevatedLine', [{label:'% Elevated', data, color:'#e8904a'}], [0,100]);
-}
-
-function drawStudentLine(recs) {
-  const data = recs.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>({ x:r.date, y:r.state }));
-  drawLineChart('cStudentLine', [{label:'State', data, color:'#4a9e8f'}], [1,5]);
-}
-
-function drawStudentBar(recs) {
-  const counts=[0,0,0,0,0];
-  recs.forEach(r=>counts[r.state-1]++);
-  drawBarChart('cStudentBar', STATES.map((s,i)=>({ label:s.label, value:counts[i], color:s.color })));
-}
-
-// Redraw charts on resize
-window.addEventListener('resize', () => {
-  const rated = allRecords.filter(r=>r.state);
-  if (rated.length && document.getElementById('chartsSection').style.display !== 'none') {
-    drawAllCharts(rated);
-    const n = document.getElementById('studentSelect').value;
-    if (n) drawStudentCharts();
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    var li = c.closest('.srow'), other = e.key === 'ArrowDown' ? li.nextElementSibling : li.previousElementSibling;
+    if (other) { var f = other.querySelector('.chip[tabindex="0"]'); if (f) f.focus(); }
   }
 });
+$('tab-checkin').addEventListener('change', function (e) {
+  if (e.target.dataset.note == null) return;
+  var ck = C.checkins[key(e.target.dataset.note, view.date)];
+  if (ck && ck.note !== e.target.value) { ck.note = e.target.value.trim(); markChanged(); }
+});
+$('tab-checkin').addEventListener('keydown', function (e) {
+  if (e.target.dataset && e.target.dataset.note != null && e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+});
+$('top-right').addEventListener('click', function (e) {
+  if (e.target.closest('#d-prev')) stepDay(-1);
+  else if (e.target.closest('#d-next')) stepDay(1);
+  else if (e.target.closest('#d-today')) { view.date = todayISO(); render(); }
+  var rb = e.target.closest('[data-range]');
+  if (rb) { view.range = +rb.dataset.range; render(); }
+  if (e.target.closest('#st-back')) { view.student = null; render(); }
+});
+$('top-right').addEventListener('change', function (e) {
+  if (e.target.id === 'd-in' && e.target.value) { view.date = e.target.value; render(); }
+});
 
-// Initialize empty table on load
-renderTable();
+/* =================================================================
+   6. LOOK BACK
+   ================================================================= */
+function rangeDays() {
+  var dates = allDates();
+  var end = todayISO();
+  if (dates.length && dates[dates.length - 1] > end) end = dates[dates.length - 1];
+  var days = [], d = end;
+  if (view.range === 0) {
+    var start = dates.length ? dates[0] : end;
+    while (d >= start) { if (!isWeekend(d) || dates.indexOf(d) > -1) days.unshift(d); d = addDays(d, -1); }
+  } else {
+    var guard = 0;
+    while (days.length < view.range && guard < 400) { if (!isWeekend(d) || dates.indexOf(d) > -1) days.unshift(d); d = addDays(d, -1); guard++; }
+  }
+  return days;
+}
+/* Simple, plain patterns. Nothing here is a judgement. */
+function patterns(days) {
+  var out = [], end = days[days.length - 1];
+  var flagged = {};
+  C.students.forEach(function (s) {
+    var ck = checkinsFor(s.id).filter(function (c) { return c.date <= end; });
+    if (ck.length < 6) return;
+    var last = ck.slice(-3), before = ck.slice(0, -3);
+    /* only flag patterns that are happening now: last 3 check-ins within the last 5 school days */
+    var recentStart = end, cnt = 0; while (cnt < 4) { recentStart = addDays(recentStart, -1); if (!isWeekend(recentStart)) cnt++; }
+    if (last[0].date < recentStart) return;
+    var usual = modeOf(before.map(function (c) { return c.value; }));
+    if (last.every(function (c) { return c.value > usual; })) {
+      flagged[s.id] = true;
+      out.push({ cls: 'flag', html: '<button type="button" data-open="' + s.id + '">' + esc(displayName(s)) + '</button> has been lower than their usual for their last 3 check-ins.' });
+    }
+  });
+  var week = []; var d = end; while (week.length < 5) { if (!isWeekend(d)) week.push(d); d = addDays(d, -1); }
+  var classActive = Object.keys(C.checkins).some(function (k) { return week.indexOf(k.split('|')[1]) > -1; });
+  if (classActive) {
+    var missing = C.students.filter(function (s) { return !week.some(function (w) { return C.checkins[key(s.id, w)]; }); });
+    if (missing.length && missing.length < C.students.length) {
+      var names = missing.slice(0, 4).map(function (s) { return '<button type="button" data-open="' + s.id + '">' + esc(displayName(s)) + '</button>'; });
+      out.push({ cls: '', icon: I.cal, html: (missing.length > 4 ? names.join(', ') + ' and ' + (missing.length - 4) + ' more have' : (names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] + ' have' : names[0] + ' has')) + ' no check-in in the last 5 school days.' });
+    }
+  }
+  var wd = weekdayAverages(days), all = [];
+  days.forEach(function (dd) { C.students.forEach(function (s) { var c = C.checkins[key(s.id, dd)]; if (c) all.push(c.value); }); });
+  if (all.length > 20) {
+    var avg = all.reduce(function (a, b) { return a + b; }, 0) / all.length;
+    wd.forEach(function (w) { if (w.n >= 8 && w.avg - avg >= 0.35) out.push({ cls: '', icon: I.grid, html: DAY[w.day] + 'days run a little lower than other days.' }); });
+  }
+  return { list: out, flagged: flagged };
+}
+function weekdayAverages(days) {
+  var res = [];
+  for (var g = 1; g <= 5; g++) {
+    var vals = [];
+    days.forEach(function (dd) { if (parseISO(dd).getDay() !== g) return; C.students.forEach(function (s) { var c = C.checkins[key(s.id, dd)]; if (c) vals.push(c.value); }); });
+    res.push({ day: g, n: vals.length, avg: vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null });
+  }
+  return res;
+}
+function renderLook() {
+  $('top-right').innerHTML = view.student ? '<button type="button" class="link-btn" id="st-back">' + svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 16) + 'Back to the class</button>' :
+    '<div class="ranges" role="group" aria-label="How far back">' + [[10, '2 weeks'], [15, '3 weeks'], [0, 'All']].map(function (r) { return '<button type="button" data-range="' + r[0] + '" aria-pressed="' + (view.range === r[0]) + '">' + r[1] + '</button>'; }).join('') + '</div>';
+  $('look-class').hidden = !!view.student;
+  $('look-student').hidden = !view.student;
+  if (view.student) { renderStudent(); return; }
+  var days = rangeDays(), P = patterns(days), today = todayISO();
+  if (!Object.keys(C.checkins).length) {
+    $('heat').innerHTML = '<div class="empty">No check-ins yet. Once you check in, every day shows up here.</div>';
+  } else {
+    var cols = days.length;
+    var h = '<div class="heat" style="grid-template-columns: minmax(90px, 150px) repeat(' + cols + ', minmax(18px, 1fr)) auto">';
+    h += '<span></span>' + days.map(function (d) { var dt = parseISO(d); return '<span class="dh' + (d === today ? ' now' : '') + '">' + DAY1[dt.getDay()] + '<br>' + dt.getDate() + '</span>'; }).join('') + '<span></span>';
+    C.students.forEach(function (s) {
+      h += '<button type="button" class="nm" data-open="' + s.id + '">' + esc(displayName(s)) + '</button>';
+      days.forEach(function (d) {
+        var c = C.checkins[key(s.id, d)];
+        var t = displayName(s) + ', ' + nice(d, true) + ': ' + (c ? c.value + ' ' + label(c.value) + (c.note ? ' (' + c.note + ')' : '') : 'no check-in');
+        h += '<span class="c' + (c ? '' : ' e') + (c && c.note ? ' has-note' : '') + '" style="' + (c ? 'background:' + color(c.value) : '') + '" title="' + esc(t) + '" role="img" aria-label="' + esc(t) + '"></span>';
+      });
+      h += P.flagged[s.id] ? '<span class="fl">' + svg(I.flag, 13) + 'Lower than usual</span>' : '<span></span>';
+    });
+    $('heat').innerHTML = h + '</div>';
+  }
+  $('worth').innerHTML = P.list.length ? P.list.map(function (p) { return '<li class="' + p.cls + '">' + svg(p.icon || I.flag, 15) + '<span>' + p.html + '</span></li>'; }).join('') : '<li>' + svg(I.chk, 15) + '<span>Nothing stands out right now.</span></li>';
+  /* class average line */
+  var avg = days.map(function (d) { var v = C.students.map(function (s) { var c = C.checkins[key(s.id, d)]; return c ? c.value : null; }).filter(function (x) { return x !== null; }); return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null; });
+  $('avg-chart').innerHTML = lineChart(avg, days, 300, 140, false);
+  $('weekday').innerHTML = weekdayAverages(days).map(function (w) {
+    var bg = w.avg === null ? 'var(--surface-2)' : color(Math.min(C.levels, Math.max(1, Math.round(w.avg))));
+    return '<div style="background:' + bg + '"><b>' + (w.avg === null ? '–' : w.avg.toFixed(1)) + '</b><span>' + ['M', 'T', 'W', 'Th', 'F'][w.day - 1] + '</span></div>';
+  }).join('');
+}
+/* Line chart with 1 at the top and coloured bands for each level */
+function lineChart(vals, days, W, H, big) {
+  var L = C.levels, left = big ? 34 : 22, right = big ? 24 : 8, top = 10, bottom = big ? 22 : 8, inset = big ? 14 : 4;
+  var n = Math.max(2, vals.length);
+  function x(i) { return left + inset + i * (W - left - right - inset * 2) / (n - 1); }
+  function y(v) { return top + (v - 1) / (L - 1) * (H - top - bottom); }
+  var band = (H - top - bottom) / (L - 1);
+  var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Line chart, 1 at the top">';
+  for (var j = 1; j <= L; j++) {
+    var y0 = Math.max(top, y(j) - band / 2), y1 = Math.min(H - bottom, y(j) + band / 2);
+    out += '<rect x="' + left + '" y="' + y0.toFixed(1) + '" width="' + (W - left - right) + '" height="' + (y1 - y0).toFixed(1) + '" fill="' + color(j) + '" opacity=".16"/>';
+    out += '<text x="' + (left - 8) + '" y="' + (y(j) + 4).toFixed(1) + '" font-size="' + (big ? 12 : 10) + '" text-anchor="end" fill="#4A5862">' + j + '</text>';
+  }
+  var pts = [];
+  vals.forEach(function (v, i) { if (v !== null) pts.push([x(i), y(v), v, i]); });
+  if (pts.length > 1) out += '<polyline points="' + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="none" stroke="#1C2730" stroke-width="' + (big ? 2 : 1.75) + '" stroke-linejoin="round"/>';
+  pts.forEach(function (p) {
+    out += big ? '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="7" fill="' + color(Math.round(p[2])) + '" stroke="#1C2730" stroke-width="1.5"><title>' + esc(nice(days[p[3]], true) + ': ' + p[2] + ' ' + label(Math.round(p[2]))) + '</title></circle>' : '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.6" fill="#1C2730"/>';
+  });
+  if (big) {
+    var every = Math.ceil(vals.length / 10);
+    days.forEach(function (d, i) { if (i % every === 0 || i === days.length - 1) { var dt = parseISO(d); out += '<text x="' + x(i).toFixed(1) + '" y="' + (H - 4) + '" font-size="11" text-anchor="middle" fill="#4A5862">' + (dt.getMonth() + 1) + '/' + dt.getDate() + '</text>'; } });
+  }
+  if (!pts.length) out += '<text x="' + (W / 2) + '" y="' + (H / 2) + '" font-size="12" text-anchor="middle" fill="#4A5862">No check-ins in this range</text>';
+  return out + '</svg>';
+}
+function renderStudent() {
+  var s = studentById(view.student); if (!s) { view.student = null; render(); return; }
+  var idx = C.students.indexOf(s);
+  $('st-name').textContent = displayName(s);
+  $('st-prev').disabled = idx === 0;
+  $('st-next').disabled = idx === C.students.length - 1;
+  $('st-reveal').hidden = showNames;
+  $('st-reveal-text').textContent = revealed[s.id] ? 'Hide this name' : 'Show this name';
+  var days = rangeDays(), ck = checkinsFor(s.id);
+  var inRange = ck.filter(function (c) { return c.date >= days[0] && c.date <= days[days.length - 1]; });
+  var usual = ck.length ? modeOf(ck.map(function (c) { return c.value; })) : null;
+  var recent = ck.slice(-3);
+  var recentAvg = recent.length ? recent.reduce(function (a, c) { return a + c.value; }, 0) / recent.length : null;
+  var ra = recentAvg === null ? null : Math.round(recentAvg);
+  var notes = ck.filter(function (c) { return c.note; }).reverse();
+  $('st-kpis').innerHTML =
+    '<div class="kpi"><span>Check-ins</span><b>' + inRange.length + '</b><small>' + (view.range ? 'in the last ' + (view.range === 10 ? '2' : '3') + ' weeks' : 'in all') + '</small></div>' +
+    '<div class="kpi"><span>Usual</span><b>' + (usual ? usual + ' · ' + esc(label(usual)) : '–') + '</b><small>most common check-in</small></div>' +
+    '<div class="kpi"><span>Lately</span><b>' + (ra ? ra + ' · ' + esc(label(ra)) : '–') + '</b><small>' + (recent.length ? 'average of the last ' + plural(recent.length, 'check-in', 'check-ins') : 'no check-ins yet') + '</small></div>' +
+    '<div class="kpi"><span>Notes</span><b>' + notes.length + '</b><small>shown below</small></div>';
+  var vals = days.map(function (d) { var c = C.checkins[key(s.id, d)]; return c ? c.value : null; });
+  $('st-chart').innerHTML = lineChart(vals, days, 1100, 230, true);
+  $('st-notes').innerHTML = notes.length ? notes.map(function (c) { return '<li><span class="sub">' + nice(c.date, true) + '</span><span class="dotn" style="background:' + color(c.value) + '">' + c.value + '</span><span>' + esc(c.note) + '</span></li>'; }).join('') : '<li><span class="sub" style="grid-column: 1 / -1">No notes yet. Add one on the Check in screen.</span></li>';
+}
+$('tab-look').addEventListener('click', function (e) {
+  var o = e.target.closest('[data-open]');
+  if (o) { view.student = o.dataset.open; render(); window.scrollTo(0, 0); }
+});
+$('st-prev').addEventListener('click', function () { var i = C.students.indexOf(studentById(view.student)); if (i > 0) { view.student = C.students[i - 1].id; render(); } });
+$('st-next').addEventListener('click', function () { var i = C.students.indexOf(studentById(view.student)); if (i < C.students.length - 1) { view.student = C.students[i + 1].id; render(); } });
+$('st-reveal').addEventListener('click', function () { revealed[view.student] = !revealed[view.student]; render(); });
 
+/* =================================================================
+   7. ALL ENTRIES, ADDING AND PASTING
+   ================================================================= */
+var addValue = 0;
+function studentOptions(withAll) {
+  return (withAll ? '<option value="">All students</option>' : '<option value="">Pick a student</option>') + C.students.map(function (s) { return '<option value="' + s.id + '">' + esc(displayName(s)) + '</option>'; }).join('');
+}
+function renderAll() {
+  $('top-right').innerHTML = '<span class="tip">' + svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/>', 15) + '<span>One check-in per student per day. A new one for the same day replaces the old one.</span></span>';
+  var keepS = $('add-student').value, keepF = view.filter;
+  $('add-student').innerHTML = studentOptions(false); $('add-student').value = keepS;
+  $('flt-student').innerHTML = studentOptions(true); $('flt-student').value = keepF;
+  if (!$('add-date').value) $('add-date').value = todayISO();
+  $('add-chips').innerHTML = chipsHTML('add', addValue, true);
+  var rows = [];
+  Object.keys(C.checkins).forEach(function (k) { var p = k.split('|'); if (!view.filter || p[0] === view.filter) rows.push({ sid: p[0], date: p[1], c: C.checkins[k] }); });
+  rows.sort(function (a, b) { return a.date === b.date ? C.students.indexOf(studentById(a.sid)) - C.students.indexOf(studentById(b.sid)) : (a.date < b.date ? 1 : -1); });
+  $('all-count').textContent = plural(rows.length, 'check-in', 'check-ins') + ' · newest first';
+  $('all-rows').innerHTML = rows.length ? rows.slice(0, view.shown).map(function (r) {
+    var s = studentById(r.sid);
+    return '<div class="trow" data-k="' + key(r.sid, r.date) + '"><span>' + nice(r.date, true) + '</span><b>' + esc(s ? displayName(s) : '?') + '</b>' +
+      '<span class="mchips" role="radiogroup" aria-label="Check-in">' + chipsHTML(r.sid + '@' + r.date, r.c.value, true) + '</span>' +
+      '<input class="sel" data-enote value="' + esc(r.c.note || '') + '" placeholder="Note" aria-label="Note" autocomplete="off">' +
+      '<button type="button" class="icon-btn" data-del aria-label="Delete this check-in">' + svg(I.tr, 16) + '</button></div>';
+  }).join('') : '<div class="empty" style="margin-top: 8px">No check-ins yet.</div>';
+  $('all-more').hidden = rows.length <= view.shown;
+}
+$('add-chips').addEventListener('click', function (e) { var c = e.target.closest('.mchip'); if (c) { addValue = +c.dataset.v; renderAll(); } });
+$('add-btn').addEventListener('click', function () {
+  var sid = $('add-student').value, date = $('add-date').value, msg = $('add-msg');
+  msg.hidden = false;
+  if (!date) { msg.textContent = 'Pick a date.'; return; }
+  if (!sid) { msg.textContent = 'Pick a student.'; $('add-student').focus(); return; }
+  if (!addValue) { msg.textContent = 'Pick a number from 1 to ' + C.levels + '.'; return; }
+  var had = !!C.checkins[key(sid, date)];
+  C.checkins[key(sid, date)] = { value: addValue, note: $('add-note').value.trim() };
+  markChanged();
+  msg.textContent = (had ? 'Replaced the check-in for ' : 'Added a check-in for ') + displayName(studentById(sid)) + ' on ' + nice(date, true) + '.';
+  addValue = 0; $('add-note').value = '';
+  renderAll();
+});
+$('flt-student').addEventListener('change', function () { view.filter = this.value; view.shown = PAGE; renderAll(); });
+$('all-more').addEventListener('click', function () { view.shown += PAGE; renderAll(); });
+$('all-rows').addEventListener('click', function (e) {
+  var row = e.target.closest('.trow'); if (!row) return;
+  var k = row.dataset.k;
+  if (e.target.closest('[data-del]')) { delete C.checkins[k]; markChanged(); renderAll(); return; }
+  var c = e.target.closest('.mchip');
+  if (c && C.checkins[k] && C.checkins[k].value !== +c.dataset.v) { C.checkins[k].value = +c.dataset.v; markChanged(); renderAll(); }
+});
+$('all-rows').addEventListener('change', function (e) {
+  if (e.target.dataset.enote == null) return;
+  var k = e.target.closest('.trow').dataset.k;
+  if (C.checkins[k]) { C.checkins[k].note = e.target.value.trim(); markChanged(); }
+});
+
+/* ---- Reading pasted or CSV rows: name, date, number, note ---- */
+function parseDate(t) {
+  t = String(t || '').trim();
+  var m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
+  m = t.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (m) { var y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : new Date().getFullYear(); return y + '-' + pad(+m[1]) + '-' + pad(+m[2]); }
+  return null;
+}
+function splitLine(line) {
+  var out = [], cur = '', q = false;
+  var sep = line.indexOf('\t') > -1 ? '\t' : ',';
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+    else if (ch === sep && !q) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(function (s) { return s.trim(); });
+}
+/* Returns { rows: [{name,date,value,note}], skipped: [line] } */
+function parseRows(text, levels) {
+  var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
+  var idx = { name: 0, date: 1, value: 2, note: 3 }, rows = [], skipped = [], fromHeader = false;
+  if (lines.length) {
+    var head = splitLine(lines[0]).map(function (h) { return h.toLowerCase(); });
+    if (head.indexOf('name') > -1 || head.indexOf('student') > -1) {
+      idx = { name: Math.max(head.indexOf('name'), head.indexOf('student')), date: head.indexOf('date'),
+        value: [head.indexOf('state'), head.indexOf('number'), head.indexOf('check_in'), head.indexOf('checkin'), head.indexOf('value'), head.indexOf('rating')].filter(function (x) { return x > -1; })[0],
+        note: Math.max(head.indexOf('note'), head.indexOf('notes')) };
+      fromHeader = true;
+      lines.shift();
+    }
+  }
+  lines.forEach(function (l) {
+    var p = splitLine(l);
+    var name = p[idx.name], date = parseDate(p[idx.date]), v = parseInt(p[idx.value], 10);
+    var note = fromHeader ? (idx.note > -1 ? p[idx.note] : '') : p.slice(3).join(', ');
+    if (!name || !date || !(v >= 1 && v <= levels)) { skipped.push(l); return; }
+    rows.push({ name: name, date: date, value: v, note: (note || '').trim() });
+  });
+  return { rows: rows, skipped: skipped };
+}
+function mergeRows(rows) {
+  var added = 0, replaced = 0, newStudents = 0;
+  rows.forEach(function (r) {
+    var s = C.students.filter(function (x) { return x.name.trim().toLowerCase() === r.name.trim().toLowerCase(); })[0];
+    if (!s) { s = { id: newId(), name: r.name.trim() }; C.students.push(s); newStudents++; }
+    var k = key(s.id, r.date);
+    if (C.checkins[k]) replaced++; else added++;
+    C.checkins[k] = { value: r.value, note: r.note };
+  });
+  return { added: added, replaced: replaced, newStudents: newStudents };
+}
+$('paste-add').addEventListener('click', function () {
+  var P = parseRows($('paste').value, C.levels), msg = $('paste-msg');
+  msg.hidden = false;
+  if (!P.rows.length) { msg.textContent = P.skipped.length ? 'None of those lines could be read. Each line needs a name, a date and a number from 1 to ' + C.levels + '.' : 'Paste some lines first.'; return; }
+  var r = mergeRows(P.rows);
+  markChanged();
+  $('paste').value = P.skipped.join('\n');
+  msg.textContent = 'Added ' + plural(r.added, 'check-in', 'check-ins') + (r.replaced ? ', replaced ' + r.replaced : '') + (r.newStudents ? ', and ' + plural(r.newStudents, 'new student', 'new students') : '') + '.' +
+    (P.skipped.length ? ' ' + plural(P.skipped.length, 'line couldn’t', 'lines couldn’t') + ' be read and ' + (P.skipped.length === 1 ? 'is' : 'are') + ' left in the box.' : '');
+  render();
+});
+
+/* =================================================================
+   8. SAVING AND OPENING CLASS FILES
+   ================================================================= */
+function fileName() { return ((C && C.name || 'my class').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'my-class') + '.json'; }
+function toJSON() {
+  var list = Object.keys(C.checkins).sort(function (a, b) { var A = a.split('|'), B = b.split('|'); return A[1] === B[1] ? (A[0] < B[0] ? -1 : 1) : (A[1] < B[1] ? -1 : 1); })
+    .map(function (k) { var p = k.split('|'); var c = C.checkins[k]; var o = { student: p[0], date: p[1], value: c.value }; if (c.note) o.note = c.note; return o; });
+  return JSON.stringify({ app: 'well-being-tracker', version: 1, className: C.name, scale: { levels: C.levels, labels: C.labels }, students: C.students, checkins: list }, null, 2);
+}
+async function save() {
+  if (!C) return;
+  var data = toJSON();
+  if (fileHandle) {
+    try { var w0 = await fileHandle.createWritable(); await w0.write(data); await w0.close(); afterSave(fileHandle.name); return; } catch (e) { fileHandle = null; }
+  }
+  if (window.showSaveFilePicker) {
+    try {
+      var h = await window.showSaveFilePicker({ suggestedName: fileName(), types: [{ description: 'Well-Being Tracker class', accept: { 'application/json': ['.json'] } }] });
+      var w = await h.createWritable(); await w.write(data); await w.close();
+      fileHandle = h; afterSave(h.name);
+    } catch (err) { if (err && err.name !== 'AbortError') toast('That didn’t save. Try again.'); }
+    return;
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = fileName(); document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  afterSave(fileName() + ' in your Downloads folder');
+}
+function afterSave(where) {
+  unsaved = 0;
+  if (isExample) { isExample = false; }
+  renderHeader(); render();
+  toast('Saved ' + where + '.');
+}
+$('btn-save').addEventListener('click', save);
+$('save-2').addEventListener('click', save);
+
+function loadClass(text, fname) {
+  var d;
+  try { d = JSON.parse(text); } catch (e) { d = null; }
+  var cls;
+  if (d && Array.isArray(d.students) && d.scale) {
+    var levels = d.scale.levels === 3 ? 3 : 5;
+    cls = { name: String(d.className || fname.replace(/\.json$/i, '')), levels: levels, labels: (d.scale.labels || DEFAULT_LABELS[levels]).slice(0, levels), students: [], checkins: {} };
+    while (cls.labels.length < levels) cls.labels.push(DEFAULT_LABELS[levels][cls.labels.length]);
+    d.students.forEach(function (s, i) { cls.students.push({ id: String(s.id || 's' + (i + 1)), name: String(s.name || 'Student ' + (i + 1)) }); });
+    (d.checkins || []).forEach(function (c) {
+      var v = parseInt(c.value, 10), date = parseDate(c.date);
+      if (date && v >= 1 && v <= levels && cls.students.some(function (s) { return s.id === String(c.student); })) cls.checkins[key(String(c.student), date)] = { value: v, note: String(c.note || '') };
+    });
+  } else if (/\.csv$/i.test(fname) || text.indexOf(',') > -1) {
+    /* an older CSV export: name, date, (period), state, note */
+    var P = parseRows(text, 5);
+    if (!P.rows.length) return false;
+    C = { name: fname.replace(/\.(csv|txt)$/i, '').replace(/[-_]+/g, ' '), levels: 5, labels: DEFAULT_LABELS[5].slice(), students: [], checkins: {} };
+    mergeRows(P.rows);
+    cls = C;
+  } else return false;
+  C = cls; isExample = false; fileHandle = null; unsaved = 0; revealed = {}; showNames = false;
+  view = { tab: 'checkin', date: todayISO(), range: 15, student: null, filter: '', shown: PAGE };
+  showScreen('app'); render();
+  toast('Opened ' + fname + ' with ' + plural(C.students.length, 'student', 'students') + ' and ' + plural(Object.keys(C.checkins).length, 'check-in', 'check-ins') + '.');
+  return true;
+}
+function guardUnsaved() { return !(C && unsaved > 0) || confirm('You have unsaved changes. Open a different file anyway?'); }
+function openFile(file) {
+  if (!file) return;
+  if (!guardUnsaved()) return;
+  var r = new FileReader();
+  r.onload = function () {
+    if (!loadClass(String(r.result), file.name)) {
+      var m = 'That file doesn’t look like a Well-Being Tracker class.';
+      if (screen === 'landing') { $('open-err').hidden = false; $('open-err').textContent = m; } else toast(m);
+    }
+  };
+  r.readAsText(file);
+}
+function pickFile() { $('file-input').value = ''; $('file-input').click(); }
+$('go-open').addEventListener('click', pickFile);
+$('open-2').addEventListener('click', pickFile);
+$('file-input').addEventListener('change', function () { openFile(this.files[0]); });
+var dragDepth = 0;
+function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') > -1; }
+window.addEventListener('dragenter', function (e) { if (!hasFiles(e)) return; dragDepth++; $('drop-hint').hidden = false; });
+window.addEventListener('dragleave', function (e) { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('drop-hint').hidden = true; });
+window.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('drop', function (e) { if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('drop-hint').hidden = true; openFile(e.dataTransfer.files[0]); });
+window.addEventListener('beforeunload', function (e) { if (C && unsaved > 0) { e.preventDefault(); e.returnValue = ''; } });
+
+/* =================================================================
+   9. CLASS SETUP AND SETTINGS
+   ================================================================= */
+function namesFromText(t) { return t.split(/\r?\n/).map(function (l) { return l.split('\t')[0].trim(); }).filter(Boolean); }
+function renderScaleEditor() {
+  document.querySelectorAll('#su-levels button').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.levels === setupLevels)); });
+  var cols = LEVEL_COLORS[setupLevels];
+  $('su-scale').innerHTML = setupLabels.map(function (l, i) { return '<label class="lv"><b style="background:' + cols[i] + '">' + (i + 1) + '</b><input class="inp" data-lab="' + i + '" value="' + esc(l) + '" aria-label="Label for ' + (i + 1) + '" autocomplete="off"></label>'; }).join('');
+}
+function renderRoster() {
+  $('su-roster').innerHTML = C.students.map(function (s, i) {
+    var n = checkinsFor(s.id).length;
+    return '<li data-sid="' + s.id + '"><span class="num">Student ' + (i + 1) + '<br><small>' + plural(n, 'check-in', 'check-ins') + '</small></span><input class="inp" data-rename="' + s.id + '" value="' + esc(s.name) + '" aria-label="Name for Student ' + (i + 1) + '" autocomplete="off"><button type="button" class="icon-btn" data-remove="' + s.id + '" aria-label="Remove Student ' + (i + 1) + '">' + svg(I.tr, 16) + '</button></li>';
+  }).join('') || '<li style="display:block; color: var(--ink-2)">No students yet.</li>';
+}
+function openSetup(mode) {
+  setupMode = mode;
+  $('su-err').hidden = true;
+  if (mode === 'new') {
+    $('su-name').value = ''; $('su-names').value = '';
+    setupLevels = 5; setupLabels = DEFAULT_LABELS[5].slice();
+    $('su-ok').textContent = 'Create class';
+    $('su-new-students').hidden = false; $('su-edit-students').hidden = true; $('su-close').hidden = true;
+    $('su-levels').querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+    $('su-levels-note').hidden = true;
+  } else {
+    $('su-name').value = C.name;
+    setupLevels = C.levels; setupLabels = C.labels.slice();
+    $('su-ok').textContent = 'Save changes';
+    $('su-new-students').hidden = true; $('su-edit-students').hidden = false; $('su-close').hidden = false;
+    $('su-add').value = '';
+    var hasData = Object.keys(C.checkins).length > 0;
+    $('su-levels').querySelectorAll('button').forEach(function (b) { b.disabled = hasData && +b.dataset.levels !== C.levels; });
+    $('su-levels-note').hidden = !hasData;
+    $('su-levels-note').textContent = 'The number of levels is locked once you have check-ins, so your past numbers keep their meaning.';
+    renderRoster();
+  }
+  renderScaleEditor(); updateCount();
+  showScreen('setup');
+  $('su-name').focus();
+}
+function updateCount() {
+  var n = namesFromText($('su-names').value).length;
+  $('su-count').textContent = n ? plural(n, 'student', 'students') + '. They’ll show as Student 1' + (n > 1 ? ' to Student ' + n : '') + ' until you choose to show names.' : 'You can also add students later.';
+}
+$('su-names').addEventListener('input', updateCount);
+$('su-levels').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b || b.disabled) return;
+  var n = +b.dataset.levels; if (n === setupLevels) return;
+  setupLevels = n; setupLabels = DEFAULT_LABELS[n].slice(); renderScaleEditor();
+});
+$('su-scale').addEventListener('input', function (e) { if (e.target.dataset.lab != null) setupLabels[+e.target.dataset.lab] = e.target.value; });
+$('su-roster').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-remove]'); if (!b) return;
+  var s = studentById(b.dataset.remove), n = checkinsFor(s.id).length;
+  if (n && !confirm('Remove ' + s.name + ' and their ' + plural(n, 'check-in', 'check-ins') + '? This can’t be undone after you save.')) return;
+  Object.keys(C.checkins).forEach(function (k) { if (k.split('|')[0] === s.id) delete C.checkins[k]; });
+  C.students.splice(C.students.indexOf(s), 1);
+  markChanged(); renderRoster();
+});
+$('su-roster').addEventListener('change', function (e) {
+  var id = e.target.dataset.rename; if (!id) return;
+  var s = studentById(id), v = e.target.value.trim();
+  if (v && v !== s.name) { s.name = v; markChanged(); }
+});
+$('su-ok').addEventListener('click', function () {
+  var name = $('su-name').value.trim(), labels = setupLabels.map(function (l, i) { return l.trim() || String(i + 1); });
+  if (!name) { $('su-err').hidden = false; $('su-err').textContent = 'Give your class a name. It’s also used for the file name.'; $('su-name').focus(); return; }
+  if (setupMode === 'new') {
+    if (C && unsaved > 0 && !confirm('You have unsaved changes in ' + C.name + '. Start a new class anyway?')) return;
+    C = { name: name, levels: setupLevels, labels: labels, students: [], checkins: {} };
+    namesFromText($('su-names').value).forEach(function (n, i) { C.students.push({ id: 's' + (i + 1), name: n }); });
+    isExample = false; fileHandle = null; revealed = {}; showNames = false;
+    unsaved = 1;
+    view = { tab: 'checkin', date: todayISO(), range: 15, student: null, filter: '', shown: PAGE };
+    showScreen('app'); render();
+    toast('Class created. Save your file when you’re ready.');
+  } else {
+    var changed = name !== C.name || setupLevels !== C.levels || labels.join('|') !== C.labels.join('|');
+    C.name = name; C.levels = setupLevels; C.labels = labels;
+    var adds = namesFromText($('su-add').value);
+    adds.forEach(function (n) { C.students.push({ id: newId(), name: n }); });
+    if (changed || adds.length) markChanged();
+    showScreen('app'); render();
+    if (adds.length) toast('Added ' + plural(adds.length, 'student', 'students') + '.');
+  }
+});
+function leaveSetup() { if (setupMode === 'edit' && C) { showScreen('app'); render(); } else showScreen('landing'); }
+$('su-cancel').addEventListener('click', leaveSetup);
+$('btn-back').addEventListener('click', leaveSetup);
+$('su-close').addEventListener('click', function () {
+  if (unsaved > 0 && !confirm('Close ' + C.name + ' without saving? Unsaved changes will be lost.')) return;
+  C = null; unsaved = 0; fileHandle = null; isExample = false;
+  showScreen('landing');
+});
+
+/* =================================================================
+   10. HEADER AND TAB BUTTONS
+   ================================================================= */
+document.querySelectorAll('[data-tab]').forEach(function (b) {
+  b.addEventListener('click', function () { view.tab = b.dataset.tab; if (view.tab !== 'look') view.student = null; render(); });
+  b.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    var tabs = ['checkin', 'look', 'all'], i = tabs.indexOf(view.tab);
+    view.tab = tabs[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; render();
+    document.querySelector('[data-tab="' + view.tab + '"]').focus();
+  });
+});
+$('btn-names').addEventListener('click', function () { showNames = !showNames; render(); });
+$('btn-settings').addEventListener('click', function () { openSetup('edit'); });
+$('go-new').addEventListener('click', function () { openSetup('new'); });
+$('example-new').addEventListener('click', function () { openSetup('new'); });
+
+/* =================================================================
+   11. EXAMPLE CLASS
+   Made-up students and three weeks of made-up check-ins, built
+   fresh each time so the dates end today.
+   ================================================================= */
+function makeExample() {
+  var names = ['Ava Martinez', 'Ben Okafor', 'Cam Nguyen', 'Dee Walsh', 'Eli Brooks', 'Fay Patel', 'Gus Romero', 'Hal Kim', 'Ivy Chen', 'Jo Larsen', 'Kai Moreno', 'Lu Jensen'];
+  var base = [1, 2, 2, 2, 2, 1, 3, 2, 1, 2, 2, 1];
+  var seed = 7; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  var days = [], d = todayISO();
+  while (days.length < 15) { if (!isWeekend(d)) days.unshift(d); d = addDays(d, -1); }
+  var notes = { 3: { 11: 'Quieter than usual', 12: 'Said they were tired, didn’t eat breakfast', 14: 'Head down again' }, 2: { 14: 'Quiet, skipped lunch' }, 6: { 4: 'Rough morning, better after recess' }, 0: { 9: 'Great presentation today' } };
+  C = { name: 'Example class', levels: 5, labels: DEFAULT_LABELS[5].slice(), students: [], checkins: {} };
+  names.forEach(function (n, i) {
+    var id = 's' + (i + 1); C.students.push({ id: id, name: n });
+    days.forEach(function (day, k) {
+      var r = rnd();
+      if (k < 14 && (i === 6 || i === 10) && k >= 10) return;          /* two students missing this week */
+      if (r < 0.06 && k < 14) return;
+      var v = base[i] + (r < 0.12 ? 1 : r > 0.9 ? -1 : 0);
+      if (parseISO(day).getDay() === 1 && rnd() < 0.5) v += 1;
+      if (i === 3 && k >= 11) v = [3, 4, 4, 4][k - 11];
+      v = Math.max(1, Math.min(5, v));
+      var note = notes[i] && notes[i][k] ? notes[i][k] : '';
+      if (k === 14 && i > 7) return;                                    /* today isn't finished yet */
+      C.checkins[key(id, day)] = { value: v, note: note };
+    });
+  });
+  isExample = true; fileHandle = null; unsaved = 0; revealed = {}; showNames = false;
+  view = { tab: 'look', date: todayISO(), range: 15, student: null, filter: '', shown: PAGE };
+  showScreen('app'); render();
+}
+$('go-example').addEventListener('click', function () { if (guardUnsaved()) makeExample(); });
+
+showScreen('landing');
 </script>
 </body>
 </html>
