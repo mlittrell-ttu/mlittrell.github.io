@@ -1,1277 +1,1109 @@
 <!DOCTYPE html>
+<!--
+  NOUN MATCH  (part of Teacher Apps)
+  =================================================================
+  One self-contained file: structure (HTML), look (CSS) and
+  behaviour (JavaScript) all live here. Nothing is loaded from the
+  internet and nothing is saved or sent anywhere. Word lists are
+  saved as small .json files on your own computer.
+
+  Students sort nouns into three groups: person, place or thing.
+  A wrong answer comes with a short explanation and waits for the
+  student to press "Next word". A right answer moves on by itself.
+
+  How the file is laid out:
+    1. <style>  ... design tokens, then one block per part of the page
+    2. <body>   ... Teacher Apps header, then four screens:
+                    landing, word list editor, playing, results
+    3. <script> ... built-in word lists, then everything that makes
+                    it work
+-->
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noun Match Adventure!</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 30px;
-            padding: 40px;
-            max-width: 1200px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            text-align: center;
-            color: #4a4a8a;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            font-size: 2rem;
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        .subtitle {
-            font-size: 1.5rem;
-            text-align: center;
-            color: #888;
-            margin-bottom: 40px;
-        }
-
-        /* Screens */
-        .screen {
-            display: none;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        /* Buttons */
-        .btn {
-            font-size: 1.8rem;
-            padding: 20px 50px;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            margin: 10px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
-        }
-
-        .btn-hint {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            font-size: 1.4rem;
-            padding: 15px 30px;
-        }
-
-        .btn-hint:hover {
-            transform: scale(1.05);
-        }
-
-        .btn-hint:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Difficulty Selection */
-        .difficulty-buttons {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin: 40px 0;
-        }
-
-        .difficulty-btn {
-            font-size: 1.6rem;
-            padding: 30px 50px;
-            border: 4px solid transparent;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 200px;
-        }
-
-        .difficulty-btn.easy {
-            background: #d4edda;
-            color: #155724;
-            border-color: #28a745;
-        }
-
-        .difficulty-btn.medium {
-            background: #fff3cd;
-            color: #856404;
-            border-color: #ffc107;
-        }
-
-        .difficulty-btn.hard {
-            background: #f8d7da;
-            color: #721c24;
-            border-color: #dc3545;
-        }
-
-        .difficulty-btn:hover {
-            transform: scale(1.08);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .difficulty-desc {
-            font-size: 1.1rem;
-            margin-top: 10px;
-            opacity: 0.8;
-        }
-
-        /* Game Area */
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .score-display, .progress-display, .hints-display {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #4a4a8a;
-            background: #f0f0ff;
-            padding: 15px 25px;
-            border-radius: 15px;
-        }
-
-        .score-display span, .hints-display span {
-            color: #667eea;
-        }
-
-        /* Category Boxes */
-        .categories-container {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-        }
-
-        .category-box {
-            min-width: 280px;
-            min-height: 200px;
-            border: 5px dashed #ccc;
-            border-radius: 20px;
-            padding: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .category-box.person {
-            background: #e3f2fd;
-            border-color: #2196f3;
-        }
-
-        .category-box.place {
-            background: #e8f5e9;
-            border-color: #4caf50;
-        }
-
-        .category-box.thing {
-            background: #fff3e0;
-            border-color: #ff9800;
-        }
-
-        .category-box.drag-over {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .category-title {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .category-box.person .category-title { color: #1565c0; }
-        .category-box.place .category-title { color: #2e7d32; }
-        .category-box.thing .category-title { color: #ef6c00; }
-
-        .category-icon {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
-
-        .dropped-words {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            min-height: 50px;
-        }
-
-        .dropped-word {
-            font-size: 1.3rem;
-            padding: 8px 15px;
-            border-radius: 10px;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        /* Word Cards */
-        .words-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .word-card {
-            font-size: 1.8rem;
-            padding: 20px 35px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 15px;
-            cursor: grab;
-            transition: all 0.3s ease;
-            user-select: none;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .word-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .word-card.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-
-        .word-card.correct {
-            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
-            animation: correctPulse 0.5s ease;
-        }
-
-        .word-card.incorrect {
-            background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
-            animation: shake 0.5s ease;
-        }
-
-        @keyframes correctPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        /* Hint Display */
-        .hint-box {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 20px 30px;
-            border-radius: 15px;
-            font-size: 1.5rem;
-            text-align: center;
-            margin: 20px auto;
-            max-width: 600px;
-            display: none;
-        }
-
-        .hint-box.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Instructions */
-        .instructions {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 20px;
-            margin: 30px 0;
-            font-size: 1.4rem;
-            line-height: 1.8;
-        }
-
-        .instructions h3 {
-            font-size: 1.8rem;
-            color: #4a4a8a;
-            margin-bottom: 15px;
-        }
-
-        .instructions ul {
-            margin-left: 30px;
-        }
-
-        .instructions li {
-            margin: 10px 0;
-        }
-
-        /* Results Screen */
-        .results-container {
-            text-align: center;
-        }
-
-        .final-score {
-            font-size: 4rem;
-            color: #667eea;
-            margin: 30px 0;
-        }
-
-        .score-message {
-            font-size: 2rem;
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        .stars {
-            font-size: 4rem;
-            margin: 20px 0;
-        }
-
-        /* Feedback Messages */
-        .feedback {
-            font-size: 2rem;
-            text-align: center;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-            display: none;
-        }
-
-        .feedback.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .feedback.correct {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .feedback.incorrect {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        /* Button Container */
-        .button-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            h2 { font-size: 1.5rem; }
-            .btn { font-size: 1.4rem; padding: 15px 30px; }
-            .word-card { font-size: 1.4rem; padding: 15px 25px; }
-            .category-box { min-width: 200px; min-height: 150px; }
-        }
-
-        /* Class mode indicator */
-        .class-mode {
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        /* Teacher Upload Section */
-        .teacher-section {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-            border: 3px dashed #667eea;
-            border-radius: 20px;
-            padding: 25px;
-            margin: 30px 0;
-            text-align: center;
-        }
-
-        .teacher-section h3 {
-            color: #4a4a8a;
-            font-size: 1.6rem;
-            margin-bottom: 15px;
-        }
-
-        .teacher-section p {
-            color: #666;
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-        }
-
-        .upload-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        .btn-upload {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        .btn-upload:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-template {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
-            padding: 12px 25px;
-            border-radius: 25px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-
-        .btn-template:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(56, 239, 125, 0.4);
-        }
-
-        .btn-clear {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        .btn-clear:hover {
-            transform: scale(1.05);
-        }
-
-        .upload-status {
-            padding: 15px 25px;
-            border-radius: 15px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 10px;
-            display: none;
-        }
-
-        .upload-status.success {
-            display: block;
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #28a745;
-        }
-
-        .upload-status.error {
-            display: block;
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #dc3545;
-        }
-
-        .custom-words-badge {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            display: none;
-            margin-bottom: 15px;
-        }
-
-        .custom-words-badge.show {
-            display: inline-block;
-        }
-
-        .upload-buttons {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-        }
-
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noun Match · Teacher Apps</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
+
+<style>
+/* =================================================================
+   1. DESIGN TOKENS
+   Shared Teacher Apps colours, plus this app's own colour (coral).
+   ================================================================= */
+:root {
+  --paper:      #F5F7F6;
+  --surface:    #FFFFFF;
+  --surface-2:  #EEF2F1;
+  --ink:        #1C2730;
+  --ink-2:      #4A5862;
+  --rule:       #D3DBDA;
+  --field-edge: #85918F;
+  --focus:      #1D5FD1;
+
+  --app:        #BE4A43;  /* Noun Match coral */
+  --app-bg:     #FBE7E5;
+  --app-dark:   #A43C36;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+/* =================================================================
+   2. BASICS
+   ================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--font); line-height: 1.5; }
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--field-edge); background: var(--surface); color: var(--ink);
+  font-size: 0.9375rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.btn-primary:hover { background: var(--app-dark); border-color: var(--app-dark); }
+.btn-big { min-height: 52px; padding: 0 24px; font-size: 1.0625rem; }
+.btn-dashed { min-height: 48px; border: 2px dashed var(--app); background: transparent; color: var(--app); }
+.btn-dashed:hover { background: var(--app-bg); }
+
+/* =================================================================
+   3. TEACHER APPS HEADER
+   ================================================================= */
+.app-stripe { height: 4px; background: var(--app); }
+.app-bar { border-bottom: 1px solid var(--rule); }
+.app-bar-inner {
+  max-width: 1060px; margin: 0 auto; padding: 14px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+}
+.app-id { display: flex; align-items: center; gap: 14px; }
+.home-link { display: inline-flex; border-radius: 10px; }
+.logo-mark { width: 32px; height: 32px; padding: 6px; border-radius: 9px; background: #1C2730; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.logo-mark span:nth-child(1) { background: #7FA6F0; border-radius: 3px 3px 3px 1.5px; }
+.logo-mark span:nth-child(2) { background: #5FC49A; border-radius: 50%; }
+.logo-mark span:nth-child(3) { background: #E2AB4C; border-radius: 3px; }
+.logo-mark span:nth-child(4) { background: #EEF2F1; border-radius: 3px 1.5px 3px 3px; }
+.bar-divider { width: 1px; height: 24px; background: var(--rule); }
+.app-name { display: inline-flex; align-items: center; gap: 10px; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-icon { width: 32px; height: 32px; border-radius: 9px; background: var(--app-bg); display: inline-flex; align-items: center; justify-content: center; }
+.app-icon svg { stroke: var(--app); }
+
+/* =================================================================
+   4. GROUP COLOURS
+   Each noun group keeps the same colour and icon everywhere.
+   ================================================================= */
+:root {
+  --person: #C2513F; --person-bg: #FBE7E3;
+  --place:  #23808A; --place-bg:  #DDF0F0;
+  --thing:  #5A60B0; --thing-bg:  #E6E7F6;
+}
+.g-person { --c: var(--person); --cb: var(--person-bg); }
+.g-place  { --c: var(--place);  --cb: var(--place-bg); }
+.g-thing  { --c: var(--thing);  --cb: var(--thing-bg); }
+.btn svg { stroke: currentColor; }
+[hidden] { display: none !important; }
+
+/* Header extras */
+.crumb { display: flex; align-items: center; gap: 10px; }
+.crumb .sep { color: var(--field-edge); font-size: 1.125rem; }
+.crumb .here { font-size: 1.125rem; font-weight: 700; }
+.bar-right { display: flex; align-items: center; gap: 16px; }
+.privacy { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--ink-2); }
+.privacy svg { stroke: var(--app); }
+.link-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); cursor: pointer; }
+.link-btn:hover { background: var(--surface-2); color: var(--ink); }
+.link-btn svg { stroke: currentColor; }
+
+/* =================================================================
+   5. LANDING
+   ================================================================= */
+.wrap { max-width: 1060px; margin: 0 auto; padding: 48px 24px 72px; }
+h1 { font-size: clamp(2rem, 4.5vw, 2.75rem); font-weight: 750; letter-spacing: -0.025em; line-height: 1.1; }
+.lede { margin-top: 12px; font-size: 1.1875rem; color: var(--ink-2); max-width: 56ch; }
+.source { margin-top: 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.source .label { font-size: 0.9375rem; }
+.toggle { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--rule); }
+.toggle button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; font-size: 0.9375rem; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(28,39,48,0.15); }
+.starts { margin-top: 20px; display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; }
+.start { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-height: 230px; padding: 24px; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; }
+button.start { cursor: pointer; }
+button.start:hover { border-color: var(--app); }
+.start.primary { background: var(--app); border-color: var(--app); color: #FFFFFF; }
+.start-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--app-bg); display: flex; align-items: center; justify-content: center; }
+.start-icon svg { stroke: var(--app); }
+.start.primary .start-icon { background: rgba(255,255,255,0.16); }
+.start.primary .start-icon svg { stroke: #FFFFFF; }
+.start-title { margin-top: 6px; font-size: 1.25rem; font-weight: 700; }
+.start-text { font-size: 0.9375rem; color: var(--ink-2); }
+.start.primary .start-text { color: #FBE3E0; }
+.start-go { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: #FFFFFF; color: var(--app); font-size: 1rem; font-weight: 700; cursor: pointer; }
+.start-go svg { stroke: var(--app); }
+.levels { display: flex; gap: 4px; background: rgba(0,0,0,0.14); padding: 4px; border-radius: 999px; }
+.levels button { min-height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; font-size: 0.875rem; font-weight: 600; color: #FBE3E0; cursor: pointer; }
+.levels button[aria-pressed="true"] { background: #FFFFFF; color: var(--app); }
+.level-row { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.level-note { font-size: 0.8125rem; color: #FBE3E0; }
+.primary :focus-visible { outline-color: #FFFFFF; }
+.kinds-head { margin-top: 52px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.kinds-head h2 { font-size: 1.375rem; font-weight: 750; }
+.kinds-head p { color: var(--ink-2); font-size: 0.9375rem; }
+.kinds { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.kind { background: var(--surface); border: 1px solid var(--rule); border-top: 4px solid var(--c); border-radius: 18px; padding: 20px; display: flex; gap: 16px; align-items: flex-start; }
+.kind-ico { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--cb); display: flex; align-items: center; justify-content: center; }
+.kind-ico svg { stroke: var(--c); }
+.kind h3 { font-size: 1.0625rem; font-weight: 700; }
+.kind p { font-size: 0.9375rem; color: var(--ink-2); margin-top: 2px; }
+.kind .ex { margin-top: 8px; font-size: 0.875rem; font-weight: 600; color: var(--c); }
+
+/* =================================================================
+   6. PLAYING
+   ================================================================= */
+.play { max-width: 1060px; margin: 0 auto; padding: 28px 24px 48px; }
+.status { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.prog { flex: 1 1 300px; display: flex; flex-direction: column; gap: 8px; }
+.prog-top { display: flex; justify-content: space-between; font-size: 0.9375rem; font-weight: 600; color: var(--ink-2); }
+.prog-top b { color: var(--ink); }
+.dots { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; }
+.dots i { height: 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--rule); }
+.dots i.r { background: var(--app); border-color: var(--app); }
+.dots i.w { background: #F0B9B3; border-color: #F0B9B3; }
+.dots i.now { background: #FFFFFF; border: 2px solid var(--app); }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--rule); font-size: 0.9375rem; font-weight: 600; }
+.chip svg { stroke: var(--app); }
+.stage { margin-top: 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 230px; }
+.word-card { min-width: 340px; max-width: 100%; padding: 30px 56px; background: var(--surface); border: 1px solid var(--rule); border-radius: 24px; box-shadow: 0 10px 30px rgba(28,39,48,0.10), 0 2px 6px rgba(28,39,48,0.06); text-align: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; position: relative; z-index: 2; }
+.word-card.dragging { cursor: grabbing; box-shadow: 0 18px 40px rgba(28,39,48,0.22); transition: none; }
+.word-card.snap { transition: transform 0.2s ease; }
+.word-card .grip { margin: 0 auto 10px; width: 36px; height: 5px; border-radius: 9px; background: var(--rule); }
+.word-card .w { font-size: 3.5rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; overflow-wrap: anywhere; }
+.hint-btn { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; color: var(--app); font-weight: 600; font-size: 0.9375rem; cursor: pointer; padding: 8px 12px; border-radius: 999px; }
+.hint-btn:hover { background: var(--app-bg); }
+.hint-btn svg { stroke: var(--app); }
+.hint-btn:disabled { color: var(--ink-2); opacity: 0.6; cursor: not-allowed; background: transparent; }
+.hint-btn:disabled svg { stroke: var(--ink-2); }
+.hintbox { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 14px; background: #FFF6DF; border: 1px solid #F0DCA0; font-size: 1.0625rem; max-width: 640px; }
+.hintbox svg { flex: none; stroke: #9A7414; }
+.howto { font-size: 0.9375rem; color: var(--ink-2); text-align: center; margin-top: 18px; }
+kbd { font: inherit; font-weight: 700; font-size: 0.8125rem; padding: 1px 7px; border: 1px solid var(--field-edge); border-bottom-width: 2px; border-radius: 6px; background: #FFFFFF; color: var(--ink); }
+.zones { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.zone { position: relative; min-height: 220px; padding: 22px; border-radius: 22px; border: 2px dashed var(--c); background: var(--cb); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; cursor: pointer; color: var(--ink); font: inherit; }
+.zone:hover, .zone.over { border-style: solid; box-shadow: 0 0 0 4px var(--cb), 0 0 0 6px var(--c); }
+.zone:disabled { cursor: default; }
+.zone .zi { width: 60px; height: 60px; border-radius: 18px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.zone .zi svg { stroke: var(--c); }
+.zone .ztext { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.zone .zn { font-size: 1.5rem; font-weight: 750; color: var(--c); }
+.zone .zd { font-size: 0.9375rem; color: var(--ink-2); max-width: 26ch; }
+.zone .key { position: absolute; top: 14px; left: 14px; }
+.zone .tag { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+.zone .tag svg { stroke: currentColor; }
+.zone .tag.yes { background: var(--c); color: #FFFFFF; }
+.zone .tag.no { background: #F4F5F5; color: var(--ink-2); }
+.zone .placed { margin-top: 6px; padding: 8px 20px; background: #FFFFFF; border: 2px solid var(--c); border-radius: 14px; font-size: 1.5rem; font-weight: 800; }
+.zones.answered .zone { box-shadow: none; }
+.zone.dim { opacity: 0.45; }
+.zone.picked-wrong { border-style: solid; background: #FFFFFF; }
+.zone.picked-wrong .zi { background: var(--cb); }
+.zone.correct { border-style: solid; box-shadow: 0 0 0 4px var(--cb) !important; }
+.fb { margin-top: 24px; display: flex; align-items: center; gap: 20px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--rule); border-left: 6px solid var(--c); border-radius: 18px; }
+.fb-ico { flex: none; width: 52px; height: 52px; border-radius: 16px; background: var(--cb); display: flex; align-items: center; justify-content: center; }
+.fb-ico svg { stroke: var(--c); }
+.fb h2 { font-size: 1.375rem; font-weight: 750; }
+.fb p { color: var(--ink-2); font-size: 1.0625rem; margin-top: 2px; }
+.fb .clue { margin-top: 6px; font-size: 0.9375rem; }
+.fb .btn { margin-left: auto; flex: none; }
+.teacher { margin-top: 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 1rem; color: var(--ink-2); }
+.prompt { display: flex; align-items: center; gap: 14px; padding: 12px 22px; border-radius: 999px; background: var(--surface); border: 1px solid var(--rule); font-size: 1.375rem; font-weight: 600; }
+.prompt svg { stroke: var(--app); flex: none; }
+.fingers { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 4px; }
+.fingers i { width: 12px; height: 36px; border-radius: 7px; background: var(--c); }
+
+/* Play as a class: everything bigger, for a projector */
+body.cls .app-bar-inner { max-width: 1600px; padding-left: 48px; padding-right: 48px; }
+body.cls .play { max-width: 1600px; padding: 36px 48px; }
+body.cls .word-card { padding: 44px 96px; cursor: default; }
+body.cls .word-card .grip { display: none; }
+body.cls .word-card .w { font-size: clamp(3.5rem, 7vw, 6.5rem); }
+body.cls .zones { gap: 24px; }
+body.cls .zone { min-height: 300px; }
+body.cls .zone .zn { font-size: 2.25rem; }
+body.cls .zone .zi { width: 80px; height: 80px; }
+body.cls .zone .zd { max-width: none; font-size: 1.0625rem; }
+body.cls .fb h2 { font-size: 1.875rem; }
+body.cls .fb p { font-size: 1.375rem; }
+body.cls .hintbox { font-size: 1.375rem; }
+
+/* =================================================================
+   7. RESULTS
+   ================================================================= */
+.res-top { display: grid; grid-template-columns: 340px 1fr; gap: 20px; margin-top: 28px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 24px; }
+.score { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.ring { width: 170px; height: 170px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.ring > div { width: 136px; height: 136px; border-radius: 50%; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring b { font-size: 3rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.ring small { font-size: 0.875rem; color: var(--ink-2); font-weight: 600; }
+.score h2 { margin-top: 10px; font-size: 1.375rem; font-weight: 750; }
+.score p { color: var(--ink-2); }
+.by { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+.by div { border-radius: 14px; padding: 14px 8px; background: var(--cb); }
+.by b { display: block; font-size: 1.5rem; color: var(--c); }
+.by span { font-size: 0.875rem; color: var(--ink-2); font-weight: 600; }
+.wlist { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+.wlist li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule); }
+.wlist li.miss { background: #FDF1EF; border-color: #F3C9C3; }
+.wlist .m { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--app); }
+.wlist .m svg { stroke: #FFFFFF; }
+.wlist li.miss .m { background: #FFFFFF; border: 2px solid var(--app); }
+.wlist li.miss .m svg { stroke: var(--app); }
+.wlist .wt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.wlist .ww { font-weight: 700; font-size: 1.0625rem; overflow-wrap: anywhere; }
+.wlist .picked { font-size: 0.8125rem; color: var(--ink-2); }
+.wlist .pill { margin-left: auto; }
+.pill { display: inline-block; flex: none; font-size: 0.8125rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--cb); color: var(--c); }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+/* =================================================================
+   8. WORD LIST EDITOR
+   ================================================================= */
+.field label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.inp { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--field-edge); border-radius: 12px; background: #FFFFFF; font-size: 1rem; }
+.rowhead, .row { display: grid; grid-template-columns: 28px 220px 300px 1fr 40px; gap: 12px; align-items: center; }
+.rowhead { padding: 0 14px; margin-top: 22px; font-size: 0.8125rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.rows { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.row { padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--rule); border-radius: 16px; }
+.row.needs { border-color: #E3A39B; background: #FDF6F5; }
+.row.new { border-style: dashed; background: transparent; }
+.row .n { color: var(--ink-2); font-size: 0.875rem; font-weight: 600; text-align: center; }
+.row .word-in { font-weight: 700; font-size: 1.0625rem; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--field-edge); border-radius: 999px; overflow: hidden; background: #FFFFFF; }
+.seg button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; background: transparent; font-size: 0.875rem; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button:hover { background: var(--cb); }
+.seg button[aria-checked="true"] { background: var(--c); color: #FFFFFF; }
+.seg button svg { stroke: currentColor; }
+.icon-btn { width: 40px; height: 40px; border: 0; border-radius: 999px; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-2); }
+.icon-btn svg { stroke: var(--ink-2); }
+.add-msg { margin: 8px 0 0 54px; font-size: 0.875rem; color: #A43C36; font-weight: 600; }
+.empty-rows { padding: 22px; text-align: center; color: var(--ink-2); border: 1px dashed var(--rule); border-radius: 16px; }
+.side { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; margin-top: 20px; }
+.side h3 { font-size: 1.0625rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.side h3 svg { stroke: var(--app); }
+.side p { font-size: 0.9375rem; color: var(--ink-2); margin-top: 4px; }
+.count-line { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.need-note { margin-top: 10px; font-weight: 600; color: #A43C36 !important; }
+.paste-row { display: flex; gap: 12px; align-items: flex-end; margin-top: 12px; }
+.ta { flex: 1; min-height: 96px; padding: 12px; border: 1px solid var(--field-edge); border-radius: 12px; font: inherit; font-size: 0.9375rem; resize: vertical; background: #FFFFFF; }
+.foot { position: sticky; bottom: 0; margin-top: 24px; padding: 16px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--rule); background: var(--paper); z-index: 3; }
+.foot .note { margin-left: auto; font-size: 0.875rem; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+.foot .note svg { stroke: var(--app); }
+.file-msg { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--app-bg); font-size: 0.9375rem; font-weight: 600; }
+.drop-hint { position: fixed; inset: 12px; border: 3px dashed var(--app); border-radius: 24px; background: rgba(251,231,229,0.92); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: var(--app); z-index: 50; pointer-events: none; }
+
+/* =================================================================
+   9. SMALL SCREENS
+   ================================================================= */
+@media (max-width: 900px) {
+  .starts, .kinds { grid-template-columns: 1fr; }
+  .start { min-height: 0; }
+  .res-top { grid-template-columns: 1fr; }
+  .rowhead { display: none; }
+  .row { grid-template-columns: 1fr 40px; }
+  .row .n { display: none; }
+  .row .word-in { grid-column: 1; }
+  .row .seg, .row .hint-in { grid-column: 1 / -1; }
+  .row .icon-btn { grid-column: 2; grid-row: 1; }
+  .side { grid-template-columns: 1fr; }
+  .add-msg { margin-left: 0; }
+  .row > * { min-width: 0; }
+  .paste-row { flex-wrap: wrap; }
+  .paste-row .ta { flex-basis: 100%; }
+}
+@media (max-width: 600px) {
+  .wrap, .play { padding-left: 16px; padding-right: 16px; }
+  .wrap { padding-top: 32px; }
+  .app-bar-inner { padding: 12px 16px; }
+  .privacy { display: none; }
+  .crumb .sep, .crumb .here { display: none !important; }
+  .zone .placed { display: none; }
+  .zones { grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+  .zone { min-height: 0; flex-direction: row; justify-content: flex-start; text-align: left; padding: 14px 16px; border-style: solid; }
+  .zone .zi { width: 48px; height: 48px; border-radius: 14px; flex: none; }
+  .zone .ztext { align-items: flex-start; gap: 0; }
+  .zone .zn { font-size: 1.25rem; }
+  .zone .zd { font-size: 0.8125rem; }
+  .zone .key { display: none; }
+  .zone .tag { top: 8px; right: 8px; }
+  .zone .placed { margin: 0 0 0 auto; font-size: 1.125rem; padding: 4px 12px; }
+  .stage { min-height: 0; margin-top: 20px; }
+  .word-card { min-width: 0; width: 100%; padding: 24px; touch-action: auto; cursor: default; }
+  .word-card .grip { display: none; }
+  .word-card .w { font-size: 2.75rem; }
+  .howto { display: none; }
+  .status { gap: 10px; }
+  .chip { padding: 6px 12px; font-size: 0.875rem; }
+  .fb { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+  .fb .btn { margin-left: 0; width: 100%; }
+  .wlist { grid-template-columns: 1fr; }
+  .foot { position: static; }
+  .foot .btn { flex: 1 1 100%; }
+  .foot .note { margin-left: 0; }
+  .prompt { font-size: 1rem; border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .word-card.snap { transition: none; } }
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Welcome Screen -->
-        <div id="welcome-screen" class="screen active">
-            <h1>🎯 Noun Match Adventure!</h1>
-            <p class="subtitle">Learn about People, Places, and Things!</p>
-            
-            <div class="instructions">
-                <h3>📚 How to Play:</h3>
-                <ul>
-                    <li><strong>Drag</strong> each word card to the correct category box</li>
-                    <li><strong>Person</strong> = People (like teacher, doctor, friend)</li>
-                    <li><strong>Place</strong> = Locations (like school, park, home)</li>
-                    <li><strong>Thing</strong> = Objects (like book, ball, chair)</li>
-                    <li>Use <strong>Hints</strong> if you need help!</li>
-                </ul>
-            </div>
 
-            <div class="button-container">
-                <button class="btn btn-primary" onclick="showDifficultyScreen()">Let's Play! 🎮</button>
-            </div>
-
-            <!-- Teacher Upload Section -->
-            <div class="teacher-section">
-                <h3>📁 Teacher: Upload Custom Nouns</h3>
-                <p>Upload a CSV file with your own nouns to customize the game for your class!</p>
-                <div class="upload-area">
-                    <div class="upload-buttons">
-                        <div class="file-input-wrapper">
-                            <button class="btn-upload">📤 Upload CSV File</button>
-                            <input type="file" id="csv-upload" accept=".csv" onchange="handleCSVUpload(event)">
-                        </div>
-                        <button class="btn-template" onclick="downloadTemplate()">📥 Download Template</button>
-                    </div>
-                    <div id="upload-status" class="upload-status"></div>
-                    <div id="custom-words-badge" class="custom-words-badge">✅ Using Custom Word List</div>
-                    <button id="clear-custom-btn" class="btn-clear" onclick="clearCustomWords()" style="display: none;">🗑️ Clear Custom Words</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Difficulty Screen -->
-        <div id="difficulty-screen" class="screen">
-            <h1>Choose Your Level</h1>
-            <p class="subtitle">Pick how challenging you want the game to be!</p>
-
-            <div class="difficulty-buttons">
-                <button class="difficulty-btn easy" onclick="startGame('easy')">
-                    <div>🌟 Easy</div>
-                    <div class="difficulty-desc">Simple everyday words<br>5 hints available</div>
-                </button>
-                <button class="difficulty-btn medium" onclick="startGame('medium')">
-                    <div>⭐ Medium</div>
-                    <div class="difficulty-desc">More challenging words<br>3 hints available</div>
-                </button>
-                <button class="difficulty-btn hard" onclick="startGame('hard')">
-                    <div>🌟🌟 Hard</div>
-                    <div class="difficulty-desc">Tricky words!<br>1 hint available</div>
-                </button>
-            </div>
-
-            <div class="button-container">
-                <button class="btn btn-secondary" onclick="showWelcome()">← Back</button>
-            </div>
-        </div>
-
-        <!-- Game Screen -->
-        <div id="game-screen" class="screen">
-            <div class="class-mode">🏫 Classroom Mode - Great for group play!</div>
-            
-            <div class="game-header">
-                <div class="score-display">Score: <span id="score">0</span> / <span id="total">10</span></div>
-                <div class="progress-display">Question: <span id="current-question">1</span> / 10</div>
-                <div class="hints-display">Hints: <span id="hints-remaining">3</span></div>
-            </div>
-
-            <div class="categories-container">
-                <div class="category-box person" id="person-box" ondrop="drop(event, 'person')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                    <div class="category-icon">👤</div>
-                    <div class="category-title">PERSON</div>
-                    <div class="dropped-words" id="person-dropped"></div>
-                </div>
-                <div class="category-box place" id="place-box" ondrop="drop(event, 'place')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                    <div class="category-icon">🏠</div>
-                    <div class="category-title">PLACE</div>
-                    <div class="dropped-words" id="place-dropped"></div>
-                </div>
-                <div class="category-box thing" id="thing-box" ondrop="drop(event, 'thing')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                    <div class="category-icon">📦</div>
-                    <div class="category-title">THING</div>
-                    <div class="dropped-words" id="thing-dropped"></div>
-                </div>
-            </div>
-
-            <div id="hint-box" class="hint-box"></div>
-            
-            <div id="feedback" class="feedback"></div>
-
-            <div class="words-container" id="words-container"></div>
-
-            <div class="button-container">
-                <button class="btn btn-hint" id="hint-btn" onclick="showHint()">💡 Get a Hint</button>
-                <button class="btn btn-secondary" onclick="showDifficultyScreen()">🔄 New Game</button>
-            </div>
-        </div>
-
-        <!-- Results Screen -->
-        <div id="results-screen" class="screen">
-            <div class="results-container">
-                <h1>🎉 Great Job!</h1>
-                <div class="stars" id="stars"></div>
-                <div class="final-score">You got <span id="final-score">0</span> out of 10!</div>
-                <div class="score-message" id="score-message"></div>
-                
-                <div class="button-container">
-                    <button class="btn btn-primary" onclick="showDifficultyScreen()">Play Again! 🎮</button>
-                    <button class="btn btn-secondary" onclick="showWelcome()">🏠 Home</button>
-                </div>
-            </div>
-        </div>
+<div class="app-stripe" aria-hidden="true"></div>
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <div class="app-id">
+      <a class="home-link" href="index.html" aria-label="Back to Teacher Apps"><span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span></a>
+      <span class="bar-divider" aria-hidden="true"></span>
+      <span class="crumb">
+        <span class="app-name"><span class="app-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><circle cx="17.25" cy="6.75" r="3.75"/><path d="M6.75 13.5l3.75 7H3z"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></span>Noun Match</span>
+        <span class="sep" id="crumb-sep" hidden>/</span><span class="here" id="crumb-here" hidden></span>
+      </span>
     </div>
+    <div class="bar-right">
+      <span class="privacy" id="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Nothing is saved or sent anywhere</span>
+      <button type="button" class="link-btn" id="btn-back" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Back</button>
+      <button type="button" class="link-btn" id="btn-end" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>End game</button>
+    </div>
+  </div>
+</header>
 
-    <script>
-        // Custom words uploaded by teacher (null means use defaults)
-        let customWords = null;
+<main>
+<!-- ============ LANDING ============ -->
+<section id="landing" class="wrap">
+  <h1>Is it a person, a place or a thing?</h1>
+  <p class="lede">Students sort nouns into three groups. Every wrong answer comes with a short explanation, so each word is a chance to learn.</p>
 
-        // CSV Template with different nouns than the defaults
-        const csvTemplateContent = `word,category,hint
-captain,person,The leader of a ship or sports team
-nurse,person,This person helps doctors care for patients
-wizard,person,A magical person with special powers
-queen,person,A female ruler of a kingdom
-ranger,person,This person protects forests and parks
-castle,place,A large stone building where royalty lives
-jungle,place,A dense tropical forest with many animals
-volcano,place,A mountain that can erupt with lava
-island,place,Land completely surrounded by water
-canyon,place,A deep valley with steep sides
-treasure,thing,Valuable items like gold and jewels
-compass,thing,A tool that shows which direction is north
-helmet,thing,Protective gear worn on your head
-lantern,thing,A portable light you can carry
-anchor,thing,Heavy object that keeps a ship in place`;
+  <div class="source" id="source" hidden>
+    <span class="label">Words to play with</span>
+    <div class="toggle" role="group" aria-label="Words to play with">
+      <button type="button" data-source="builtin" aria-pressed="true">Everyday words</button>
+      <button type="button" data-source="custom" aria-pressed="false" id="source-custom-btn">My word list</button>
+    </div>
+  </div>
 
-        // Word banks by difficulty
-        const wordBanks = {
-            easy: {
-                person: [
-                    { word: 'teacher', hint: 'This person helps you learn at school' },
-                    { word: 'mom', hint: 'A parent who is female' },
-                    { word: 'dad', hint: 'A parent who is male' },
-                    { word: 'doctor', hint: 'This person helps you when you are sick' },
-                    { word: 'friend', hint: 'Someone you like to play with' },
-                    { word: 'baby', hint: 'A very young person' },
-                    { word: 'grandma', hint: 'Your parent\'s mother' },
-                    { word: 'farmer', hint: 'This person grows food' },
-                    { word: 'chef', hint: 'This person cooks food' },
-                    { word: 'pilot', hint: 'This person flies airplanes' }
-                ],
-                place: [
-                    { word: 'school', hint: 'You go here to learn' },
-                    { word: 'park', hint: 'A place with swings and slides' },
-                    { word: 'home', hint: 'Where you live with your family' },
-                    { word: 'store', hint: 'Where you buy things' },
-                    { word: 'beach', hint: 'A sandy place by the water' },
-                    { word: 'zoo', hint: 'A place to see animals' },
-                    { word: 'library', hint: 'A quiet place with many books' },
-                    { word: 'hospital', hint: 'Where sick people get help' },
-                    { word: 'farm', hint: 'Where animals and crops are raised' },
-                    { word: 'church', hint: 'A place where people pray' }
-                ],
-                thing: [
-                    { word: 'book', hint: 'You read this' },
-                    { word: 'ball', hint: 'You can throw or kick this' },
-                    { word: 'chair', hint: 'You sit on this' },
-                    { word: 'apple', hint: 'A red or green fruit' },
-                    { word: 'pencil', hint: 'You write with this' },
-                    { word: 'car', hint: 'A vehicle with four wheels' },
-                    { word: 'bed', hint: 'You sleep on this' },
-                    { word: 'cup', hint: 'You drink from this' },
-                    { word: 'shoe', hint: 'You wear this on your foot' },
-                    { word: 'phone', hint: 'You use this to call people' }
-                ]
-            },
-            medium: {
-                person: [
-                    { word: 'athlete', hint: 'Someone who plays sports' },
-                    { word: 'musician', hint: 'This person plays music' },
-                    { word: 'scientist', hint: 'This person studies and experiments' },
-                    { word: 'neighbor', hint: 'Someone who lives near you' },
-                    { word: 'artist', hint: 'This person creates art' },
-                    { word: 'student', hint: 'Someone who learns at school' },
-                    { word: 'principal', hint: 'The leader of a school' },
-                    { word: 'firefighter', hint: 'This person puts out fires' },
-                    { word: 'dentist', hint: 'This person checks your teeth' },
-                    { word: 'author', hint: 'This person writes books' }
-                ],
-                place: [
-                    { word: 'museum', hint: 'A place to see art and history' },
-                    { word: 'restaurant', hint: 'Where people eat meals' },
-                    { word: 'airport', hint: 'Where airplanes take off' },
-                    { word: 'theater', hint: 'Where you watch movies or plays' },
-                    { word: 'stadium', hint: 'A big place for sports games' },
-                    { word: 'bakery', hint: 'Where bread and cakes are made' },
-                    { word: 'aquarium', hint: 'A place to see fish and sea animals' },
-                    { word: 'office', hint: 'Where adults go to work' },
-                    { word: 'classroom', hint: 'A room where students learn' },
-                    { word: 'garden', hint: 'A place where flowers grow' }
-                ],
-                thing: [
-                    { word: 'computer', hint: 'An electronic device for work and games' },
-                    { word: 'bicycle', hint: 'A vehicle with two wheels you pedal' },
-                    { word: 'umbrella', hint: 'Keeps you dry in the rain' },
-                    { word: 'backpack', hint: 'You carry books in this' },
-                    { word: 'television', hint: 'You watch shows on this' },
-                    { word: 'sandwich', hint: 'Food between two slices of bread' },
-                    { word: 'camera', hint: 'You take pictures with this' },
-                    { word: 'blanket', hint: 'Keeps you warm in bed' },
-                    { word: 'scissors', hint: 'You cut paper with these' },
-                    { word: 'flashlight', hint: 'Makes light in the dark' }
-                ]
-            },
-            hard: {
-                person: [
-                    { word: 'veterinarian', hint: 'A doctor for animals' },
-                    { word: 'architect', hint: 'This person designs buildings' },
-                    { word: 'astronaut', hint: 'This person travels to space' },
-                    { word: 'photographer', hint: 'This person takes pictures' },
-                    { word: 'librarian', hint: 'This person works with books' },
-                    { word: 'mechanic', hint: 'This person fixes cars' },
-                    { word: 'journalist', hint: 'This person writes news stories' },
-                    { word: 'electrician', hint: 'This person works with wires and power' },
-                    { word: 'archaeologist', hint: 'This person digs up old things' },
-                    { word: 'pharmacist', hint: 'This person gives out medicine' }
-                ],
-                place: [
-                    { word: 'laboratory', hint: 'Where scientists do experiments' },
-                    { word: 'observatory', hint: 'Where people study stars' },
-                    { word: 'gymnasium', hint: 'A big room for exercise and sports' },
-                    { word: 'planetarium', hint: 'Shows about space and stars' },
-                    { word: 'cafeteria', hint: 'Where students eat lunch at school' },
-                    { word: 'sanctuary', hint: 'A safe place for animals' },
-                    { word: 'auditorium', hint: 'A large room for performances' },
-                    { word: 'warehouse', hint: 'A big building for storing things' },
-                    { word: 'peninsula', hint: 'Land surrounded by water on three sides' },
-                    { word: 'continent', hint: 'A very large land mass' }
-                ],
-                thing: [
-                    { word: 'microscope', hint: 'Makes tiny things look bigger' },
-                    { word: 'telescope', hint: 'Helps you see things far away' },
-                    { word: 'thermometer', hint: 'Measures temperature' },
-                    { word: 'calculator', hint: 'Helps you do math' },
-                    { word: 'encyclopedia', hint: 'A book with lots of information' },
-                    { word: 'instrument', hint: 'Something you play to make music' },
-                    { word: 'parachute', hint: 'Slows you down when falling' },
-                    { word: 'binoculars', hint: 'Two lenses to see far away' },
-                    { word: 'stethoscope', hint: 'Doctors use this to hear your heart' },
-                    { word: 'photograph', hint: 'A picture taken with a camera' }
-                ]
-            }
-        };
+  <div class="starts">
+    <div class="start primary">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg></span>
+      <span class="start-title">Play</span>
+      <span class="start-text" id="play-text">10 everyday words. Pick a level, then go.</span>
+      <div class="level-row">
+        <div class="levels" role="group" aria-label="Level" id="levels">
+          <button type="button" data-level="easy" aria-pressed="false">Easy</button>
+          <button type="button" data-level="medium" aria-pressed="true">Medium</button>
+          <button type="button" data-level="hard" aria-pressed="false">Hard</button>
+        </div>
+      </div>
+      <span class="level-note" id="level-note">Medium gives 3 hints per game</span>
+      <button type="button" class="start-go" id="go-play">Start playing <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+    <button type="button" class="start" id="go-words">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span>
+      <span class="start-title">Use your own words</span>
+      <span class="start-text">Type or paste a word list for this week's lesson, then save it as a file to use again.</span>
+    </button>
+    <button type="button" class="start" id="go-class">
+      <span class="start-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+      <span class="start-title">Play as a class</span>
+      <span class="start-text">Big words for the projector. Students vote with their fingers, and you tap the answer.</span>
+    </button>
+  </div>
 
-        // Game state
-        let currentDifficulty = 'easy';
-        let score = 0;
-        let currentQuestion = 0;
-        let totalQuestions = 10;
-        let hintsRemaining = 3;
-        let currentWords = [];
-        let gameWords = [];
-        let currentWordIndex = 0;
-        // Hint counts by difficulty
-        const hintCounts = {
-            easy: 5,
-            medium: 3,
-            hard: 1
-        };
+  <div class="kinds-head"><h2>The three kinds of nouns</h2><p>A noun names a person, a place or a thing.</p></div>
+  <div class="kinds">
+    <div class="kind g-person"><span class="kind-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c.9-4 3.9-6.2 7.5-6.2s6.6 2.2 7.5 6.2"/></svg></span><div><h3>Person</h3><p>A person is someone, like a teacher, a mom or a firefighter.</p><p class="ex">teacher · sister · doctor</p></div></div>
+    <div class="kind g-place"><span class="kind-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6.1-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.9 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.4"/></svg></span><div><h3>Place</h3><p>A place is somewhere you can go, like a park or a school.</p><p class="ex">park · kitchen · Texas</p></div></div>
+    <div class="kind g-thing"><span class="kind-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><div><h3>Thing</h3><p>A thing is something you can see or touch, like a pencil or a ball.</p><p class="ex">pencil · apple · bike</p></div></div>
+  </div>
+</section>
 
-        // Screen navigation
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-        }
+<!-- ============ WORD LIST EDITOR ============ -->
+<section id="words" class="wrap" style="padding-top: 32px; padding-bottom: 0" hidden>
+  <div class="field" style="max-width: 460px">
+    <label for="list-name">Word list name</label>
+    <input id="list-name" class="inp" style="font-size: 1.125rem; font-weight: 700" placeholder="My word list" autocomplete="off">
+  </div>
+  <div id="file-msg" class="file-msg" role="status" hidden></div>
+  <div class="rowhead" aria-hidden="true"><span>#</span><span>Word</span><span>Group</span><span>Hint</span><span></span></div>
+  <ul class="rows" id="rows"></ul>
+  <ul class="rows">
+    <li class="row new" id="new-row">
+      <span class="n" id="new-n">1</span>
+      <input class="inp word-in" id="new-word" placeholder="Type a word" aria-label="New word" autocomplete="off">
+      <div class="seg" role="radiogroup" aria-label="Group for the new word" id="new-seg"></div>
+      <input class="inp hint-in" id="new-hint" placeholder="Hint (optional), then press Enter" aria-label="Hint for the new word" autocomplete="off">
+      <button type="button" class="icon-btn" id="new-add" aria-label="Add this word"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </li>
+  </ul>
+  <p class="add-msg" id="add-msg" role="status"></p>
 
-        function showWelcome() {
-            showScreen('welcome-screen');
-        }
+  <div class="side">
+    <div class="panel" id="count-panel">
+      <h3 id="count-title">0 words</h3>
+      <div class="count-line" id="count-line"></div>
+      <p>A game uses up to 10 words. Longer lists are shuffled each time.</p>
+      <p class="need-note" id="need-note" hidden></p>
+    </div>
+    <div class="panel">
+      <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6"/></svg>Paste a list</h3>
+      <p>One word per line. Add the group, and a hint if you like, after commas: <b>nurse, person, helps sick people</b></p>
+      <div class="paste-row">
+        <label for="paste" class="sr-only">Words to add, one per line</label>
+        <textarea id="paste" class="ta" placeholder="nurse, person&#10;library, place&#10;scissors, thing"></textarea>
+        <button type="button" class="btn" id="paste-add"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add these words</button>
+      </div>
+    </div>
+  </div>
 
-        function showDifficultyScreen() {
-            showScreen('difficulty-screen');
-        }
+  <div class="foot">
+    <button type="button" class="btn btn-primary btn-big" id="play-list"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>Play these words</button>
+    <button type="button" class="btn btn-big" id="save-list"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>Save word list</button>
+    <button type="button" class="btn btn-big" id="open-list"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Open word list file</button>
+    <span class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Word lists stay on your computer</span>
+  </div>
+  <input type="file" id="file-input" accept=".json,.csv,application/json,text/csv" hidden>
+</section>
 
-        // Start the game
-        function startGame(difficulty) {
-            currentDifficulty = difficulty;
-            score = 0;
-            currentQuestion = 0;
-            hintsRemaining = hintCounts[difficulty];
+<!-- ============ PLAYING ============ -->
+<section id="play" class="play" hidden>
+  <div class="status">
+    <div class="prog">
+      <div class="prog-top"><span>Word <b id="p-num">1</b> of <span id="p-total">10</span></span><span id="p-level">Medium level</span></div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+    </div>
+    <span class="chip" id="chip-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span id="right-text">0 right</span></span>
+    <span class="chip" id="chip-hints"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg><span id="hints-text">3 hints left</span></span>
+  </div>
 
-            let allWords;
+  <div class="stage" id="stage">
+    <div class="word-card" id="word-card" aria-live="polite"><div class="grip" aria-hidden="true"></div><div class="w" id="word"></div></div>
+    <div class="prompt" id="prompt" hidden><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4.5a1.5 1.5 0 0 1 3 0V11m0-.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5-2.7L3 15a1.5 1.5 0 0 1 2.4-1.8L8 15.5"/></svg>Talk with a partner, then hold up 1, 2 or 3 fingers</div>
+    <button type="button" class="hint-btn" id="hint-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg><span id="hint-btn-text">Show a hint</span></button>
+    <div class="hintbox" id="hintbox" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg><span id="hint-text"></span></div>
+  </div>
 
-            // Check if custom words are loaded
-            if (customWords && customWords.length > 0) {
-                // Use custom words (ignore difficulty for custom words)
-                allWords = customWords.map(w => ({
-                    word: w.word,
-                    hint: w.hint,
-                    category: w.category
-                }));
-            } else {
-                // Use default word bank
-                const bank = wordBanks[difficulty];
+  <div class="fb" id="fb" hidden>
+    <span class="fb-ico" id="fb-ico"></span>
+    <div><h2 id="fb-title"></h2><p id="fb-text"></p><p class="clue" id="fb-clue" hidden></p></div>
+    <button type="button" class="btn btn-primary btn-big" id="next-btn">Next word <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
 
-                // Select words from all categories
-                allWords = [
-                    ...bank.person.map(w => ({ ...w, category: 'person' })),
-                    ...bank.place.map(w => ({ ...w, category: 'place' })),
-                    ...bank.thing.map(w => ({ ...w, category: 'thing' }))
-                ];
-            }
+  <div class="zones" id="zones"></div>
+  <p class="howto" id="howto">Drag the word into a group, tap a group, or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></p>
+  <div class="teacher" id="teacher" hidden><span>Tap the answer most of the class showed, or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>
+</section>
 
-            // Shuffle and pick up to 10 words
-            const availableWords = shuffleArray(allWords);
-            gameWords = availableWords.slice(0, Math.min(10, availableWords.length));
+<!-- ============ RESULTS ============ -->
+<section id="results" class="wrap" style="padding-top: 36px" hidden>
+  <h1 id="r-title">Nice work!</h1>
+  <p class="lede" id="r-lede"></p>
+  <div class="res-top">
+    <div class="panel score">
+      <div class="ring" id="r-ring"><div><b id="r-score">0</b><small id="r-of">out of 10</small></div></div>
+      <h2 id="r-level">Medium level</h2>
+      <p id="r-hints"></p>
+      <div class="by" id="r-by"></div>
+    </div>
+    <div class="panel">
+      <h2 style="font-size: 1.25rem; font-weight: 750">Every word</h2>
+      <ul class="wlist" id="r-list"></ul>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="r-practice"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><span id="r-practice-text">Practice the ones you missed</span></button>
+        <button type="button" class="btn" id="r-again">Play again</button>
+        <button type="button" class="btn" id="r-harder" hidden></button>
+        <button type="button" class="btn" id="r-home">Back to start</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
 
-            // Update total questions based on available words
-            totalQuestions = gameWords.length;
-            currentWordIndex = 0;
+<div class="drop-hint" id="drop-hint" hidden>Drop a word list file to open it</div>
+<div class="sr-only" aria-live="assertive" id="announce"></div>
 
-            updateGameDisplay();
-            showScreen('game-screen');
-            displayCurrentWord();
-        }
+<script>
+/* =================================================================
+   1. BUILT-IN WORD LISTS
+   Ten words per group at each level. Easy, Medium and Hard use
+   different words and give 5, 3 or 1 hints per game.
+   ================================================================= */
+var BANK = {"easy": {"person": [{"word": "teacher", "hint": "This person helps you learn at school"}, {"word": "mom", "hint": "A parent who is female"}, {"word": "dad", "hint": "A parent who is male"}, {"word": "doctor", "hint": "This person helps you when you are sick"}, {"word": "friend", "hint": "Someone you like to play with"}, {"word": "baby", "hint": "A very young person"}, {"word": "grandma", "hint": "Your parent's mother"}, {"word": "farmer", "hint": "This person grows food"}, {"word": "chef", "hint": "This person cooks food"}, {"word": "pilot", "hint": "This person flies airplanes"}], "place": [{"word": "school", "hint": "You go here to learn"}, {"word": "park", "hint": "A place with swings and slides"}, {"word": "home", "hint": "Where you live with your family"}, {"word": "store", "hint": "Where you buy things"}, {"word": "beach", "hint": "A sandy place by the water"}, {"word": "zoo", "hint": "A place to see animals"}, {"word": "library", "hint": "A quiet place with many books"}, {"word": "hospital", "hint": "Where sick people get help"}, {"word": "farm", "hint": "Where animals and crops are raised"}, {"word": "church", "hint": "A place where people pray"}], "thing": [{"word": "book", "hint": "You read this"}, {"word": "ball", "hint": "You can throw or kick this"}, {"word": "chair", "hint": "You sit on this"}, {"word": "apple", "hint": "A red or green fruit"}, {"word": "pencil", "hint": "You write with this"}, {"word": "car", "hint": "A vehicle with four wheels"}, {"word": "bed", "hint": "You sleep on this"}, {"word": "cup", "hint": "You drink from this"}, {"word": "shoe", "hint": "You wear this on your foot"}, {"word": "phone", "hint": "You use this to call people"}]}, "medium": {"person": [{"word": "athlete", "hint": "Someone who plays sports"}, {"word": "musician", "hint": "This person plays music"}, {"word": "scientist", "hint": "This person studies and experiments"}, {"word": "neighbor", "hint": "Someone who lives near you"}, {"word": "artist", "hint": "This person creates art"}, {"word": "student", "hint": "Someone who learns at school"}, {"word": "principal", "hint": "The leader of a school"}, {"word": "firefighter", "hint": "This person puts out fires"}, {"word": "dentist", "hint": "This person checks your teeth"}, {"word": "author", "hint": "This person writes books"}], "place": [{"word": "museum", "hint": "A place to see art and history"}, {"word": "restaurant", "hint": "Where people eat meals"}, {"word": "airport", "hint": "Where airplanes take off"}, {"word": "theater", "hint": "Where you watch movies or plays"}, {"word": "stadium", "hint": "A big place for sports games"}, {"word": "bakery", "hint": "Where bread and cakes are made"}, {"word": "aquarium", "hint": "A place to see fish and sea animals"}, {"word": "office", "hint": "Where adults go to work"}, {"word": "classroom", "hint": "A room where students learn"}, {"word": "garden", "hint": "A place where flowers grow"}], "thing": [{"word": "computer", "hint": "An electronic device for work and games"}, {"word": "bicycle", "hint": "A vehicle with two wheels you pedal"}, {"word": "umbrella", "hint": "Keeps you dry in the rain"}, {"word": "backpack", "hint": "You carry books in this"}, {"word": "television", "hint": "You watch shows on this"}, {"word": "sandwich", "hint": "Food between two slices of bread"}, {"word": "camera", "hint": "You take pictures with this"}, {"word": "blanket", "hint": "Keeps you warm in bed"}, {"word": "scissors", "hint": "You cut paper with these"}, {"word": "flashlight", "hint": "Makes light in the dark"}]}, "hard": {"person": [{"word": "veterinarian", "hint": "A doctor for animals"}, {"word": "architect", "hint": "This person designs buildings"}, {"word": "astronaut", "hint": "This person travels to space"}, {"word": "photographer", "hint": "This person takes pictures"}, {"word": "librarian", "hint": "This person works with books"}, {"word": "mechanic", "hint": "This person fixes cars"}, {"word": "journalist", "hint": "This person writes news stories"}, {"word": "electrician", "hint": "This person works with wires and power"}, {"word": "archaeologist", "hint": "This person digs up old things"}, {"word": "pharmacist", "hint": "This person gives out medicine"}], "place": [{"word": "laboratory", "hint": "Where scientists do experiments"}, {"word": "observatory", "hint": "Where people study stars"}, {"word": "gymnasium", "hint": "A big room for exercise and sports"}, {"word": "planetarium", "hint": "Shows about space and stars"}, {"word": "cafeteria", "hint": "Where students eat lunch at school"}, {"word": "sanctuary", "hint": "A safe place for animals"}, {"word": "auditorium", "hint": "A large room for performances"}, {"word": "warehouse", "hint": "A big building for storing things"}, {"word": "peninsula", "hint": "Land surrounded by water on three sides"}, {"word": "continent", "hint": "A very large land mass"}], "thing": [{"word": "microscope", "hint": "Makes tiny things look bigger"}, {"word": "telescope", "hint": "Helps you see things far away"}, {"word": "thermometer", "hint": "Measures temperature"}, {"word": "calculator", "hint": "Helps you do math"}, {"word": "encyclopedia", "hint": "A book with lots of information"}, {"word": "instrument", "hint": "Something you play to make music"}, {"word": "parachute", "hint": "Slows you down when falling"}, {"word": "binoculars", "hint": "Two lenses to see far away"}, {"word": "stethoscope", "hint": "Doctors use this to hear your heart"}, {"word": "photograph", "hint": "A picture taken with a camera"}]}};
+var HINTS = { easy: 5, medium: 3, hard: 1 };
+var LEVEL_NAME = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+var GAME_SIZE = 10;
 
-        function shuffleArray(array) {
-            const newArray = [...array];
-            for (let i = newArray.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-            }
-            return newArray;
-        }
+/* The three groups: name, short description and the sentence
+   used to explain a wrong answer. */
+var GROUPS = {
+  person: { name: 'Person', short: 'A person is someone.',      why: 'A person is someone, like a teacher, a mom or a firefighter.' },
+  place:  { name: 'Place',  short: 'A place is somewhere you can go.', why: 'A place is somewhere you can go, like a park or a school.' },
+  thing:  { name: 'Thing',  short: 'A thing is something you can see or touch.', why: 'A thing is something you can see or touch, like a pencil or a ball.' }
+};
+var ORDER = ['person', 'place', 'thing'];
+var ICONS = { person: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c.9-4 3.9-6.2 7.5-6.2s6.6 2.2 7.5 6.2"/>', place: '<path d="M12 21s-6.5-6.1-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.9 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.4"/>', thing: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>' };
+function svg(paths, size) {
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+}
+var I_CHK = '<path d="M5 12.5l4.5 4.5L19 7.5"/>', I_X = '<path d="M6 6l12 12M18 6L6 18"/>';
 
-        function updateGameDisplay() {
-            document.getElementById('score').textContent = score;
-            document.getElementById('total').textContent = totalQuestions;
-            document.getElementById('current-question').textContent = currentQuestion + 1;
-            document.getElementById('hints-remaining').textContent = hintsRemaining;
-            document.getElementById('hint-btn').disabled = hintsRemaining <= 0;
-            
-            // Clear dropped words
-            document.getElementById('person-dropped').innerHTML = '';
-            document.getElementById('place-dropped').innerHTML = '';
-            document.getElementById('thing-dropped').innerHTML = '';
-            
-            // Hide hint and feedback
-            document.getElementById('hint-box').classList.remove('show');
-            document.getElementById('feedback').classList.remove('show');
-        }
+/* =================================================================
+   2. STATE
+   ================================================================= */
+var level = 'medium';
+var source = 'builtin';                 /* 'builtin' or 'custom' */
+var list = { name: '', words: [] };     /* the teacher's own word list */
+var listDirty = false;                  /* changed since last save or open? */
+var game = null;
+var newGroup = null;                    /* group picked in the "new word" row */
 
-        function displayCurrentWord() {
-            const container = document.getElementById('words-container');
-            container.innerHTML = '';
-            
-            if (currentWordIndex >= gameWords.length) {
-                showResults();
-                return;
-            }
-            
-            const wordData = gameWords[currentWordIndex];
-            const card = document.createElement('div');
-            card.className = 'word-card';
-            card.draggable = true;
-            card.textContent = wordData.word;
-            card.dataset.word = wordData.word;
-            card.dataset.category = wordData.category;
-            card.dataset.hint = wordData.hint;
-            
-            card.addEventListener('dragstart', dragStart);
-            card.addEventListener('dragend', dragEnd);
-            
-            // Touch support for mobile/tablets
-            card.addEventListener('touchstart', handleTouchStart, { passive: false });
-            card.addEventListener('touchmove', handleTouchMove, { passive: false });
-            card.addEventListener('touchend', handleTouchEnd);
-            
-            container.appendChild(card);
-        }
+/* =================================================================
+   3. SMALL HELPERS
+   ================================================================= */
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function announce(t) { var a = $('announce'); a.textContent = ''; setTimeout(function () { a.textContent = t; }, 30); }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+function article(w) { return /^[aeiou]/i.test(w) ? 'an' : 'a'; }
+function normGroup(g) {
+  g = String(g || '').trim().toLowerCase();
+  if (g === 'people' || g === 'persons') g = 'person';
+  if (g === 'places') g = 'place';
+  if (g === 'things') g = 'thing';
+  return GROUPS[g] ? g : null;
+}
 
-        // Drag and drop functions
-        function dragStart(e) {
-            e.target.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', JSON.stringify({
-                word: e.target.dataset.word,
-                category: e.target.dataset.category
-            }));
-        }
+/* =================================================================
+   4. SCREENS AND HEADER
+   ================================================================= */
+function showScreen(name) {
+  ['landing', 'words', 'play', 'results'].forEach(function (s) { $(s).hidden = (s !== name); });
+  $('privacy').hidden = !(name === 'landing' || name === 'results');
+  $('btn-back').hidden = (name !== 'words');
+  $('btn-end').hidden = (name !== 'play');
+  document.body.classList.toggle('cls', name === 'play' && game && game.mode === 'class');
+  var here = '';
+  if (name === 'words') here = list.name || 'My word list';
+  if (name === 'play' && game && game.mode === 'class') here = 'Play as a class';
+  $('crumb-sep').hidden = $('crumb-here').hidden = !here;
+  $('crumb-here').textContent = here;
+  window.scrollTo(0, 0);
+}
 
-        function dragEnd(e) {
-            e.target.classList.remove('dragging');
-        }
+/* =================================================================
+   5. LANDING
+   ================================================================= */
+function renderLanding() {
+  var hasList = list.words.some(function (w) { return w.group; });
+  $('source').hidden = !hasList;
+  if (!hasList) source = 'builtin';
+  $('source-custom-btn').textContent = list.name || 'My word list';
+  document.querySelectorAll('#source button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.source === source)); });
+  document.querySelectorAll('#levels button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.level === level)); });
+  $('level-note').textContent = LEVEL_NAME[level] + ' gives ' + plural(HINTS[level], 'hint', 'hints') + ' per game';
+  if (source === 'custom') {
+    var n = Math.min(GAME_SIZE, playable().length);
+    $('play-text').textContent = plural(n, 'word', 'words') + ' from “' + (list.name || 'My word list') + '”. Pick a level for the number of hints.';
+  } else {
+    $('play-text').textContent = '10 everyday words. Pick a level, then go.';
+  }
+}
+function playable() { return list.words.filter(function (w) { return w.word.trim() && w.group; }); }
 
-        function allowDrop(e) {
-            e.preventDefault();
-            e.target.closest('.category-box').classList.add('drag-over');
-        }
+/* =================================================================
+   6. PLAYING
+   ================================================================= */
+function pickWords() {
+  if (source === 'custom') return shuffle(playable()).slice(0, GAME_SIZE).map(function (w) { return { word: w.word.trim(), group: w.group, hint: (w.hint || '').trim() }; });
+  var all = [];
+  ORDER.forEach(function (g) { BANK[level][g].forEach(function (w) { all.push({ word: w.word, group: g, hint: w.hint }); }); });
+  return shuffle(all).slice(0, GAME_SIZE);
+}
 
-        function dragLeave(e) {
-            e.target.closest('.category-box').classList.remove('drag-over');
-        }
+function startGame(mode, words) {
+  game = { mode: mode, words: words || pickWords(), i: 0, right: 0, results: [], hintsLeft: HINTS[level], hintsUsed: 0, locked: false, source: source, level: level };
+  if (!game.words.length) return;
+  showScreen('play');
+  var cls = mode === 'class';
+  $('prompt').hidden = !cls;
+  $('teacher').hidden = !cls;
+  $('howto').hidden = cls;
+  $('hint-btn-text').textContent = cls ? 'Show a hint to the class' : 'Show a hint';
+  $('p-total').textContent = game.words.length;
+  $('p-level').textContent = LEVEL_NAME[level] + ' level';
+  renderZones();
+  renderWord();
+}
 
-        function drop(e, targetCategory) {
-            e.preventDefault();
-            const box = e.target.closest('.category-box');
-            box.classList.remove('drag-over');
-            
-            try {
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                checkAnswer(data.word, data.category, targetCategory);
-            } catch (err) {
-                console.error('Drop error:', err);
-            }
-        }
+function renderZones() {
+  var cls = game && game.mode === 'class';
+  $('zones').innerHTML = ORDER.map(function (g, i) {
+    var fingers = cls ? '<span class="fingers" aria-hidden="true">' + new Array(i + 2).join('<i></i>') + '</span>' : '';
+    return '<button type="button" class="zone g-' + g + '" data-group="' + g + '" aria-label="' + GROUPS[g].name + ' (key ' + (i + 1) + ')">' +
+      '<span class="key" aria-hidden="true"><kbd>' + (i + 1) + '</kbd></span><span class="tag" hidden></span>' +
+      '<span class="zi">' + svg(ICONS[g], cls ? 36 : 30) + '</span>' +
+      '<span class="ztext"><span class="zn">' + GROUPS[g].name + '</span><span class="zd">' + GROUPS[g].short + '</span></span>' +
+      fingers + '</button>';
+  }).join('');
+}
 
-        // Touch handling for mobile
-        let touchedCard = null;
-        let touchStartX, touchStartY;
+function renderStatus() {
+  var dots = '';
+  for (var k = 0; k < game.words.length; k++) {
+    var r = game.results[k];
+    dots += '<i class="' + (r ? (r.right ? 'r' : 'w') : (k === game.i ? 'now' : '')) + '"></i>';
+  }
+  $('dots').innerHTML = dots;
+  $('p-num').textContent = Math.min(game.i + 1, game.words.length);
+  if (game.mode === 'class') {
+    $('right-text').textContent = 'Class score ' + game.right + ' of ' + game.results.length;
+  } else {
+    $('right-text').textContent = game.right + ' right';
+  }
+  $('hints-text').textContent = plural(game.hintsLeft, 'hint', 'hints') + ' left';
+  $('hint-btn').disabled = game.hintsLeft <= 0 || game.locked;
+}
 
-        function handleTouchStart(e) {
-            touchedCard = e.target;
-            touchedCard.classList.add('dragging');
-            const touch = e.touches[0];
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-        }
+function renderWord() {
+  var w = game.words[game.i];
+  game.locked = false;
+  $('word').textContent = w.word;
+  $('stage').hidden = false;
+  $('word-card').style.transform = '';
+  $('fb').hidden = true;
+  $('hintbox').hidden = true;
+  $('hint-btn').hidden = false;
+  $('zones').classList.remove('answered');
+  renderZones();
+  renderStatus();
+}
 
-        function handleTouchMove(e) {
-            e.preventDefault();
-            if (!touchedCard) return;
-            
-            const touch = e.touches[0];
-            touchedCard.style.position = 'fixed';
-            touchedCard.style.left = (touch.clientX - 50) + 'px';
-            touchedCard.style.top = (touch.clientY - 25) + 'px';
-            touchedCard.style.zIndex = 1000;
-        }
+function showHint() {
+  if (!game || game.locked || game.hintsLeft <= 0 || !$('hintbox').hidden) return;
+  var w = game.words[game.i];
+  game.hintsLeft--; game.hintsUsed++;
+  $('hint-text').textContent = w.hint ? w.hint : 'Ask yourself: is it someone, is it somewhere you can go, or is it something you can touch?';
+  $('hintbox').hidden = false;
+  $('hint-btn').hidden = true;
+  renderStatus();
+  announce('Hint: ' + $('hint-text').textContent);
+}
 
-        function handleTouchEnd(e) {
-            if (!touchedCard) return;
-            
-            const touch = e.changedTouches[0];
-            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-            
-            touchedCard.classList.remove('dragging');
-            touchedCard.style.position = '';
-            touchedCard.style.left = '';
-            touchedCard.style.top = '';
-            touchedCard.style.zIndex = '';
-            
-            if (dropTarget) {
-                const box = dropTarget.closest('.category-box');
-                if (box) {
-                    const targetCategory = box.id.replace('-box', '');
-                    checkAnswer(touchedCard.dataset.word, touchedCard.dataset.category, targetCategory);
-                }
-            }
-            
-            touchedCard = null;
-        }
+function choose(group) {
+  if (!game || game.locked) return;
+  game.locked = true;
+  var w = game.words[game.i];
+  var right = (w.group === group);
+  game.results.push({ word: w.word, group: w.group, hint: w.hint, picked: group, right: right });
+  if (right) game.right++;
+  $('zones').classList.add('answered');
+  document.querySelectorAll('.zone').forEach(function (z) {
+    var g = z.dataset.group, tag = z.querySelector('.tag');
+    z.disabled = true;
+    if (g === w.group) {
+      z.classList.add('correct');
+      tag.className = 'tag yes'; tag.innerHTML = svg(I_CHK, 14) + (right ? 'Yes!' : 'Right answer'); tag.hidden = false;
+      z.insertAdjacentHTML('beforeend', '<span class="placed">' + esc(w.word) + '</span>');
+    } else if (g === group) {
+      z.classList.add('picked-wrong');
+      tag.className = 'tag no'; tag.textContent = (game.mode === 'class' ? 'Class picked' : 'You picked'); tag.hidden = false;
+    } else {
+      z.classList.add('dim');
+    }
+  });
+  $('stage').hidden = true;
+  renderStatus();
 
-        function checkAnswer(word, correctCategory, selectedCategory) {
-            const feedback = document.getElementById('feedback');
-            const card = document.querySelector('.word-card');
-            
-            // Hide hint when answer is given
-            document.getElementById('hint-box').classList.remove('show');
-            
-            if (correctCategory === selectedCategory) {
-                score++;
-                card.classList.add('correct');
-                feedback.textContent = '✅ Correct! Great job!';
-                feedback.className = 'feedback show correct';
-                
-                // Add to dropped words display
-                const droppedContainer = document.getElementById(selectedCategory + '-dropped');
-                const droppedWord = document.createElement('span');
-                droppedWord.className = 'dropped-word';
-                droppedWord.textContent = word;
-                droppedContainer.appendChild(droppedWord);
-            } else {
-                card.classList.add('incorrect');
-                feedback.textContent = `❌ Not quite! "${word}" is a ${correctCategory.toUpperCase()}`;
-                feedback.className = 'feedback show incorrect';
-            }
-            
-            currentQuestion++;
-            currentWordIndex++;
-            
-            document.getElementById('score').textContent = score;
-            document.getElementById('current-question').textContent = Math.min(currentQuestion + 1, totalQuestions);
-            
-            // Move to next word after delay
-            setTimeout(() => {
-                feedback.classList.remove('show');
-                if (currentWordIndex < gameWords.length) {
-                    displayCurrentWord();
-                } else {
-                    showResults();
-                }
-            }, 1500);
-        }
+  var g = GROUPS[w.group];
+  $('fb').className = 'fb g-' + w.group;
+  $('fb-ico').innerHTML = svg(ICONS[w.group], 28);
+  var clue = w.hint ? '“' + w.word + '”: ' + w.hint : '';
+  if (right) {
+    $('fb-title').textContent = 'Yes! “' + w.word + '” is ' + article(g.name) + ' ' + g.name.toLowerCase() + '.';
+    $('fb-text').textContent = g.short;
+    $('fb-clue').hidden = true;
+    $('next-btn').hidden = true;
+    $('fb').hidden = false;
+    announce($('fb-title').textContent);
+    /* Right answers move on by themselves. In class mode we wait a
+       little longer so the room can see the answer. */
+    game.timer = setTimeout(nextWord, game.mode === 'class' ? 2200 : 1400);
+  } else {
+    $('fb-title').textContent = 'Not quite. “' + w.word + '” is ' + article(g.name) + ' ' + g.name.toLowerCase() + '.';
+    $('fb-text').textContent = g.why;
+    $('fb-clue').textContent = clue;
+    $('fb-clue').hidden = !clue;
+    $('next-btn').hidden = false;
+    $('next-btn').innerHTML = (game.i + 1 >= game.words.length ? 'See results ' : 'Next word ') + svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 18);
+    $('fb').hidden = false;
+    announce($('fb-title').textContent + ' ' + g.why);
+    $('next-btn').focus();
+  }
+}
 
-        function showHint() {
-            if (hintsRemaining <= 0) return;
-            
-            hintsRemaining--;
-            document.getElementById('hints-remaining').textContent = hintsRemaining;
-            document.getElementById('hint-btn').disabled = hintsRemaining <= 0;
-            
-            const currentWord = gameWords[currentWordIndex];
-            const hintBox = document.getElementById('hint-box');
-            hintBox.textContent = '💡 Hint: ' + currentWord.hint;
-            hintBox.classList.add('show');
-        }
+function nextWord() {
+  if (!game) return;
+  clearTimeout(game.timer);
+  game.i++;
+  if (game.i >= game.words.length) { showResults(); return; }
+  renderWord();
+}
 
-        function showResults() {
-            showScreen('results-screen');
-            
-            document.getElementById('final-score').textContent = score;
-            
-            // Calculate stars
-            const percentage = (score / totalQuestions) * 100;
-            let stars = '';
-            let message = '';
-            
-            if (percentage >= 90) {
-                stars = '⭐⭐⭐';
-                message = 'Amazing! You\'re a Noun Master!';
-            } else if (percentage >= 70) {
-                stars = '⭐⭐';
-                message = 'Great work! Keep practicing!';
-            } else if (percentage >= 50) {
-                stars = '⭐';
-                message = 'Good effort! Try again to improve!';
-            } else {
-                stars = '🌟';
-                message = 'Keep learning! You\'ll get better!';
-            }
-            
-            document.getElementById('stars').textContent = stars;
-            document.getElementById('score-message').textContent = message;
-        }
+function endGame() {
+  if (!game) return;
+  clearTimeout(game.timer);
+  if (game.results.length && !confirm('End this game? Your score so far will not be kept.')) return;
+  game = null;
+  renderLanding();
+  showScreen('landing');
+}
 
-        // CSV Upload Functions
-        function handleCSVUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+/* ---- Dragging the word card (mouse, pen or finger) ---- */
+var drag = null;
+function zoneAt(x, y) {
+  var el = document.elementFromPoint(x, y);
+  return el && el.closest ? el.closest('.zone') : null;
+}
+$('word-card').addEventListener('pointerdown', function (e) {
+  if (!game || game.locked || game.mode === 'class' || window.matchMedia('(max-width: 600px)').matches) return;
+  if (e.button !== undefined && e.button !== 0) return;
+  var card = $('word-card');
+  drag = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false };
+  card.setPointerCapture(e.pointerId);
+  card.classList.remove('snap');
+});
+$('word-card').addEventListener('pointermove', function (e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 6) return;
+  drag.moved = true;
+  var card = $('word-card');
+  card.classList.add('dragging');
+  card.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  card.style.pointerEvents = 'none';
+  var z = zoneAt(e.clientX, e.clientY);
+  card.style.pointerEvents = '';
+  document.querySelectorAll('.zone').forEach(function (el) { el.classList.toggle('over', el === z); });
+});
+function endDrag(e, cancel) {
+  if (!drag || e.pointerId !== drag.id) return;
+  var card = $('word-card');
+  var z = null;
+  if (!cancel && drag.moved) { card.style.pointerEvents = 'none'; z = zoneAt(e.clientX, e.clientY); card.style.pointerEvents = ''; }
+  card.classList.remove('dragging');
+  document.querySelectorAll('.zone').forEach(function (el) { el.classList.remove('over'); });
+  drag = null;
+  if (z) { choose(z.dataset.group); }
+  else { card.classList.add('snap'); card.style.transform = ''; }
+}
+$('word-card').addEventListener('pointerup', function (e) { endDrag(e, false); });
+$('word-card').addEventListener('pointercancel', function (e) { endDrag(e, true); });
 
-            const statusEl = document.getElementById('upload-status');
-            const reader = new FileReader();
+$('zones').addEventListener('click', function (e) {
+  var z = e.target.closest('.zone');
+  if (z && !z.disabled) choose(z.dataset.group);
+});
+$('hint-btn').addEventListener('click', showHint);
+$('next-btn').addEventListener('click', nextWord);
+$('btn-end').addEventListener('click', endGame);
 
-            reader.onload = function(e) {
-                try {
-                    const csvText = e.target.result;
-                    const parsed = parseCSV(csvText);
+document.addEventListener('keydown', function (e) {
+  if ($('play').hidden || !game || e.altKey || e.ctrlKey || e.metaKey) return;
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  if (!game.locked && (e.key === '1' || e.key === '2' || e.key === '3')) { e.preventDefault(); choose(ORDER[+e.key - 1]); }
+  else if (!game.locked && (e.key === 'h' || e.key === 'H')) { showHint(); }
+});
 
-                    if (parsed.errors.length > 0) {
-                        showUploadStatus('error', '❌ Error: ' + parsed.errors.join(', '));
-                        return;
-                    }
+/* =================================================================
+   7. RESULTS
+   ================================================================= */
+function showResults() {
+  var g = game, n = g.results.length, right = g.right, missed = n - right;
+  var cls = g.mode === 'class';
+  showScreen('results');
+  var pct = n ? right / n : 0;
+  $('r-title').textContent = pct === 1 ? (cls ? 'Perfect, class!' : 'Perfect score!') : pct >= 0.7 ? (cls ? 'Nice work, class!' : 'Nice work!') : 'Good practice!';
+  $('r-lede').textContent = 'You sorted ' + right + ' of ' + n + ' words. ' + (missed ? 'Practice the ' + (missed === 1 ? 'one' : missed) + ' you missed, or play again.' : (g.level !== 'hard' && g.source === 'builtin' ? 'Ready for a harder level?' : 'Play again with new words?'));
+  $('r-ring').style.background = 'conic-gradient(var(--app) 0 ' + (pct * 100) + '%, var(--surface-2) 0)';
+  $('r-score').textContent = right;
+  $('r-of').textContent = 'out of ' + n;
+  $('r-level').textContent = g.source === 'custom' ? (list.name || 'My word list') + ' · ' + LEVEL_NAME[g.level] : LEVEL_NAME[g.level] + ' level';
+  $('r-hints').textContent = 'Used ' + g.hintsUsed + ' of ' + plural(HINTS[g.level], 'hint', 'hints');
+  $('r-by').innerHTML = ORDER.map(function (k) {
+    var of = g.results.filter(function (r) { return r.group === k; });
+    var ok = of.filter(function (r) { return r.right; }).length;
+    return '<div class="g-' + k + '"><b>' + ok + '/' + of.length + '</b><span>' + GROUPS[k].name + '</span></div>';
+  }).join('');
+  $('r-list').innerHTML = g.results.map(function (r) {
+    return '<li class="' + (r.right ? '' : 'miss') + '"><span class="m">' + svg(r.right ? I_CHK : I_X, 14) + '</span>' +
+      '<span class="wt"><span class="ww">' + esc(r.word) + '</span>' + (r.right ? '' : '<span class="picked">' + (cls ? 'Class picked ' : 'You picked ') + GROUPS[r.picked].name + '</span>') + '</span>' +
+      '<span class="pill g-' + r.group + '">' + GROUPS[r.group].name + '</span><span class="sr-only">' + (r.right ? 'right' : 'missed') + '</span></li>';
+  }).join('');
+  $('r-practice').hidden = !missed;
+  $('r-practice-text').textContent = 'Practice the ' + (missed === 1 ? 'one' : missed) + ' you missed';
+  $('r-again').classList.toggle('btn-primary', !missed);
+  var harder = g.source === 'builtin' && g.level !== 'hard' ? (g.level === 'easy' ? 'medium' : 'hard') : null;
+  $('r-harder').hidden = !harder;
+  if (harder) { $('r-harder').textContent = 'Try ' + LEVEL_NAME[harder] + ' level'; $('r-harder').dataset.level = harder; }
+  announce($('r-title').textContent + ' ' + right + ' out of ' + n);
+}
+$('r-practice').addEventListener('click', function () {
+  var miss = game.results.filter(function (r) { return !r.right; }).map(function (r) { return { word: r.word, group: r.group, hint: r.hint }; });
+  level = game.level; source = game.source;
+  startGame(game.mode, shuffle(miss));
+});
+$('r-again').addEventListener('click', function () { level = game.level; source = game.source; startGame(game.mode); });
+$('r-harder').addEventListener('click', function () { level = this.dataset.level; source = 'builtin'; startGame(game.mode); });
+$('r-home').addEventListener('click', function () { renderLanding(); showScreen('landing'); });
 
-                    if (parsed.words.length < 3) {
-                        showUploadStatus('error', '❌ Please include at least 3 words in your CSV.');
-                        return;
-                    }
+/* =================================================================
+   8. WORD LIST EDITOR
+   ================================================================= */
+function segHTML(selected, label) {
+  return ORDER.map(function (g) {
+    return '<button type="button" role="radio" class="g-' + g + '" data-group="' + g + '" aria-checked="' + (g === selected) + '" aria-label="' + GROUPS[g].name + (label ? ' for ' + esc(label) : '') + '">' + svg(ICONS[g], 15) + GROUPS[g].name + '</button>';
+  }).join('');
+}
 
-                    // Validate categories
-                    const validCategories = ['person', 'place', 'thing'];
-                    const invalidCategories = parsed.words.filter(w => !validCategories.includes(w.category.toLowerCase()));
-                    if (invalidCategories.length > 0) {
-                        showUploadStatus('error', '❌ Invalid category found. Use only: person, place, thing');
-                        return;
-                    }
+function renderRows() {
+  var rows = $('rows');
+  if (!list.words.length) {
+    rows.innerHTML = '<li class="empty-rows">No words yet. Type one below, or paste a whole list.</li>';
+  } else {
+    rows.innerHTML = list.words.map(function (w, i) {
+      return '<li class="row' + (w.group ? '' : ' needs') + '" data-i="' + i + '">' +
+        '<span class="n">' + (i + 1) + '</span>' +
+        '<input class="inp word-in" value="' + esc(w.word) + '" aria-label="Word ' + (i + 1) + '" data-field="word" autocomplete="off">' +
+        '<div class="seg" role="radiogroup" aria-label="Group for ' + esc(w.word) + '">' + segHTML(w.group, w.word) + '</div>' +
+        '<input class="inp hint-in" value="' + esc(w.hint || '') + '" placeholder="Hint (optional)" aria-label="Hint for ' + esc(w.word) + '" data-field="hint" autocomplete="off">' +
+        '<button type="button" class="icon-btn" data-remove aria-label="Remove ' + esc(w.word) + '">' + svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>', 18) + '</button></li>';
+    }).join('');
+  }
+  $('new-n').textContent = list.words.length + 1;
+  $('new-seg').innerHTML = segHTML(newGroup, 'the new word');
+  renderCounts();
+}
 
-                    // Store custom words
-                    customWords = parsed.words.map(w => ({
-                        word: w.word.trim(),
-                        category: w.category.toLowerCase().trim(),
-                        hint: w.hint.trim()
-                    }));
+function renderCounts() {
+  var n = list.words.length;
+  $('count-title').textContent = plural(n, 'word', 'words');
+  var c = { person: 0, place: 0, thing: 0 }, need = 0;
+  list.words.forEach(function (w) { if (w.group) c[w.group]++; else need++; });
+  $('count-line').innerHTML =
+    '<span class="pill g-person">' + plural(c.person, 'person', 'people') + '</span>' +
+    '<span class="pill g-place">' + plural(c.place, 'place', 'places') + '</span>' +
+    '<span class="pill g-thing">' + plural(c.thing, 'thing', 'things') + '</span>';
+  $('need-note').hidden = !need;
+  $('need-note').textContent = need ? plural(need, 'word still needs', 'words still need') + ' a group. Pick Person, Place or Thing for ' + (need === 1 ? 'it' : 'them') + '.' : '';
+  $('play-list').disabled = playable().length === 0;
+  if (!need && /marked in red/.test($('file-msg').textContent)) $('file-msg').hidden = true;
+}
 
-                    showUploadStatus('success', `✅ Loaded ${customWords.length} custom words!`);
-                    document.getElementById('custom-words-badge').classList.add('show');
-                    document.getElementById('clear-custom-btn').style.display = 'inline-block';
+function openEditor() {
+  if (!list.name && !list.words.length) list.name = 'My word list';
+  $('list-name').value = list.name;
+  $('add-msg').textContent = '';
+  renderRows();
+  showScreen('words');
+}
 
-                } catch (err) {
-                    showUploadStatus('error', '❌ Error reading file: ' + err.message);
-                }
-            };
+function markDirty() { listDirty = true; }
 
-            reader.onerror = function() {
-                showUploadStatus('error', '❌ Error reading file');
-            };
+$('list-name').addEventListener('input', function () {
+  list.name = this.value; markDirty();
+  $('crumb-here').textContent = list.name || 'My word list';
+});
 
-            reader.readAsText(file);
-        }
+$('rows').addEventListener('input', function (e) {
+  var li = e.target.closest('.row'); if (!li) return;
+  var w = list.words[+li.dataset.i];
+  w[e.target.dataset.field] = e.target.value;
+  markDirty();
+});
+$('rows').addEventListener('click', function (e) {
+  var li = e.target.closest('.row'); if (!li) return;
+  var i = +li.dataset.i;
+  var seg = e.target.closest('.seg button');
+  if (seg) {
+    list.words[i].group = seg.dataset.group; markDirty();
+    li.querySelectorAll('.seg button').forEach(function (b) { b.setAttribute('aria-checked', String(b === seg)); });
+    li.classList.remove('needs');
+    renderCounts();
+    return;
+  }
+  if (e.target.closest('[data-remove]')) {
+    list.words.splice(i, 1); markDirty();
+    renderRows();
+    var next = $('rows').querySelectorAll('[data-remove]')[Math.min(i, list.words.length - 1)];
+    (next || $('new-word')).focus();
+  }
+});
+/* Arrow keys move between Person / Place / Thing in any group switch */
+document.addEventListener('keydown', function (e) {
+  var b = e.target.closest && e.target.closest('.seg button');
+  if (!b || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  var sib = e.key === 'ArrowRight' ? b.nextElementSibling : b.previousElementSibling;
+  if (sib) { e.preventDefault(); sib.focus(); sib.click(); }
+});
 
-        function parseCSV(csvText) {
-            const lines = csvText.trim().split('\n');
-            const words = [];
-            const errors = [];
+$('new-seg').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  newGroup = b.dataset.group;
+  $('new-seg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-checked', String(x === b)); });
+  $('add-msg').textContent = '';
+});
+function addNewWord() {
+  var word = $('new-word').value.trim();
+  if (!word) { $('add-msg').textContent = 'Type a word first.'; $('new-word').focus(); return; }
+  if (!newGroup) { $('add-msg').textContent = 'Pick Person, Place or Thing for “' + word + '”.'; $('new-seg').querySelector('button').focus(); return; }
+  list.words.push({ word: word, group: newGroup, hint: $('new-hint').value.trim() });
+  markDirty();
+  $('new-word').value = ''; $('new-hint').value = ''; newGroup = null;
+  $('add-msg').textContent = '';
+  renderRows();
+  announce('Added ' + word);
+  $('new-word').focus();
+}
+$('new-add').addEventListener('click', addNewWord);
+['new-word', 'new-hint'].forEach(function (id) {
+  $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addNewWord(); } });
+});
 
-            if (lines.length < 2) {
-                errors.push('CSV must have a header row and at least one data row');
-                return { words, errors };
-            }
+/* Paste: one word per line, "word, group, hint" */
+function parseLines(text) {
+  var out = [];
+  text.split(/\r?\n/).forEach(function (line) {
+    var parts = line.split(/,|\t/);
+    var word = (parts[0] || '').trim().replace(/^"|"$/g, '');
+    if (!word) return;
+    out.push({ word: word, group: normGroup(parts[1]), hint: parts.slice(2).join(',').trim().replace(/^"|"$/g, '') });
+  });
+  return out;
+}
+$('paste-add').addEventListener('click', function () {
+  var add = parseLines($('paste').value);
+  if (!add.length) { $('paste').focus(); return; }
+  list.words = list.words.concat(add); markDirty();
+  $('paste').value = '';
+  renderRows();
+  var need = add.filter(function (w) { return !w.group; }).length;
+  showFileMsg('Added ' + plural(add.length, 'word', 'words') + '.' + (need ? ' Pick a group for the ' + plural(need, 'word', 'words') + ' marked in red.' : ''));
+});
 
-            // Parse header
-            const header = lines[0].toLowerCase().split(',').map(h => h.trim());
-            const wordIdx = header.indexOf('word');
-            const categoryIdx = header.indexOf('category');
-            const hintIdx = header.indexOf('hint');
+function showFileMsg(t) { var m = $('file-msg'); m.textContent = t; m.hidden = false; }
 
-            if (wordIdx === -1 || categoryIdx === -1 || hintIdx === -1) {
-                errors.push('CSV must have columns: word, category, hint');
-                return { words, errors };
-            }
+/* ---- Save: the browser's Save dialog where it exists, otherwise a download ---- */
+function listJSON() {
+  return JSON.stringify({ app: 'noun-match', version: 1, name: list.name || 'My word list',
+    words: list.words.filter(function (w) { return w.word.trim(); }).map(function (w) { return { word: w.word.trim(), group: w.group, hint: (w.hint || '').trim() }; }) }, null, 2);
+}
+function fileName() { return ((list.name || 'word list').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'word-list') + '.json'; }
+async function saveList() {
+  if (!list.words.length) { showFileMsg('Add some words before saving.'); return; }
+  var data = listJSON();
+  if (window.showSaveFilePicker) {
+    try {
+      var handle = await window.showSaveFilePicker({ suggestedName: fileName(), types: [{ description: 'Noun Match word list', accept: { 'application/json': ['.json'] } }] });
+      var wr = await handle.createWritable(); await wr.write(data); await wr.close();
+      listDirty = false; showFileMsg('Saved “' + handle.name + '” to your computer.');
+    } catch (err) { if (err && err.name !== 'AbortError') showFileMsg('That didn’t save. Try again.'); }
+    return;
+  }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = fileName();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  listDirty = false; showFileMsg('Saved “' + fileName() + '” to your Downloads folder.');
+}
+$('save-list').addEventListener('click', saveList);
 
-            // Parse data rows
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
+/* ---- Open: our .json files, or the old Noun Match .csv format ---- */
+function loadText(text, name) {
+  var words = null, title = name.replace(/\.(json|csv|txt)$/i, '').replace(/[-_]+/g, ' ');
+  try {
+    var d = JSON.parse(text);
+    var arr = Array.isArray(d) ? d : d.words;
+    if (!Array.isArray(arr)) throw new Error('no words');
+    if (d.name) title = d.name;
+    words = arr.map(function (w) { return { word: String(w.word || '').trim(), group: normGroup(w.group || w.category), hint: String(w.hint || '').trim() }; }).filter(function (w) { return w.word; });
+  } catch (e) {
+    var rows = parseLines(text);
+    if (rows.length && /^word$/i.test(rows[0].word)) rows.shift();   /* header row from the old CSV template */
+    words = rows;
+  }
+  if (!words || !words.length) { showFileMsg('No words found in “' + name + '”.'); return false; }
+  if (listDirty && list.words.length && !confirm('Replace the words you have now with “' + title + '”? Unsaved changes will be lost.')) return false;
+  list = { name: title, words: words }; listDirty = false; source = 'custom';
+  openEditor();
+  var need = words.filter(function (w) { return !w.group; }).length;
+  showFileMsg('Opened “' + name + '” with ' + plural(words.length, 'word', 'words') + '.' + (need ? ' Pick a group for the words marked in red.' : ''));
+  return true;
+}
+function readFile(file) {
+  if (!file) return;
+  var r = new FileReader();
+  r.onload = function () { loadText(String(r.result), file.name); };
+  r.readAsText(file);
+}
+$('open-list').addEventListener('click', function () { $('file-input').value = ''; $('file-input').click(); });
+$('file-input').addEventListener('change', function () { readFile(this.files[0]); });
 
-                // Handle quoted values with commas
-                const values = parseCSVLine(line);
+/* Drop a word list file anywhere on the page */
+var dragDepth = 0;
+function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') > -1; }
+window.addEventListener('dragenter', function (e) { if (!hasFiles(e) || !$('play').hidden === true && !$('play').hidden) return; dragDepth++; $('drop-hint').hidden = false; });
+window.addEventListener('dragleave', function (e) { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('drop-hint').hidden = true; });
+window.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('drop', function (e) {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $('drop-hint').hidden = true;
+  if (!$('play').hidden) return;
+  readFile(e.dataTransfer.files[0]);
+});
 
-                if (values.length < 3) {
-                    errors.push(`Row ${i + 1}: Not enough columns`);
-                    continue;
-                }
+$('play-list').addEventListener('click', function () {
+  if (!playable().length) return;
+  source = 'custom';
+  startGame('solo');
+});
+$('btn-back').addEventListener('click', function () { renderLanding(); showScreen('landing'); });
 
-                const word = values[wordIdx]?.trim();
-                const category = values[categoryIdx]?.trim().toLowerCase();
-                const hint = values[hintIdx]?.trim();
+window.addEventListener('beforeunload', function (e) {
+  if (listDirty && list.words.length) { e.preventDefault(); e.returnValue = ''; }
+});
 
-                if (!word || !category || !hint) {
-                    errors.push(`Row ${i + 1}: Missing required field`);
-                    continue;
-                }
+/* =================================================================
+   9. LANDING BUTTONS
+   ================================================================= */
+$('levels').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  level = b.dataset.level; renderLanding();
+});
+$('source').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  source = b.dataset.source; renderLanding();
+});
+$('go-play').addEventListener('click', function () { startGame('solo'); });
+$('go-class').addEventListener('click', function () { startGame('class'); });
+$('go-words').addEventListener('click', openEditor);
 
-                words.push({ word, category, hint });
-            }
-
-            return { words, errors };
-        }
-
-        function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            result.push(current.trim());
-            return result;
-        }
-
-        function showUploadStatus(type, message) {
-            const statusEl = document.getElementById('upload-status');
-            statusEl.className = 'upload-status ' + type;
-            statusEl.textContent = message;
-        }
-
-        function clearCustomWords() {
-            customWords = null;
-            document.getElementById('upload-status').className = 'upload-status';
-            document.getElementById('custom-words-badge').classList.remove('show');
-            document.getElementById('clear-custom-btn').style.display = 'none';
-            document.getElementById('csv-upload').value = '';
-        }
-
-        function downloadTemplate() {
-            const blob = new Blob([csvTemplateContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'noun-game-template.csv';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    </script>
+renderLanding();
+showScreen('landing');
+</script>
 </body>
 </html>
