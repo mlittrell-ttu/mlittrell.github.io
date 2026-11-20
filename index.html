@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <!--
-  TEACHER APPS: HOME PAGE
+  TEACHER APPS: LANDING PAGE
   =================================================================
-  One self-contained file. Nothing is loaded from the internet:
-  fonts come from the computer, icons are drawn with inline SVG.
+  The first page people see. The apps themselves are listed on
+  apps.html. Nothing is loaded from the internet: fonts come from
+  the computer, icons are inline SVG, and the two pictures are in
+  the images folder.
 
   How the file is laid out:
-    1. <style>  ... design tokens, then one block per page section
-    2. <body>   ... header, hero, "why" row, apps, download steps,
-                    about, footer
-  There is no JavaScript on this page.
-
-  Adding a new app: copy one .app-card <li> in the APPS section,
-  change its colour variables, icon, text and the two links.
+    1. <style>  ... design tokens, then one block per section
+                    (this page and apps.html share the same styles)
+    2. <body>   ... header, hero, feature columns, footer
+  The one small script sends old links like index.html#apps to the
+  right place on apps.html.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teacher Apps</title>
-<meta name="description" content="Free, offline, private apps for the classroom. No accounts, no ads, and nothing leaves your device.">
+<meta name="description" content="Small, free apps for your classroom, built by teachers. They work offline and no data ever leaves your computer.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
 
 <style>
@@ -266,272 +266,142 @@ a:hover { color: var(--focus); }
   .about-box { padding: 32px 24px; }
   .section h2 { font-size: 1.875rem; }
 }
+
+/* =================================================================
+   LANDING PAGE AND APPS PAGE
+   ================================================================= */
+.site-header .site-nav { align-items: center; }
+.site-nav a[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
+.site-nav .btn { min-height: 40px; padding: 0 18px; margin-left: 6px; font-size: 0.9375rem; }
+.site-nav .btn-primary, .site-nav .btn-primary:hover { color: #FFFFFF; background: var(--ink); }
+.btn svg { stroke: currentColor; }
+
+/* Hero: words on the left, the apps in use on the right */
+.lp { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-top: 40px; padding-bottom: 24px; }
+.lp .badge { margin: 0; }
+.lp h1 { margin-top: 20px; font-size: clamp(2.5rem, 4.6vw, 3.875rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+.lp h1 .accent { color: var(--timer); }
+.lp .lede { margin-top: 22px; font-size: 1.1875rem; line-height: 1.55; color: var(--ink-2); max-width: 44ch; }
+.lp .cta { margin-top: 30px; }
+.lp .cta .btn { min-height: 54px; padding: 0 26px; font-size: 1.0625rem; gap: 10px; }
+.stage { position: relative; height: 440px; }
+.win { position: absolute; left: 0; top: 0; width: 92%; border-radius: 16px; overflow: hidden; background: #FFFFFF; border: 1px solid var(--rule); box-shadow: 0 24px 60px rgba(28,39,48,0.16), 0 4px 12px rgba(28,39,48,0.06); }
+.win-bar { height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 14px; background: var(--surface-2); border-bottom: 1px solid var(--rule); }
+.win-bar i { width: 10px; height: 10px; border-radius: 50%; }
+.win-bar span { margin-left: 12px; font-size: 0.75rem; color: var(--ink-2); background: #FFFFFF; border-radius: 999px; padding: 2px 12px; }
+.win img, .phone img { display: block; width: 100%; height: auto; }
+.phone { position: absolute; right: 0; bottom: -10px; width: 198px; border-radius: 30px; padding: 8px; background: #1C2730; box-shadow: 0 24px 50px rgba(28,39,48,0.28); }
+.phone img { border-radius: 23px; }
+.phone::before { content: ""; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 54px; height: 6px; border-radius: 9px; background: #1C2730; z-index: 2; }
+
+/* Feature columns under the hero */
+.feats ul { list-style: none; margin: 0; padding: 36px 0 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; border-top: 1px solid var(--rule); }
+.feat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.feats h2 { margin-top: 14px; font-size: 1.0625rem; font-weight: 700; letter-spacing: 0; }
+.feats p { margin-top: 4px; color: var(--ink-2); font-size: 0.9375rem; line-height: 1.5; }
+.lp-foot { margin-top: 40px; border-top: 1px solid var(--rule); }
+.lp-foot .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 20px; padding-bottom: 20px; font-size: 0.875rem; color: var(--ink-2); }
+.lp-foot a { color: inherit; }
+
+/* Apps page */
+.apps-head { padding-top: 48px; }
+.apps-head h1 { font-size: clamp(2.25rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.apps-head p { margin-top: 10px; color: var(--ink-2); font-size: 1.125rem; max-width: 52ch; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; }
+.filters button { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule); background: #FFFFFF; font: inherit; font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); cursor: pointer; }
+.filters button:hover { border-color: var(--field-edge); color: var(--ink); }
+.filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.apps-page .app-grid { margin-top: 24px; }
+.app-card[hidden] { display: none; }
+
+@media (max-width: 860px) {
+  .lp { grid-template-columns: 1fr; gap: 36px; padding-top: 28px; }
+  .stage { height: 300px; max-width: 520px; }
+  .phone { width: 140px; border-radius: 24px; padding: 6px; }
+  .phone img { border-radius: 19px; }
+  .feats ul { grid-template-columns: 1fr 1fr; gap: 28px; }
+}
+@media (max-width: 600px) {
+  .site-nav a.nav-link { display: none; }
+  .site-nav a.nav-link[aria-current="page"] { display: inline-flex; }
+  .lp h1 { font-size: 2.5rem; }
+  .lp .lede { font-size: 1.0625rem; }
+  .stage { height: 250px; }
+  .win { width: 100%; }
+  .phone { width: 118px; right: -6px; bottom: -16px; }
+  .feats ul { grid-template-columns: 1fr; gap: 22px; }
+  .feats li { display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; }
+  .feat-icon { grid-row: span 2; }
+  .feats h2 { margin-top: 0; }
+}
 </style>
 </head>
-
 <body>
 
-<!-- =================================================================
-     HEADER
-     ================================================================= -->
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="#top">
+    <a class="brand" href="index.html">
       <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
       <span class="brand-name">Teacher Apps</span>
     </a>
     <nav class="site-nav" aria-label="Main">
-      <a href="#apps">Apps</a>
-      <a href="#download">How to download</a>
-      <a href="#about">About</a>
+      <a class="nav-link" href="apps.html">Apps</a><a class="nav-link" href="apps.html#download">How to download</a><a class="nav-link" href="apps.html#about">About</a><a class="btn btn-primary" href="apps.html">See the apps</a>
     </nav>
   </div>
 </header>
 
-<main id="top">
+<main>
 
   <!-- =================================================================
        HERO
        ================================================================= -->
-  <section class="wrap hero">
-    <p class="badge">Free, offline and private</p>
-    <h1>Small, friendly apps for your classroom.</h1>
-    <p class="lede">Each one opens right in your browser. No accounts, no ads, and nothing you type ever leaves your device.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary btn-big" href="#apps">Browse the apps</a>
-      <a class="btn btn-big" href="#download">How to download</a>
+  <section class="wrap lp">
+    <div>
+      <p class="badge">Free, offline, and private</p>
+      <h1>Small apps for <span class="accent">your classroom</span>, built by teachers.</h1>
+      <p class="lede">Free tools that open right in your browser. No accounts, no ads, and no data ever leaves your computer.</p>
+      <div class="cta"><a class="btn btn-primary" href="apps.html">See the apps <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
     </div>
-
-    <figure class="shot">
-      <div class="shot-window" aria-hidden="true">
-        <div class="shot-bar">
-          <span class="shot-dots"><span style="background:#EC847D"></span><span style="background:#E2AB4C"></span><span style="background:#5FC49A"></span></span>
-          <span class="shot-url">timer.html</span>
-          <span style="width:47px"></span>
-        </div>
-        <div class="shot-screen">
-          <div class="shot-top">
-            <span class="shot-title">Essay Brainstorm</span>
-            <span class="shot-total">Total left <strong>12:32</strong></span>
-          </div>
-          <div class="shot-timeline">
-            <span style="background:var(--timer)"></span>
-            <span style="background:var(--cards);opacity:.45"></span>
-            <span style="background:var(--spread);opacity:.45"></span>
-          </div>
-          <div class="shot-body">
-            <div class="shot-now">
-              <div class="shot-meta"><span>Segment 1 of 3</span><span class="shot-state">Running</span></div>
-              <p class="shot-seg">Silent brainstorm</p>
-              <p class="shot-desc">Write down every idea you have. No talking yet.</p>
-              <p class="shot-count">2:32</p>
-              <div class="shot-progress"><span></span></div>
-              <div class="shot-labels"><span>2:28 elapsed</span><span>5:00 total</span></div>
-            </div>
-            <div class="shot-plan">
-              <p class="shot-plan-title">Today's plan</p>
-              <ol class="shot-list">
-                <li class="is-now"><span class="dot" style="background:var(--timer)"></span><span>Silent brainstorm</span><span class="time">5:00</span><span class="tag">Now</span></li>
-                <li><span class="dot" style="background:var(--cards)"></span><span>Pair share</span><span class="time">5:00</span><span class="tag">Next</span></li>
-                <li><span class="dot" style="background:var(--spread)"></span><span>Class discussion</span><span class="time">5:00</span><span class="tag">Later</span></li>
-              </ol>
-              <div class="shot-buttons"><span>Pause</span><span>End session</span></div>
-            </div>
-          </div>
-        </div>
+    <div class="stage">
+      <div class="win">
+        <div class="win-bar" aria-hidden="true"><i style="background:#EC847D"></i><i style="background:#E2AB4C"></i><i style="background:#5FC49A"></i><span>Classroom Timer</span></div>
+        <img src="images/hero-timer.webp" width="1280" height="800" alt="Classroom Timer running a Brainstorm Session, with 4:32 left and the next segments listed.">
       </div>
-      <figcaption>Classroom Timer, ready to put up on the projector.</figcaption>
-    </figure>
+      <div class="phone">
+        <img src="images/hero-noun-match-phone.webp" width="390" height="844" alt="Noun Match on a phone, asking whether theater is a person, a place, or a thing.">
+      </div>
+    </div>
   </section>
 
   <!-- =================================================================
-       WHY ROW
+       WHAT EVERY APP HAS IN COMMON
        ================================================================= -->
-  <section class="wrap" aria-label="Why Teacher Apps">
-    <ul class="why">
-      <li>
-        <span class="why-icon" style="background:var(--timer-bg)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg>
-        </span>
-        <span><strong>Works offline</strong><span>Download once and use it with no internet at all.</span></span>
-      </li>
-      <li>
-        <span class="why-icon" style="background:var(--cards-bg)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        </span>
-        <span><strong>Private by design</strong><span>Nothing is collected, tracked or sent anywhere.</span></span>
-      </li>
-      <li>
-        <span class="why-icon" style="background:var(--spread-bg)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
-        </span>
-        <span><strong>One simple file</strong><span>Each app is a single file you can keep, share or open anywhere.</span></span>
-      </li>
+  <section class="wrap feats" aria-label="Why Teacher Apps">
+    <ul>
+      <li><span class="feat-icon" style="background:var(--timer-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg></span><h2>Works offline</h2><p>Download once and use it with no internet at all.</p></li>
+      <li><span class="feat-icon" style="background:var(--cards-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><h2>Private by design</h2><p>Nothing is collected, tracked or sent anywhere.</p></li>
+      <li><span class="feat-icon" style="background:var(--spread-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span><h2>One simple file</h2><p>Each app is a single file you can keep, share or open anywhere.</p></li>
+      <li><span class="feat-icon" style="background:var(--pct-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"/></svg></span><h2>Free and open source</h2><p>Released under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Use it, share it and adapt it.</p></li>
     </ul>
-  </section>
-
-  <!-- =================================================================
-       APPS
-       Live apps have Open and Download links. "Coming soon" apps have
-       the is-soon class and no links.
-       ================================================================= -->
-  <section id="apps" class="wrap section" aria-labelledby="apps-heading">
-    <div class="section-head">
-      <div>
-        <h2 id="apps-heading">The apps</h2>
-        <p class="section-sub">Open one to use it now, or download it to keep.</p>
-      </div>
-    </div>
-
-    <ul class="app-grid">
-
-      <li class="app-card" style="--tint:var(--timer-bg);--mark:var(--timer)">
-        <div class="app-top">
-          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
-          <span class="pill pill-new">New</span>
-        </div>
-        <div>
-          <p class="app-kind">Classroom</p>
-          <h3>Classroom Timer</h3>
-          <p class="desc">A countdown timer students can see. Plan the whole class in timed segments.</p>
-        </div>
-        <div class="app-actions">
-          <a class="btn btn-primary" href="timer.html" aria-label="Open Classroom Timer">Open</a>
-          <a class="btn" href="timer.html" download="classroom-timer.html" aria-label="Download Classroom Timer">Download</a>
-        </div>
-      </li>
-
-      <li class="app-card" style="--tint:var(--cards-bg);--mark:var(--cards)">
-        <div class="app-top">
-          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="14" height="13" rx="2.5"/><path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v11"/></svg></span>
-        </div>
-        <div>
-          <p class="app-kind">Study</p>
-          <h3>Flashcards</h3>
-          <p class="desc">Make a deck of cards and study it. Save the deck as a file to use again.</p>
-        </div>
-        <div class="app-actions">
-          <a class="btn btn-primary" href="flashcards.html" aria-label="Open Flashcards">Open</a>
-          <a class="btn" href="flashcards.html" download="flashcards.html" aria-label="Download Flashcards">Download</a>
-        </div>
-      </li>
-
-      <li class="app-card" style="--tint:var(--pct-bg);--mark:var(--pct)">
-        <div class="app-top">
-          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
-        </div>
-        <div>
-          <p class="app-kind">Math and data</p>
-          <h3>Percentages</h3>
-          <p class="desc">Count things into groups. See each group as a fraction, a decimal, and a percentage.</p>
-        </div>
-        <div class="app-actions">
-          <a class="btn btn-primary" href="percentages.html" aria-label="Open Percentages">Open</a>
-          <a class="btn" href="percentages.html" download="percentages.html" aria-label="Download Percentages">Download</a>
-        </div>
-      </li>
-
-      <li class="app-card" style="--tint:var(--spread-bg);--mark:var(--spread)">
-        <div class="app-top">
-          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 16v-4M10 16V8M14 16V5M18 16v-6"/></svg></span>
-        </div>
-        <div>
-          <p class="app-kind">Math and data</p>
-          <h3>Center and Spread</h3>
-          <p class="desc">Build a small data set. See the mean, median, mode, and range, with the math shown step by step.</p>
-        </div>
-        <div class="app-actions">
-          <a class="btn btn-primary" href="spread.html" aria-label="Open Center and Spread">Open</a>
-          <a class="btn" href="spread.html" download="spread.html" aria-label="Download Center and Spread">Download</a>
-        </div>
-      </li>
-
-      <li class="app-card" style="--tint:var(--noun-bg);--mark:var(--noun)">
-        <div class="app-top">
-          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><circle cx="17.25" cy="6.75" r="3.75"/><path d="M6.75 13.5l3.75 7H3z"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></span>
-        </div>
-        <div>
-          <p class="app-kind">Language</p>
-          <h3>Noun Match</h3>
-          <p class="desc">Students sort nouns into person, place, and thing. Every incorrect answer shows a short explanation.</p>
-        </div>
-        <div class="app-actions">
-          <a class="btn btn-primary" href="noun-matching-game.html" aria-label="Open Noun Match">Open</a>
-          <a class="btn" href="noun-matching-game.html" download="noun-matching-game.html" aria-label="Download Noun Match">Download</a>
-        </div>
-      </li>
-
-      <li class="app-card" style="--tint:var(--mwb-bg);--mark:var(--mwb)">
-        <div class="app-top">
-          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15.5c0-3-2.5-5.5-7-5.5 0 3 2.5 5.5 7 5.5z"/></svg></span>
-        </div>
-        <div>
-          <p class="app-kind">Classroom</p>
-          <h3>Well-Being Tracker</h3>
-          <p class="desc">A quick daily check-in on each student. Look back over the weeks to spot patterns.</p>
-        </div>
-        <div class="app-actions">
-          <a class="btn btn-primary" href="mwb-tracker.html" aria-label="Open Well-Being Tracker">Open</a>
-          <a class="btn" href="mwb-tracker.html" download="mwb-tracker.html" aria-label="Download Well-Being Tracker">Download</a>
-        </div>
-      </li>
-
-    </ul>
-  </section>
-
-  <!-- =================================================================
-       HOW TO DOWNLOAD
-       ================================================================= -->
-  <section id="download" class="wrap section" aria-labelledby="download-heading">
-    <h2 id="download-heading">How to download</h2>
-    <p class="section-sub" style="margin-bottom:28px">Keep any app on your computer so it works even when the Wi-Fi doesn't. Nothing to install.</p>
-
-    <ol class="steps">
-      <li>
-        <span class="step-num" style="background:var(--timer-bg)" aria-hidden="true">1</span>
-        <h3>Press Download</h3>
-        <p>Pick an app above and press its Download button. One small file saves to your Downloads folder.</p>
-      </li>
-      <li>
-        <span class="step-num" style="background:var(--cards-bg)" aria-hidden="true">2</span>
-        <h3>Put it somewhere handy</h3>
-        <p>Move the file to your desktop, a class folder or a USB drive. You can rename it if you like.</p>
-      </li>
-      <li>
-        <span class="step-num" style="background:var(--spread-bg)" aria-hidden="true">3</span>
-        <h3>Double-click to open</h3>
-        <p>It opens in your web browser and works right away, with or without internet.</p>
-      </li>
-    </ol>
-
-    <div class="tip">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-      <p><strong>Download blocked on a school computer?</strong> Open the app instead, then press Ctrl+S (Cmd+S on a Mac) and save it as "Webpage, HTML only". You can also share the file with colleagues by email or a shared drive.</p>
-    </div>
-  </section>
-
-  <!-- =================================================================
-       ABOUT
-       ================================================================= -->
-  <section id="about" class="wrap section about" aria-labelledby="about-heading">
-    <div class="about-box">
-      <h2 id="about-heading">Made by educators, for educators.</h2>
-      <div class="about-text">
-        <p>Teacher Apps is a collection of applications built by educators, for the classrooms they know best. Every app is free, works offline, has no ads and needs no account, so it fits any school, whatever the network or the budget.</p>
-        <p>The project is led by Michael Littrell, a former K-12 teacher and senior product manager in the educational software industry, now working as an Assistant Professor at Tennessee Tech University.</p>
-        <p><a href="https://github.com/mlittrell-ttu/mlittrell.github.io">See the code on GitHub</a></p>
-      </div>
-    </div>
   </section>
 
 </main>
 
-<footer class="site-footer">
+<footer class="lp-foot">
   <div class="wrap">
-    <p>© 2026 Teacher Apps. Free to use and share under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
-    <p>No data collected. Ever.</p>
+    <span>Made by educators, for educators. Led by Michael Littrell at Tennessee Tech University.</span>
+    <span>© 2026 Teacher Apps · <a href="https://opensource.org/licenses/MIT">MIT License</a></span>
   </div>
 </footer>
+
+<script>
+  /* Old links to sections of the home page now live on the apps page. */
+  (function () {
+    var h = location.hash;
+    if (h === '#apps') location.replace('apps.html');
+    else if (h === '#download' || h === '#about') location.replace('apps.html' + h);
+  })();
+</script>
 
 </body>
 </html>

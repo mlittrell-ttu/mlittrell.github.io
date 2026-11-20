@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<!--
+  TEACHER APPS: THE APPS PAGE
+  =================================================================
+  Every app, with Open and Download links, then how to download and
+  about. Nothing is loaded from the internet: fonts come from the
+  computer, icons are drawn with inline SVG.
+
+  How the file is laid out:
+    1. <style>  ... design tokens, then one block per section
+                    (this page and index.html share the same styles)
+    2. <body>   ... header, filters and app cards, download steps,
+                    about, footer
+  The one small script filters the cards by category.
+
+  Adding a new app: copy one .app-card <li> in the APPS section,
+  change its data-kind, colour variables, icon, text and the two
+  links. A new category also needs its own filter button.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The apps · Teacher Apps</title>
+<meta name="description" content="Every Teacher Apps app: open one to use it now, or download it to keep. Free, offline and private.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231C2730'/%3E%3Crect x='8' y='8' width='10.5' height='10.5' rx='3' fill='%237FA6F0'/%3E%3Ccircle cx='26.75' cy='13.25' r='5.25' fill='%235FC49A'/%3E%3Crect x='8' y='21.5' width='10.5' height='10.5' rx='3' fill='%23E2AB4C'/%3E%3Crect x='21.5' y='21.5' width='10.5' height='10.5' rx='3' fill='%23EEF2F1'/%3E%3C/svg%3E">
+
+<style>
+/* =================================================================
+   1. DESIGN TOKENS
+   Shared with every Teacher Apps tool. Change a value here and it
+   changes across the whole page.
+   ================================================================= */
+:root {
+  --paper:      #F5F7F6;  /* page background, a cool whiteboard white */
+  --surface:    #FFFFFF;  /* cards */
+  --surface-2:  #EEF2F1;  /* subtle fills */
+  --ink:        #1C2730;  /* main text: dark slate */
+  --ink-2:      #4A5862;  /* secondary text (about 7:1 contrast) */
+  --rule:       #D3DBDA;  /* light dividing lines */
+  --field-edge: #85918F;  /* outline buttons */
+  --focus:      #1D5FD1;  /* keyboard focus ring */
+
+  /* Each app has a colour: a soft tint ("bg") and a stronger mark. */
+  --timer-bg:   #D7E5FA; --timer:   #3A6BCB;
+  --cards-bg:   #CDEBDD; --cards:   #2A8462;
+  --pct-bg:     #ECE7F5; --pct:     #73639F;
+  --spread-bg:  #F8E9C9; --spread:  #A57A2E;
+  --noun-bg:    #F5D3D0; --noun:    #BE4A43;
+  --mwb-bg:     #D8ECEE; --mwb:     #3F848C;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+/* =================================================================
+   2. BASICS
+   ================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.5;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: var(--ink); }
+a:hover { color: var(--focus); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+
+/* Pill-shaped buttons (they are links styled as buttons). */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px;
+  border-radius: 999px; border: 1px solid var(--field-edge);
+  background: var(--surface); color: var(--ink);
+  font-weight: 600; text-decoration: none;
+}
+.btn:hover { background: var(--surface-2); color: var(--ink); }
+.btn-primary { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.btn-primary:hover { background: #2C3A45; color: #FFFFFF; }
+.btn-big { min-height: 52px; padding: 0 26px; font-size: 1.0625rem; }
+
+/* The Teacher Apps logo: four tiles on a slate square. */
+.logo-mark {
+  width: 40px; height: 40px; padding: 8px; border-radius: 11px;
+  background: var(--ink);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  flex: none;
+}
+.logo-mark span:nth-child(1) { background: #7FA6F0; border-radius: 4px 4px 4px 2px; }
+.logo-mark span:nth-child(2) { background: #5FC49A; border-radius: 50%; }
+.logo-mark span:nth-child(3) { background: #E2AB4C; border-radius: 4px; }
+.logo-mark span:nth-child(4) { background: #EEF2F1; border-radius: 4px 2px 4px 4px; }
+
+/* =================================================================
+   3. HEADER
+   ================================================================= */
+.site-header { border-bottom: 1px solid var(--rule); }
+.site-header .wrap {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px 24px; padding-top: 18px; padding-bottom: 18px;
+}
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.brand-name { font-size: 1.1875rem; font-weight: 700; letter-spacing: -0.02em; }
+.site-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.site-nav a {
+  padding: 10px 14px; border-radius: 999px;
+  color: var(--ink-2); font-weight: 500; text-decoration: none;
+}
+.site-nav a:hover { background: var(--surface-2); color: var(--ink); }
+
+/* =================================================================
+   4. HERO: headline, buttons and a picture of the timer in action
+   ================================================================= */
+.hero { padding-top: 88px; padding-bottom: 72px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.badge {
+  display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;
+  padding: 6px 14px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--rule);
+  font-size: 0.875rem; font-weight: 600; color: var(--ink-2);
+}
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cards); }
+.hero h1 {
+  font-size: clamp(2.5rem, 5.5vw, 4rem); line-height: 1.05;
+  font-weight: 750; letter-spacing: -0.03em; max-width: 16ch;
+}
+.hero .lede { margin-top: 24px; font-size: 1.25rem; line-height: 1.55; color: var(--ink-2); max-width: 40ch; }
+.hero-actions { margin-top: 36px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+
+/* The browser-window picture. It is decoration only (aria-hidden),
+   built from plain boxes so it stays sharp and needs no image file. */
+.shot { margin: 64px 0 0; width: 100%; max-width: 980px; text-align: left; }
+.shot-window {
+  border-radius: 20px; background: var(--ink); padding: 10px;
+  box-shadow: 0 2px 4px rgba(28,39,48,0.08), 0 48px 96px -40px rgba(28,39,48,0.55);
+}
+.shot-bar { display: flex; align-items: center; gap: 14px; padding: 6px 8px 14px; }
+.shot-dots { display: flex; gap: 7px; }
+.shot-dots span { width: 11px; height: 11px; border-radius: 50%; }
+.shot-url {
+  flex: 1; max-width: 360px; margin: 0 auto; padding: 5px 14px; border-radius: 8px;
+  background: #232D34; color: #B6C1C4; font-size: 0.8125rem; text-align: center;
+}
+.shot-screen { border-radius: 12px; background: var(--paper); padding: clamp(16px, 3vw, 32px); display: flex; flex-direction: column; gap: 16px; }
+.shot-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.shot-title { font-size: clamp(1.125rem, 2.2vw, 1.5rem); font-weight: 700; }
+.shot-total { color: var(--ink-2); }
+.shot-total strong { color: var(--ink); font-size: 1.5rem; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.shot-timeline { display: flex; gap: 4px; height: 10px; }
+.shot-timeline span { flex: 1; border-radius: 999px; }
+.shot-body { display: flex; flex-wrap: wrap; gap: 20px; }
+.shot-now {
+  flex: 999 1 420px; min-width: 0;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 16px;
+  padding: clamp(18px, 3vw, 32px);
+}
+.shot-meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; color: var(--ink-2); font-size: 0.9375rem; }
+.shot-state { display: inline-flex; align-items: center; gap: 7px; padding: 4px 13px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-weight: 700; }
+.shot-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--timer); }
+.shot-seg { margin-top: 18px; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 750; letter-spacing: -0.015em; line-height: 1.05; }
+.shot-desc { margin-top: 8px; font-size: clamp(1rem, 1.8vw, 1.25rem); color: var(--ink-2); }
+.shot-count { margin-top: 22px; font-size: clamp(4.5rem, 12vw, 8.5rem); font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.shot-progress { margin-top: 18px; height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.shot-progress span { display: block; width: 49%; height: 100%; border-radius: 999px; background: var(--timer); }
+.shot-labels { margin-top: 6px; display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.shot-plan { flex: 1 1 240px; min-width: 0; }
+.shot-plan-title { margin-bottom: 10px; font-weight: 700; color: var(--ink-2); }
+.shot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.shot-list li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px; border: 2px solid transparent; font-size: 0.9375rem;
+}
+.shot-list .dot { width: 10px; height: 10px; border-radius: 50%; }
+.shot-list .time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.shot-list .tag { font-size: 0.75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); }
+.shot-list .is-now { background: var(--surface); border-color: var(--timer); font-weight: 700; }
+.shot-list .is-now .tag { background: var(--timer-bg); }
+.shot-buttons { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
+.shot-buttons span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px; border-radius: 999px; font-weight: 600; font-size: 0.9375rem; border: 1px solid var(--field-edge); }
+.shot-buttons span:first-child { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.shot figcaption { margin-top: 16px; text-align: center; font-size: 0.9375rem; color: var(--ink-2); }
+
+/* =================================================================
+   5. "WHY" ROW: three short promises
+   ================================================================= */
+.why {
+  list-style: none; margin: 0; padding: 28px 32px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 24px 32px;
+}
+.why li { display: flex; gap: 14px; align-items: flex-start; }
+.why-icon { flex: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.why strong { display: block; }
+.why span span { font-size: 0.9375rem; color: var(--ink-2); }
+
+/* =================================================================
+   6. SECTIONS AND APP CARDS
+   ================================================================= */
+.section { padding-top: 72px; padding-bottom: 24px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; margin-bottom: 28px; }
+.section h2 { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; }
+.section-sub { margin-top: 8px; font-size: 1.0625rem; color: var(--ink-2); max-width: 60ch; }
+
+.app-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 20px;
+}
+.app-card {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 20px;
+  padding: 28px; display: flex; flex-direction: column; gap: 16px;
+}
+.app-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+/* Each card sets --tint and --mark to its app's colours. */
+.app-icon { width: 52px; height: 52px; border-radius: 16px; background: var(--tint); display: flex; align-items: center; justify-content: center; }
+.app-icon svg { stroke: var(--mark); }
+.pill { padding: 4px 12px; border-radius: 999px; font-size: 0.8125rem; font-weight: 600; }
+.pill-new { background: var(--ink); color: #FFFFFF; }
+.pill-soon { background: var(--surface-2); color: var(--ink-2); }
+.app-kind { font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+.app-card h3 { margin-top: 4px; font-size: 1.375rem; font-weight: 700; letter-spacing: -0.01em; }
+.app-card p.desc { margin-top: 8px; color: var(--ink-2); }
+.app-actions { margin-top: auto; padding-top: 8px; display: flex; gap: 10px; }
+.app-actions .btn { flex: 1; }
+/* Apps that aren't ready yet: no buttons, softer look. */
+.app-card.is-soon { background: transparent; border-style: dashed; }
+.app-card.is-soon .app-icon { opacity: 0.75; }
+.soon-note { margin-top: auto; padding-top: 8px; font-size: 0.9375rem; color: var(--ink-2); }
+
+/* =================================================================
+   7. HOW TO DOWNLOAD
+   ================================================================= */
+.steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px;
+}
+.steps li { background: var(--surface); border: 1px solid var(--rule); border-radius: 20px; padding: 28px; }
+.step-num { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.0625rem; }
+.steps h3 { margin-top: 18px; font-size: 1.1875rem; font-weight: 700; }
+.steps p { margin-top: 6px; color: var(--ink-2); }
+.tip { margin-top: 20px; padding: 20px 24px; border-radius: 16px; background: var(--surface-2); display: flex; gap: 14px; align-items: flex-start; }
+.tip svg { flex: none; margin-top: 2px; }
+
+/* =================================================================
+   8. ABOUT AND FOOTER
+   ================================================================= */
+.about { padding-bottom: 88px; }
+.about-box {
+  background: var(--ink); color: #B6C1C4; border-radius: 24px; padding: 48px;
+  display: flex; flex-wrap: wrap; gap: 32px 56px;
+}
+.about-box h2 { flex: 1 1 300px; min-width: 0; color: #FFFFFF; font-size: 2rem; }
+.about-text { flex: 2 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 14px; font-size: 1.0625rem; line-height: 1.6; }
+.about-text a { color: #FFFFFF; font-weight: 600; }
+.about-text a:focus-visible { outline-color: #7EA9FF; }
+
+.site-footer { border-top: 1px solid var(--rule); }
+.site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-top: 28px; padding-bottom: 28px; font-size: 0.875rem; color: var(--ink-2); }
+.site-footer a { color: var(--ink-2); }
+
+@media (max-width: 600px) {
+  .hero { padding-top: 56px; }
+  .about-box { padding: 32px 24px; }
+  .section h2 { font-size: 1.875rem; }
+}
+
+/* =================================================================
+   LANDING PAGE AND APPS PAGE
+   ================================================================= */
+.site-header .site-nav { align-items: center; }
+.site-nav a[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
+.site-nav .btn { min-height: 40px; padding: 0 18px; margin-left: 6px; font-size: 0.9375rem; }
+.site-nav .btn-primary, .site-nav .btn-primary:hover { color: #FFFFFF; background: var(--ink); }
+.btn svg { stroke: currentColor; }
+
+/* Hero: words on the left, the apps in use on the right */
+.lp { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; align-items: center; padding-top: 40px; padding-bottom: 24px; }
+.lp .badge { margin: 0; }
+.lp h1 { margin-top: 20px; font-size: clamp(2.5rem, 4.6vw, 3.875rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+.lp h1 .accent { color: var(--timer); }
+.lp .lede { margin-top: 22px; font-size: 1.1875rem; line-height: 1.55; color: var(--ink-2); max-width: 44ch; }
+.lp .cta { margin-top: 30px; }
+.lp .cta .btn { min-height: 54px; padding: 0 26px; font-size: 1.0625rem; gap: 10px; }
+.stage { position: relative; height: 440px; }
+.win { position: absolute; left: 0; top: 0; width: 92%; border-radius: 16px; overflow: hidden; background: #FFFFFF; border: 1px solid var(--rule); box-shadow: 0 24px 60px rgba(28,39,48,0.16), 0 4px 12px rgba(28,39,48,0.06); }
+.win-bar { height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 14px; background: var(--surface-2); border-bottom: 1px solid var(--rule); }
+.win-bar i { width: 10px; height: 10px; border-radius: 50%; }
+.win-bar span { margin-left: 12px; font-size: 0.75rem; color: var(--ink-2); background: #FFFFFF; border-radius: 999px; padding: 2px 12px; }
+.win img, .phone img { display: block; width: 100%; height: auto; }
+.phone { position: absolute; right: 0; bottom: -10px; width: 198px; border-radius: 30px; padding: 8px; background: #1C2730; box-shadow: 0 24px 50px rgba(28,39,48,0.28); }
+.phone img { border-radius: 23px; }
+.phone::before { content: ""; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 54px; height: 6px; border-radius: 9px; background: #1C2730; z-index: 2; }
+
+/* Feature columns under the hero */
+.feats ul { list-style: none; margin: 0; padding: 36px 0 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; border-top: 1px solid var(--rule); }
+.feat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.feats h2 { margin-top: 14px; font-size: 1.0625rem; font-weight: 700; letter-spacing: 0; }
+.feats p { margin-top: 4px; color: var(--ink-2); font-size: 0.9375rem; line-height: 1.5; }
+.lp-foot { margin-top: 40px; border-top: 1px solid var(--rule); }
+.lp-foot .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 20px; padding-bottom: 20px; font-size: 0.875rem; color: var(--ink-2); }
+.lp-foot a { color: inherit; }
+
+/* Apps page */
+.apps-head { padding-top: 48px; }
+.apps-head h1 { font-size: clamp(2.25rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.apps-head p { margin-top: 10px; color: var(--ink-2); font-size: 1.125rem; max-width: 52ch; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px; }
+.filters button { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule); background: #FFFFFF; font: inherit; font-weight: 600; font-size: 0.9375rem; color: var(--ink-2); cursor: pointer; }
+.filters button:hover { border-color: var(--field-edge); color: var(--ink); }
+.filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.apps-page .app-grid { margin-top: 24px; }
+.app-card[hidden] { display: none; }
+
+@media (max-width: 860px) {
+  .lp { grid-template-columns: 1fr; gap: 36px; padding-top: 28px; }
+  .stage { height: 300px; max-width: 520px; }
+  .phone { width: 140px; border-radius: 24px; padding: 6px; }
+  .phone img { border-radius: 19px; }
+  .feats ul { grid-template-columns: 1fr 1fr; gap: 28px; }
+}
+@media (max-width: 600px) {
+  .site-nav a.nav-link { display: none; }
+  .site-nav a.nav-link[aria-current="page"] { display: inline-flex; }
+  .lp h1 { font-size: 2.5rem; }
+  .lp .lede { font-size: 1.0625rem; }
+  .stage { height: 250px; }
+  .win { width: 100%; }
+  .phone { width: 118px; right: -6px; bottom: -16px; }
+  .feats ul { grid-template-columns: 1fr; gap: 22px; }
+  .feats li { display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; }
+  .feat-icon { grid-row: span 2; }
+  .feats h2 { margin-top: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      <span class="brand-name">Teacher Apps</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a class="nav-link" href="apps.html" aria-current="page">Apps</a><a class="nav-link" href="apps.html#download">How to download</a><a class="nav-link" href="apps.html#about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main class="apps-page">
+
+  <!-- =================================================================
+       APPS
+       Live apps have Open and Download links. A new category needs
+       its own button in the filters row.
+       ================================================================= -->
+  <section class="wrap" aria-labelledby="apps-heading">
+    <div class="apps-head">
+      <h1 id="apps-heading">The apps</h1>
+      <p>Open one to use it right here, or download it to keep. Every app works with no internet.</p>
+    </div>
+    <div class="filters" role="group" aria-label="Show apps by category"><button type="button" data-filter="" aria-pressed="true">All</button><button type="button" data-filter="Classroom" aria-pressed="false">Classroom</button><button type="button" data-filter="Study" aria-pressed="false">Study</button><button type="button" data-filter="Math and data" aria-pressed="false">Math and data</button><button type="button" data-filter="Language" aria-pressed="false">Language</button></div>
+    <ul class="app-grid">
+      <li class="app-card" data-kind="Classroom" style="--tint:var(--timer-bg);--mark:var(--timer)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span>
+          <span class="pill pill-new">New</span>
+        </div>
+        <div>
+          <p class="app-kind">Classroom</p>
+          <h3>Classroom Timer</h3>
+          <p class="desc">A countdown timer students can see. Plan the whole class in timed segments.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="timer.html" aria-label="Open Classroom Timer">Open</a>
+          <a class="btn" href="timer.html" download="classroom-timer.html" aria-label="Download Classroom Timer">Download</a>
+        </div>
+      </li><li class="app-card" data-kind="Study" style="--tint:var(--cards-bg);--mark:var(--cards)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="14" height="13" rx="2.5"/><path d="M7 3.5h11.5A2.5 2.5 0 0 1 21 6v11"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Study</p>
+          <h3>Flashcards</h3>
+          <p class="desc">Make a deck of cards and study it. Save the deck as a file to use again.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="flashcards.html" aria-label="Open Flashcards">Open</a>
+          <a class="btn" href="flashcards.html" download="flashcards.html" aria-label="Download Flashcards">Download</a>
+        </div>
+      </li><li class="app-card" data-kind="Math and data" style="--tint:var(--pct-bg);--mark:var(--pct)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Math and data</p>
+          <h3>Percentages</h3>
+          <p class="desc">Count things into groups. See each group as a fraction, a decimal, and a percentage.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="percentages.html" aria-label="Open Percentages">Open</a>
+          <a class="btn" href="percentages.html" download="percentages.html" aria-label="Download Percentages">Download</a>
+        </div>
+      </li><li class="app-card" data-kind="Math and data" style="--tint:var(--spread-bg);--mark:var(--spread)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 16v-4M10 16V8M14 16V5M18 16v-6"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Math and data</p>
+          <h3>Center and Spread</h3>
+          <p class="desc">Build a small data set. See the mean, median, mode, and range, with the math shown step by step.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="spread.html" aria-label="Open Center and Spread">Open</a>
+          <a class="btn" href="spread.html" download="spread.html" aria-label="Download Center and Spread">Download</a>
+        </div>
+      </li><li class="app-card" data-kind="Language" style="--tint:var(--noun-bg);--mark:var(--noun)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><circle cx="17.25" cy="6.75" r="3.75"/><path d="M6.75 13.5l3.75 7H3z"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Language</p>
+          <h3>Noun Match</h3>
+          <p class="desc">Students sort nouns into person, place, and thing. Every incorrect answer shows a short explanation.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="noun-matching-game.html" aria-label="Open Noun Match">Open</a>
+          <a class="btn" href="noun-matching-game.html" download="noun-matching-game.html" aria-label="Download Noun Match">Download</a>
+        </div>
+      </li><li class="app-card" data-kind="Classroom" style="--tint:var(--mwb-bg);--mark:var(--mwb)">
+        <div class="app-top">
+          <span class="app-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15.5c0-3-2.5-5.5-7-5.5 0 3 2.5 5.5 7 5.5z"/></svg></span>
+        </div>
+        <div>
+          <p class="app-kind">Classroom</p>
+          <h3>Well-Being Tracker</h3>
+          <p class="desc">A quick daily check-in on each student. Look back over the weeks to spot patterns.</p>
+        </div>
+        <div class="app-actions">
+          <a class="btn btn-primary" href="mwb-tracker.html" aria-label="Open Well-Being Tracker">Open</a>
+          <a class="btn" href="mwb-tracker.html" download="mwb-tracker.html" aria-label="Download Well-Being Tracker">Download</a>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <section id="download" class="wrap section" aria-labelledby="download-heading">
+    <h2 id="download-heading">How to download</h2>
+    <p class="section-sub" style="margin-bottom:28px">Keep any app on your computer so it works even when the Wi-Fi doesn't. Nothing to install.</p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num" style="background:var(--timer-bg)" aria-hidden="true">1</span>
+        <h3>Press Download</h3>
+        <p>Pick an app above and press its Download button. One small file saves to your Downloads folder.</p>
+      </li>
+      <li>
+        <span class="step-num" style="background:var(--cards-bg)" aria-hidden="true">2</span>
+        <h3>Put it somewhere handy</h3>
+        <p>Move the file to your desktop, a class folder or a USB drive. You can rename it if you like.</p>
+      </li>
+      <li>
+        <span class="step-num" style="background:var(--spread-bg)" aria-hidden="true">3</span>
+        <h3>Double-click to open</h3>
+        <p>It opens in your web browser and works right away, with or without internet.</p>
+      </li>
+    </ol>
+
+    <div class="tip">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C2730" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+      <p><strong>Download blocked on a school computer?</strong> Open the app instead, then press Ctrl+S (Cmd+S on a Mac) and save it as "Webpage, HTML only". You can also share the file with colleagues by email or a shared drive.</p>
+    </div>
+  </section>
+
+  <section id="about" class="wrap section about" aria-labelledby="about-heading">
+    <div class="about-box">
+      <h2 id="about-heading">Made by educators, for educators.</h2>
+      <div class="about-text">
+        <p>Teacher Apps is a collection of applications built by educators, for the classrooms they know best. Every app is free, works offline, has no ads and needs no account, so it fits any school, whatever the network or the budget.</p>
+        <p>The project is led by Michael Littrell, a former K-12 teacher and senior product manager in the educational software industry, now working as an Assistant Professor at Tennessee Tech University.</p>
+        <p><a href="https://github.com/mlittrell-ttu/mlittrell.github.io">See the code on GitHub</a></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Teacher Apps. Free to use and share under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+    <p>No data collected. Ever.</p>
+  </div>
+</footer>
+
+<script>
+  /* Filter the cards by category. Nothing is saved. */
+  (function () {
+    var buttons = document.querySelectorAll('[data-filter]');
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.dataset.filter;
+        buttons.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        document.querySelectorAll('.app-card').forEach(function (c) { c.hidden = !!k && c.dataset.kind !== k; });
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
