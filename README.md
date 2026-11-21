@@ -5,7 +5,6 @@ Small, friendly apps for the classroom. Each app is a single HTML file that work
 ## Use the apps
 
 Home page: https://mlittrell-ttu.github.io/mlittrell.github.io/
-All the apps: https://mlittrell-ttu.github.io/mlittrell.github.io/apps.html
 
 | App | File | Status |
 | --- | --- | --- |
